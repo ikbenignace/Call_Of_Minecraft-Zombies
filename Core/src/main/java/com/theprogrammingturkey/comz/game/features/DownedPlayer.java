@@ -9,6 +9,9 @@ import com.theprogrammingturkey.comz.game.managers.WeaponManager;
 import com.theprogrammingturkey.comz.game.weapons.WeaponInstance;
 import com.theprogrammingturkey.comz.leaderboards.Leaderboard;
 import com.theprogrammingturkey.comz.leaderboards.PlayerStats;
+
+import dev.geco.gsit.api.GSitAPI;
+
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Color;
@@ -56,6 +59,8 @@ public class DownedPlayer implements Listener
 		player.setGameMode(GameMode.CREATIVE);
 		player.setAllowFlight(false);
 		player.setWalkSpeed(0.02f);
+		GSitAPI.startCrawl(player);
+		COMZombies.getPlugin().gSit.startLaying(player);
 		scheduleTask();
 	}
 
@@ -63,6 +68,7 @@ public class DownedPlayer implements Listener
 	{
 		isPlayerDown = false;
 		isBeingRevived = false;
+		COMZombies.getPlugin().gSit.stopPose(player);
 		Bukkit.getScheduler().cancelTask(fireWorksTask);
 		player.setGameMode(GameMode.SURVIVAL);
 		player.setWalkSpeed(0.2F);
@@ -80,6 +86,7 @@ public class DownedPlayer implements Listener
 			stats.setRevives(stats.getRevives() + 1);
 		}
 		clearDownedState();
+		COMZombies.getPlugin().gSit.stopPose(player);
 		game.downedPlayerManager.downedPlayerRevived(this);
 		PlayerWeaponManager manager = game.getPlayersWeapons(player);
 		manager.removeWeapon(1);

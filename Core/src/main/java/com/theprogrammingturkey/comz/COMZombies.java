@@ -77,6 +77,8 @@ public class COMZombies extends JavaPlugin
 
 	public Vault vault;
 
+	public GSit gSit;
+
 	public void onEnable()
 	{
 		loadVersionSpecificCode();
@@ -87,6 +89,8 @@ public class COMZombies extends JavaPlugin
 		PointManager.INSTANCE.saveAll();
 
 		vault = new Vault();
+
+		gSit = new GSit();
 
 		if(Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null)
 		{
