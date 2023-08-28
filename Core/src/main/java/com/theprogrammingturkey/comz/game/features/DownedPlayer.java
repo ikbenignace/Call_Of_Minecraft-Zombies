@@ -34,6 +34,7 @@ public class DownedPlayer implements Listener
 
 	private int fireWorksTask = -1;
 	private int reviveTask = -1;
+	private int reviveCountdownTask = -1;
 
 	public DownedPlayer(Player player, Game game)
 	{
@@ -102,6 +103,17 @@ public class DownedPlayer implements Listener
 		this.reviver = reviver;
 		int reviveTime = ConfigManager.getMainConfig().reviveTimer * 20;
 		reviveTask = COMZombies.scheduleTask(reviveTime, this::revivePlayer);
+		reviveCountdownTask = COMZombies.scheduleTask(0, 20, () ->
+		{
+			if(!isBeingRevived)
+				Bukkit.getScheduler().cancelTask(reviveCountdownTask);
+			else
+			{
+				int timeLeft = (reviveTime - downTime) / 20;
+				COMZombies.nmsUtil.sendActionBarMessage(reviver, ChatColor.GREEN + "You are reviving " + ChatColor.DARK_GREEN + player.getName() + ChatColor.GREEN + " in " + ChatColor.DARK_GREEN + timeLeft + ChatColor.GREEN + " seconds!");
+				COMZombies.nmsUtil.sendActionBarMessage(player, ChatColor.GREEN + "You are being revived by " + ChatColor.DARK_GREEN + reviver.getName() + ChatColor.GREEN + " in " + ChatColor.DARK_GREEN + timeLeft + ChatColor.GREEN + " seconds!");
+			}
+		});
 	}
 
 	private void scheduleTask()
