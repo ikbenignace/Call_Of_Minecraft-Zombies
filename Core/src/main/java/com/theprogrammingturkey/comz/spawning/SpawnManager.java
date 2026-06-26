@@ -50,6 +50,12 @@ public class SpawnManager
 	private int mobsToSpawn = 0;
 	private boolean dogRound = false;
 
+	/** 0L — stuck-detection state: last sampled location and accumulated no-progress ticks per mob. */
+	private final Map<Mob, Location> stuckLastLoc = new HashMap<>();
+	private final Map<Mob, Long> stuckTicks = new HashMap<>();
+	/** update() reschedules itself every 100 ticks, so that is the stuck-check sampling interval. */
+	private static final long STUCK_CHECK_INTERVAL = 100L;
+
 	public SpawnManager(Game game)
 	{
 		this.game = game;
@@ -155,6 +161,8 @@ public class SpawnManager
 			return;
 
 		mobs.remove(entity);
+		stuckLastLoc.remove(entity);
+		stuckTicks.remove(entity);
 
 		if(mobs.isEmpty() && mobsSpawned >= mobsToSpawn)
 		{
@@ -241,6 +249,16 @@ public class SpawnManager
 		return Math.max(1, perPlayer * players);
 	}
 
+	/**
+	 * 0L — Running no-progress tick counter for a mob. Returns 0 the instant the mob makes
+	 * progress (moves at least {@code moveThreshold}); otherwise grows the previous counter by
+	 * one check interval. The caller teleports the mob once the result reaches the stuck threshold.
+	 */
+	public static long updateStuckTicks(long prevStuckTicks, double movedDistance, double moveThreshold, long intervalTicks)
+	{
+		return movedDistance >= moveThreshold ? 0L : prevStuckTicks + intervalTicks;
+	}
+
 	private void smartSpawn(final int wave)
 	{
 		if(!this.canSpawn || wave != game.getWave())
@@ -312,11 +330,60 @@ public class SpawnManager
 				if(mob.isDead())
 					removeEntity(mob);
 				else
-					mob.setTarget(getNearestPlayer(mob));
+				{
+					Player nearest = getNearestPlayer(mob);
+					mob.setTarget(nearest);
+					checkStuck(mob, nearest);
+				}
 			}
 
 			update();
 		});
+	}
+
+	/**
+	 * 0L — Detects a mob that has made no progress for {@code zombieStuckSeconds} and teleports it
+	 * to a reachable (door-open) spawn point near the targeted player so it can resume pathing.
+	 * This is what unsticks the common "1 zombie left wedged on geometry" round hang.
+	 */
+	private void checkStuck(Mob mob, Player nearest)
+	{
+		ConfigSetup cfg = ConfigManager.getMainConfig();
+		if(cfg.zombieStuckSeconds <= 0 || nearest == null)
+		{
+			stuckLastLoc.remove(mob);
+			stuckTicks.remove(mob);
+			return;
+		}
+
+		Location current = mob.getLocation();
+		Location last = stuckLastLoc.get(mob);
+		double moved = (last != null && last.getWorld() == current.getWorld()) ? last.distance(current) : Double.MAX_VALUE;
+		long accum = updateStuckTicks(stuckTicks.getOrDefault(mob, 0L), moved, cfg.zombieStuckMoveThreshold, STUCK_CHECK_INTERVAL);
+		stuckLastLoc.put(mob, current.clone());
+
+		if(accum >= (long) cfg.zombieStuckSeconds * 20L)
+		{
+			teleportStuckMob(mob, nearest);
+			accum = 0L;
+		}
+		stuckTicks.put(mob, accum);
+	}
+
+	/**
+	 * 0L — Teleports a stuck mob to the reachable spawn point nearest the target player.
+	 */
+	private void teleportStuckMob(Mob mob, Player target)
+	{
+		List<SpawnPoint> spawnable = points.stream().filter(this::canSpawn).collect(Collectors.toList());
+		if(spawnable.isEmpty())
+			return;
+		List<SpawnPoint> nearest = nearestPoints(spawnable, target.getLocation(), 1);
+		if(nearest.isEmpty())
+			return;
+		Location dest = nearest.get(0).getLocation().clone().add(0.5, 0, 0.5);
+		mob.teleport(dest);
+		mob.setTarget(target);
 	}
 
 	private Player getNearestPlayer(Entity e)

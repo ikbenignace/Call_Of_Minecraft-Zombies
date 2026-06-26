@@ -55,6 +55,10 @@ config:
     meleeKillBonus: 60
     #Base knife one-shots zombies through (and including) this round; knife damage derives from the HP curve at this round.
     knifeOneShotThroughRound: 9
+    #Seconds a zombie may make no progress before it teleports to a reachable spawn near a player (fixes stuck/"1 zombie left" hangs). 0 disables.
+    zombieStuckSeconds: 6
+    #A zombie moving less than this many blocks within a check interval counts as no progress.
+    zombieStuckMoveThreshold: 1.0
     #Dogs spawned per player on a dog round (total = dogsPerPlayer * players). BO scales dogs by players, not round.
     dogsPerPlayer: 3
     #Guarantee a Max Ammo drop when the last dog of a dog round dies (BO behavior).

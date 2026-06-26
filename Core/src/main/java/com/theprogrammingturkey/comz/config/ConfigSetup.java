@@ -123,6 +123,18 @@ public class ConfigSetup
 	public int knifeOneShotThroughRound;
 
 	/**
+	 * 0L — Seconds a zombie may make no progress (move less than the threshold) before it is
+	 * teleported to a reachable spawn near a player. Fixes the "stuck on geometry / 1 zombie
+	 * left" hang. 0 disables the stuck check.
+	 */
+	public int zombieStuckSeconds;
+	/**
+	 * 0L — A zombie that moves less than this many blocks within a check interval is considered
+	 * to have made no progress.
+	 */
+	public double zombieStuckMoveThreshold;
+
+	/**
 	 * 0g — Dogs spawned per player on a dog round (total = dogsPerPlayer * players).
 	 */
 	public int dogsPerPlayer;
@@ -205,6 +217,8 @@ public class ConfigSetup
 		speedColaReloadMultiplier = plugin.getConfig().getDouble("config.perks.speedColaReloadMultiplier", 0.5);
 		doubleTapFireMultiplier = plugin.getConfig().getDouble("config.perks.doubleTapFireMultiplier", 1.5);
 		knifeOneShotThroughRound = plugin.getConfig().getInt("config.gameSettings.knifeOneShotThroughRound", 9);
+		zombieStuckSeconds = plugin.getConfig().getInt("config.gameSettings.zombieStuckSeconds", 6);
+		zombieStuckMoveThreshold = plugin.getConfig().getDouble("config.gameSettings.zombieStuckMoveThreshold", 1.0);
 		dogsPerPlayer = plugin.getConfig().getInt("config.gameSettings.dogsPerPlayer", 3);
 		dogRoundMaxAmmoDrop = plugin.getConfig().getBoolean("config.gameSettings.dogRoundMaxAmmoDrop", true);
 		maxPowerUpsOnGround = plugin.getConfig().getInt("config.gameSettings.maxPowerUpsOnGround", 4);
