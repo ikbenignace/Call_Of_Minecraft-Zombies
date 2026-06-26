@@ -31,12 +31,26 @@ public enum PerkType
 	WHOS_WHO("perk/whos_who"),
 	DER_WUNDERFIZZ(null);
 
+	/**
+	 * Custom perk-bottle models are not shipped yet — the source pack only has an empty
+	 * {@code perk_bottle_base} template (no texture), which renders invisible. Until real
+	 * per-perk models exist, perks keep their distinct vanilla item icons. Flip to {@code true}
+	 * once {@code assets/comz/items/perk/<slug>} point at textured models.
+	 */
+	private static final boolean CUSTOM_PERK_MODELS = false;
+
 	/** COM:Z pack item-model key for this perk's bottle, or null (e.g. the random machine). */
 	private final String modelKey;
 
 	PerkType(String modelKey)
 	{
 		this.modelKey = modelKey;
+	}
+
+	/** Model key to apply, or null while custom perk models are not ready. */
+	private String activeModelKey()
+	{
+		return CUSTOM_PERK_MODELS ? modelKey : null;
 	}
 
 	public static PerkType getPerkType(String name)
@@ -120,7 +134,7 @@ public enum PerkType
 			default:
 				break;
 		}
-		PackModels.apply(stack, type.modelKey);
+		PackModels.apply(stack, type.activeModelKey());
 		player.getInventory().setItem(slot, setItemMeta(stack, Perktype));
 		player.updateInventory();
 	}
@@ -184,7 +198,7 @@ public enum PerkType
 			default:
 				break;
 		}
-		PackModels.apply(stack, type.modelKey);
+		PackModels.apply(stack, type.activeModelKey());
 		return stack;
 	}
 
