@@ -87,6 +87,10 @@ config:
     deathMachineDurationSeconds: 30
     #Pack-a-Punch first-pack cost while Bonfire Sale is active (also triggers a Fire Sale). BO2 ~1000.
     bonfirePaPCost: 1000
+    #Vulture Aid: percent chance (0-100) that a zombie kill drops a reward for a player holding the perk.
+    vultureDropChance: 10
+    #Vulture Aid: points awarded when a Vulture Aid drop rolls the points reward (other rolls refill ammo).
+    vulturePointsDrop: 25
   ReviveSettings:
     ReviveTimer: 4
     ReviveRange: 2

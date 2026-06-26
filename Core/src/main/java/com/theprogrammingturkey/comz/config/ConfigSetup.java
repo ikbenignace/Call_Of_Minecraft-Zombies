@@ -216,6 +216,16 @@ public class ConfigSetup
 	public int bonfirePaPCost;
 
 	/**
+	 * Tier 2 — Vulture Aid: percent chance (0-100) that a zombie kill drops a reward for a
+	 * player holding the perk.
+	 */
+	public int vultureDropChance;
+	/**
+	 * Tier 2 — Vulture Aid: points awarded when a Vulture Aid drop rolls the points reward.
+	 */
+	public int vulturePointsDrop;
+
+	/**
 	 * Main method to assign values to every field.
 	 */
 	public void setup()
@@ -275,6 +285,8 @@ public class ConfigSetup
 		crawlerGasRadius = plugin.getConfig().getDouble("config.gameSettings.crawlerGasRadius", 3.0);
 		deathMachineDurationSeconds = plugin.getConfig().getInt("config.gameSettings.deathMachineDurationSeconds", 30);
 		bonfirePaPCost = plugin.getConfig().getInt("config.gameSettings.bonfirePaPCost", 1000);
+		vultureDropChance = plugin.getConfig().getInt("config.gameSettings.vultureDropChance", 10);
+		vulturePointsDrop = plugin.getConfig().getInt("config.gameSettings.vulturePointsDrop", 25);
 
 		Leaderboard.loadLeaderboard();
 	}

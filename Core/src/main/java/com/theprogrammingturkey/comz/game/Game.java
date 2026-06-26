@@ -15,6 +15,7 @@ import com.theprogrammingturkey.comz.config.CustomConfig;
 import com.theprogrammingturkey.comz.economy.PointManager;
 import com.theprogrammingturkey.comz.game.features.Barrier;
 import com.theprogrammingturkey.comz.game.features.Door;
+import com.theprogrammingturkey.comz.game.features.PerkType;
 import com.theprogrammingturkey.comz.game.features.PowerUp;
 import com.theprogrammingturkey.comz.game.features.RandomBox;
 import com.theprogrammingturkey.comz.game.managers.*;
@@ -1163,6 +1164,56 @@ public class Game
 		return doublePoints ? total * 2 : total;
 	}
 
+	/**
+	 * Tier 2 — Vulture Aid: pure roll test. A drop fires when a 0-99 roll lands below the
+	 * configured percent chance (so chance 0 never drops, chance 100 always drops).
+	 */
+	public static boolean vultureDrops(int roll, int chancePercent)
+	{
+		return roll < chancePercent;
+	}
+
+	/**
+	 * Tier 2 — Vulture Aid: even-odds split of the reward. Even rolls award points, odd rolls
+	 * refill ammo.
+	 */
+	public static boolean vultureRewardIsPoints(int roll)
+	{
+		return roll % 2 == 0;
+	}
+
+	/**
+	 * Tier 2 — Vulture Aid: on a zombie kill, if the killer holds the perk, roll for a modest
+	 * drop. On success either award a small points bonus or refill the player's ammo (even odds),
+	 * with a subtle pickup effect.
+	 */
+	private void tryVultureDrop(Mob mob, Player player)
+	{
+		if(!(mob instanceof Zombie))
+			return;
+		if(!perkManager.hasPerk(player, PerkType.VULTURE_AID))
+			return;
+		if(!vultureDrops(COMZombies.rand.nextInt(100), ConfigManager.getMainConfig().vultureDropChance))
+			return;
+
+		if(vultureRewardIsPoints(COMZombies.rand.nextInt(100)))
+		{
+			PointManager.INSTANCE.addPoints(player, ConfigManager.getMainConfig().vulturePointsDrop);
+			PointManager.INSTANCE.notifyPlayer(player);
+		}
+		else
+		{
+			getPlayersWeapons(player).maxAmmo();
+		}
+
+		World world = player.getWorld();
+		if(world != null)
+		{
+			world.playSound(player.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 0.6f, 1.4f);
+			world.spawnParticle(org.bukkit.Particle.HAPPY_VILLAGER, player.getLocation().add(0, 1, 0), 6, 0.3, 0.5, 0.3);
+		}
+	}
+
 	public void damageMob(Mob mob, Player player, float damageAmount)
 	{
 		damageMob(mob, player, damageAmount, false, false);
@@ -1188,6 +1239,7 @@ public class Game
 					ConfigManager.getMainConfig().headshotKillBonus, ConfigManager.getMainConfig().meleeKillBonus, isDoublePoints()));
 
 			PointManager.INSTANCE.notifyPlayer(player);
+			tryVultureDrop(mob, player);
 			spawnManager.removeEntity(mob);
 
 			if(mob instanceof Zombie)
@@ -1213,6 +1265,7 @@ public class Game
 					ConfigManager.getMainConfig().headshotKillBonus, ConfigManager.getMainConfig().meleeKillBonus, isDoublePoints()));
 
 			PointManager.INSTANCE.notifyPlayer(player);
+			tryVultureDrop(mob, player);
 			spawnManager.removeEntity(mob);
 
 			if(mob instanceof Zombie)
