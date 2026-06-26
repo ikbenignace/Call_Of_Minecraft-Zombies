@@ -6,7 +6,9 @@ import com.theprogrammingturkey.comz.economy.PointManager;
 import com.theprogrammingturkey.comz.game.Game;
 import com.theprogrammingturkey.comz.game.GameManager;
 import com.theprogrammingturkey.comz.game.features.Barrier;
+import com.theprogrammingturkey.comz.game.features.PerkType;
 import com.theprogrammingturkey.comz.game.features.PowerUp;
+import com.theprogrammingturkey.comz.game.managers.PerkManager;
 import com.theprogrammingturkey.comz.game.managers.PlayerWeaponManager;
 import com.theprogrammingturkey.comz.game.managers.PowerUpManager;
 import net.md_5.bungee.api.ChatMessageType;
@@ -115,13 +117,23 @@ public class PowerUpDropListener implements Listener
 				case NUKE:
 					for(Player pl : game.getPlayersInGame())
 					{
-						if(game.isDoublePoints())
-							PointManager.INSTANCE.addPoints(player, 800);
-						else
-							PointManager.INSTANCE.addPoints(player, 400);
+						PointManager.INSTANCE.addPoints(pl, game.isDoublePoints() ? 800 : 400);
 						PointManager.INSTANCE.notifyPlayer(pl);
 					}
 					game.spawnManager.nuke();
+					break;
+				case BONUS_POINTS:
+					int bonus = ConfigManager.getMainConfig().bonusPointsAmount;
+					for(Player pl : game.getPlayersInGame())
+					{
+						PointManager.INSTANCE.addPoints(pl, game.isDoublePoints() ? bonus * 2 : bonus);
+						PointManager.INSTANCE.notifyPlayer(pl);
+					}
+					break;
+				case RANDOM_PERK:
+					PerkType randomPerk = game.perkManager.getRandomPerk(player);
+					if(randomPerk != null)
+						PerkManager.givePerk(game, player, randomPerk);
 					break;
 				case DOUBLE_POINTS:
 					duration = ConfigManager.getMainConfig().doublePointsTimer * 20;

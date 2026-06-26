@@ -1,9 +1,11 @@
 package com.theprogrammingturkey.comz.listeners;
 
 import com.theprogrammingturkey.comz.COMZombies;
+import com.theprogrammingturkey.comz.config.ConfigManager;
 import com.theprogrammingturkey.comz.game.Game;
 import com.theprogrammingturkey.comz.game.Game.GameStatus;
 import com.theprogrammingturkey.comz.game.GameManager;
+import com.theprogrammingturkey.comz.game.features.PerkType;
 import com.theprogrammingturkey.comz.game.managers.PlayerWeaponManager;
 import com.theprogrammingturkey.comz.game.weapons.GunInstance;
 import com.theprogrammingturkey.comz.game.weapons.WeaponType;
@@ -136,6 +138,9 @@ public class WeaponListener implements Listener
 									if(headshot)
 									{
 										damage *= 1.5f;
+										// Tier 1 — Deadshot Daiquiri: extra headshot damage on top of the base bonus.
+										if(game.perkManager.hasPerk(player, PerkType.DEADSHOT_DAIQ))
+											damage *= (float) ConfigManager.getMainConfig().deadshotHeadshotMultiplier;
 										for(int i = 0; i < 20; i++)
 											event.getPlayer().getWorld().spawnParticle(Particle.ENCHANTED_HIT, entToDamage.getLocation().getX(), entToDamage.getLocation().getY() + eyeHeight, entToDamage.getLocation().getZ(), 0, COMZombies.rand.nextDouble(2d) - 1d, COMZombies.rand.nextDouble(2d) - 1d, COMZombies.rand.nextDouble(2d) - 1d, 1);
 									}

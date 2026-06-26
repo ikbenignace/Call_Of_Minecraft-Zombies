@@ -108,6 +108,20 @@ public class ConfigSetup
 	public int meleeKillBonus;
 
 	/**
+	 * Tier 1 — Deadshot Daiquiri extra headshot damage multiplier (applied on top of the base
+	 * 1.5x headshot bonus when the player has the perk).
+	 */
+	public double deadshotHeadshotMultiplier;
+	/**
+	 * Tier 1 — Flat points awarded to every player by the Bonus Points power-up.
+	 */
+	public int bonusPointsAmount;
+	/**
+	 * Tier 1 — Maximum throwables (grenades / Monkey Bombs) a player may hold (buy-to-cap).
+	 */
+	public int maxGrenades;
+
+	/**
 	 * 0e — Speed Cola reload-time multiplier (0.5 = reloads twice as fast).
 	 */
 	public double speedColaReloadMultiplier;
@@ -214,6 +228,9 @@ public class ConfigSetup
 		zombieAttackCooldownTicks = plugin.getConfig().getInt("config.gameSettings.zombieAttackCooldownTicks", 20);
 		headshotKillBonus = plugin.getConfig().getInt("config.gameSettings.headshotKillBonus", 30);
 		meleeKillBonus = plugin.getConfig().getInt("config.gameSettings.meleeKillBonus", 60);
+		deadshotHeadshotMultiplier = plugin.getConfig().getDouble("config.perks.deadshotHeadshotMultiplier", 2.0);
+		bonusPointsAmount = plugin.getConfig().getInt("config.gameSettings.bonusPointsAmount", 100);
+		maxGrenades = plugin.getConfig().getInt("config.gameSettings.maxGrenades", 4);
 		speedColaReloadMultiplier = plugin.getConfig().getDouble("config.perks.speedColaReloadMultiplier", 0.5);
 		doubleTapFireMultiplier = plugin.getConfig().getDouble("config.perks.doubleTapFireMultiplier", 1.5);
 		knifeOneShotThroughRound = plugin.getConfig().getInt("config.gameSettings.knifeOneShotThroughRound", 9);

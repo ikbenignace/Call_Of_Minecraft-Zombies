@@ -3,6 +3,8 @@ config:
     maxPerks: 4
     #Juggernog health multiplier (2.5 -> 250 equivalent of COD)
     juggernogHealth: 2.5
+    #Deadshot Daiquiri extra headshot damage multiplier, applied on top of the base 1.5x headshot bonus.
+    deadshotHeadshotMultiplier: 2.0
     #Speed Cola reload multiplier (0.5 = reload twice as fast). BO2: Speed Cola halves reload.
     speedColaReloadMultiplier: 0.5
     #Double Tap fire-delay divisor (1.5 = fire 1.5x faster). BO2: Double Tap speeds fire rate.
@@ -59,6 +61,10 @@ config:
     zombieStuckSeconds: 6
     #A zombie moving less than this many blocks within a check interval counts as no progress.
     zombieStuckMoveThreshold: 1.0
+    #Flat points awarded to every player by the Bonus Points power-up.
+    bonusPointsAmount: 100
+    #Maximum throwables (grenades / Monkey Bombs) a player may hold at once (buy-to-cap).
+    maxGrenades: 4
     #Dogs spawned per player on a dog round (total = dogsPerPlayer * players). BO scales dogs by players, not round.
     dogsPerPlayer: 3
     #Guarantee a Max Ammo drop when the last dog of a dog round dies (BO behavior).
