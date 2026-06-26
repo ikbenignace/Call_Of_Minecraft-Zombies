@@ -23,6 +23,12 @@ public class TeleporterManager
 	 */
 	private final Map<String, Long> lastUse = new HashMap<>();
 
+	/**
+	 * Tier 2 — per-player Pack-a-Punch room access expiry (epoch millis). A PaP-flagged teleporter
+	 * grants timed access; a teleporter-gated PaP sign only works while the grant is still active.
+	 */
+	private final Map<Player, Long> paPAccessExpiry = new HashMap<>();
+
 	public TeleporterManager(Game game)
 	{
 		this.game = game;
@@ -63,6 +69,33 @@ public class TeleporterManager
 		if(cooldownSeconds <= 0)
 			return true;
 		return (nowMs - lastUseMs) >= (cooldownSeconds * 1000L);
+	}
+
+	/**
+	 * Tier 2 — grant the player {@code seconds} of Pack-a-Punch room access, starting now.
+	 */
+	public void grantPaPAccess(Player player, int seconds)
+	{
+		paPAccessExpiry.put(player, System.currentTimeMillis() + (seconds * 1000L));
+	}
+
+	/**
+	 * Tier 2 — true while the player still has an active Pack-a-Punch access grant.
+	 */
+	public boolean hasPaPAccess(Player player)
+	{
+		Long expiry = paPAccessExpiry.get(player);
+		return expiry != null && accessActive(expiry, System.currentTimeMillis());
+	}
+
+	/**
+	 * Tier 2 — pure access decision, extracted for testing.
+	 *
+	 * @return true while {@code now} is strictly before the grant's {@code expiry}.
+	 */
+	public static boolean accessActive(long expiryMs, long nowMs)
+	{
+		return nowMs < expiryMs;
 	}
 
 	public void loadAllTeleportersToGame(JsonArray teleporters)

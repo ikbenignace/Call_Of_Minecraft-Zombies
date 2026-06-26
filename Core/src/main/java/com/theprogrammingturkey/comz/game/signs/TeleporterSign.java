@@ -21,6 +21,25 @@ import org.bukkit.potion.PotionEffectType;
 
 public class TeleporterSign implements IGameSign
 {
+	// Tier 2 sign syntax (OPTIONAL, backward compatible):
+	//   Line 0: [Zombies]              (auto)
+	//   Line 1: Teleporter             — append the keyword "pap" (e.g. "Teleporter pap") to opt in
+	//   Line 2: <teleporter name>
+	//   Line 3: <cost>                 (defaults to 500)
+	// A teleporter whose label line (index 1) contains "pap" grants the teleporting player
+	// teleporterPaPAccessSeconds of timed Pack-a-Punch room access. Non-flagged teleporters
+	// behave exactly as before. onChange normalises the opt-in label to "Teleporter [PaP]".
+
+	/**
+	 * Tier 2 — true when this teleporter sign opts in to granting Pack-a-Punch access.
+	 * Detected via the keyword "pap" on the label line (index 1), case-insensitive.
+	 */
+	private static boolean grantsPaPAccess(String[] lines)
+	{
+		return lines.length > 1 && lines[1] != null
+				&& ChatColor.stripColor(lines[1]).toLowerCase().contains("pap");
+	}
+
 	@Override
 	public void onBreak(Game game, Player player, Location location)
 	{
@@ -72,9 +91,19 @@ public class TeleporterSign implements IGameSign
 						origin.getWorld().playSound(origin, Sound.ENTITY_ENDERMAN_TELEPORT, 1.0f, 1.0f);
 					player.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, cfg.teleporterChargeUpTicks + 30, 30));
 
-					COMZombies.scheduleTask(cfg.teleporterChargeUpTicks, () -> {
+						// Tier 2 — capture opt-in before the deferred task; lines is stable here.
+						boolean grantPaP = grantsPaPAccess(lines);
+
+						COMZombies.scheduleTask(cfg.teleporterChargeUpTicks, () -> {
 						player.teleport(target);
 						player.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 30, 30));
+
+						// Tier 2 — PaP-flagged teleporters grant timed Pack-a-Punch room access.
+						if(grantPaP)
+						{
+							game.teleporterManager.grantPaPAccess(player, cfg.teleporterPaPAccessSeconds);
+							CommandUtil.sendMessageToPlayer(player, ChatColor.LIGHT_PURPLE + "You have " + cfg.teleporterPaPAccessSeconds + "s of Pack-a-Punch access!");
+						}
 
 						for(int i = 0; i < 50; i++)
 						{
@@ -127,17 +156,22 @@ public class TeleporterSign implements IGameSign
 		String thirdLine = ChatColor.stripColor(sign.getLine(2));
 		if(game.teleporterManager.getTeleporters().containsKey(thirdLine))
 		{
+			// Tier 2 — "pap" keyword on the label line opts the teleporter in to granting PaP access.
+			String typedLabel = sign.getLine(1);
+			boolean paP = typedLabel != null && ChatColor.stripColor(typedLabel).toLowerCase().contains("pap");
+			String label = ChatColor.AQUA + "Teleporter" + (paP ? " [PaP]" : "");
+
 			String line3 = sign.getLine(3);
 			if(line3 == null || line3.isEmpty())
 			{
 				sign.setLine(0, ChatColor.RED + "[Zombies]");
-				sign.setLine(1, ChatColor.AQUA + "Teleporter");
+				sign.setLine(1, label);
 				sign.setLine(3, "500");
 			}
 			else
 			{
 				sign.setLine(0, ChatColor.RED + "[Zombies]");
-				sign.setLine(1, ChatColor.AQUA + "Teleporter");
+				sign.setLine(1, label);
 			}
 		}
 		else

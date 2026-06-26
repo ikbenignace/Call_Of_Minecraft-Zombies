@@ -107,6 +107,8 @@ config:
     padKillRadius: 3.0
     #Play a sound when teleporting.
     sound: true
+    #Seconds of Pack-a-Punch room access granted when a PaP-flagged teleporter is used (line 2 ends with "pap").
+    paPAccessSeconds: 30
   trap:
     #How long (seconds) a triggered trap stays active killing zombies.
     durationSeconds: 10

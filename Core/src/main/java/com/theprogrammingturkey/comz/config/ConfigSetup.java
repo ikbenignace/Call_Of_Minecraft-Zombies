@@ -190,6 +190,10 @@ public class ConfigSetup
 	 * 0k — Whether a teleport plays a sound.
 	 */
 	public boolean teleporterSound;
+	/**
+	 * Tier 2 — Seconds of Pack-a-Punch room access granted when a PaP-flagged teleporter is used.
+	 */
+	public int teleporterPaPAccessSeconds;
 
 	/**
 	 * Tier 2 — When a round's zombies are all spawned and exactly one regular zombie remains,
@@ -309,6 +313,7 @@ public class ConfigSetup
 		teleporterChargeUpTicks = plugin.getConfig().getInt("config.teleporter.chargeUpTicks", 40);
 		teleporterPadKillRadius = plugin.getConfig().getDouble("config.teleporter.padKillRadius", 3.0);
 		teleporterSound = plugin.getConfig().getBoolean("config.teleporter.sound", true);
+		teleporterPaPAccessSeconds = plugin.getConfig().getInt("config.teleporter.paPAccessSeconds", 30);
 		lastZombieCrawler = plugin.getConfig().getBoolean("config.gameSettings.lastZombieCrawler", true);
 		crawlerHealth = plugin.getConfig().getDouble("config.gameSettings.crawlerHealth", 2.0);
 		crawlerGasRadius = plugin.getConfig().getDouble("config.gameSettings.crawlerGasRadius", 3.0);
