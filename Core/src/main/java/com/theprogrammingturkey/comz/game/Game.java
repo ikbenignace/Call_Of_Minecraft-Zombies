@@ -80,6 +80,13 @@ public class Game
 	private boolean isFireSale = false;
 
 	/**
+	 * Tier 2 — Global temporary Pack-a-Punch first-pack cost override. -1 means no
+	 * override is active and the per-sign cost is used; >= 0 replaces it (set by the
+	 * Bonfire Sale power-up, cleared when it expires).
+	 */
+	private int paPCostOverride = -1;
+
+	/**
 	 * If insta kill is active.
 	 */
 	private static boolean instaKill = false;
@@ -855,6 +862,8 @@ public class Game
 		scoreboard = new GameScoreboard(this);
 		instaKill = false;
 		doublePoints = false;
+		isFireSale = false;
+		paPCostOverride = -1;
 		waveNumber = 0;
 		changingRound = false;
 		clearArena();
@@ -1118,6 +1127,30 @@ public class Game
 	public boolean isFireSale()
 	{
 		return isFireSale;
+	}
+
+	public void setPaPCostOverride(int cost)
+	{
+		paPCostOverride = cost;
+	}
+
+	public int getPaPCostOverride()
+	{
+		return paPCostOverride;
+	}
+
+	/**
+	 * Tier 2 — pure decision for the effective Pack-a-Punch first-pack cost.
+	 * Returns {@code overrideCost} when an override is active ({@code >= 0});
+	 * otherwise the per-sign {@code signCost} is used.
+	 *
+	 * @param overrideCost the game's PaP cost override (-1 = none active)
+	 * @param signCost     the cost configured on the Pack-a-Punch sign
+	 * @return the cost the player should be charged
+	 */
+	public static int effectivePaPCost(int overrideCost, int signCost)
+	{
+		return overrideCost >= 0 ? overrideCost : signCost;
 	}
 
 	/**

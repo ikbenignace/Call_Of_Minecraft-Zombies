@@ -11,6 +11,9 @@ import com.theprogrammingturkey.comz.game.features.PowerUp;
 import com.theprogrammingturkey.comz.game.managers.PerkManager;
 import com.theprogrammingturkey.comz.game.managers.PlayerWeaponManager;
 import com.theprogrammingturkey.comz.game.managers.PowerUpManager;
+import com.theprogrammingturkey.comz.game.managers.WeaponManager;
+import com.theprogrammingturkey.comz.game.weapons.BaseGun;
+import com.theprogrammingturkey.comz.game.weapons.WeaponInstance;
 import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.Bukkit;
@@ -171,6 +174,36 @@ public class PowerUpDropListener implements Listener
 						game.boxManager.FireSale();
 					}));
 					break;
+				case BONFIRE_SALE:
+					// Bonfire Sale = Fire Sale (cheap mystery box) + a global Pack-a-Punch discount.
+					duration = ConfigManager.getMainConfig().fireSaleTimer * 20;
+					if(game.isFireSale())
+					{
+						if(!ConfigManager.getMainConfig().powerUpRefreshOnPickup)
+						{
+							duration = -1;
+							break;
+						}
+						cancelActiveTimerTask(game, PowerUp.BONFIRE_SALE);
+					}
+					else
+					{
+						game.boxManager.FireSale();
+					}
+					game.setFireSale(true);
+					game.setPaPCostOverride(ConfigManager.getMainConfig().bonfirePaPCost);
+					setActiveTimerTask(game, PowerUp.BONFIRE_SALE, COMZombies.scheduleTask(duration, () ->
+					{
+						game.setFireSale(false);
+						game.boxManager.FireSale();
+						game.setPaPCostOverride(-1);
+					}));
+					break;
+				case DEATH_MACHINE:
+					// Instant power-up: hand the picking player a temporary minigun for a fixed
+					// duration, then remove it and restore their inventory. No shared timer display.
+					giveDeathMachine(game, player);
+					break;
 				default:
 					player.updateInventory();
 					COMZombies.scheduleTask(5, () -> player.getInventory().removeItem(eItem.getItemStack()));
@@ -197,6 +230,60 @@ public class PowerUpDropListener implements Listener
 		{
 			if(duration - 20 > 0)
 				powerUpDisplayTimer(player, powerUp, duration - 20);
+		});
+	}
+
+	/**
+	 * Hands the player a temporary Death Machine minigun and schedules its removal.
+	 * <p>
+	 * Approach (kept deliberately robust over a full inventory swap/restore, which is
+	 * fragile across perks/Mule Kick/box guns): the minigun is added as an <em>extra</em>
+	 * weapon in a free gun slot chosen by {@link PlayerWeaponManager#getCorrectSlot}. Both the
+	 * {@link WeaponInstance} previously tracked in that slot (if any) and the raw inventory
+	 * {@link ItemStack} occupying it are saved, then restored verbatim on expiry. If the slot
+	 * was empty it is simply cleared. This never destroys the player's real guns — at worst it
+	 * temporarily overlays one slot and puts it back exactly as it was.
+	 */
+	private void giveDeathMachine(Game game, Player player)
+	{
+		final PlayerWeaponManager manager = game.getPlayersWeapons(player);
+		final BaseGun deathMachine = WeaponManager.getGun(WeaponManager.DEATH_MACHINE_NAME);
+		if(deathMachine == null)
+			return;
+
+		final int slot = manager.getCorrectSlot(deathMachine);
+
+		// Save whatever currently lives in the chosen slot so we can put it back on expiry.
+		final WeaponInstance displaced = manager.getWeapon(slot);
+		final ItemStack savedStack = player.getInventory().getItem(slot);
+		final ItemStack savedStackCopy = savedStack == null ? null : savedStack.clone();
+
+		if(displaced != null)
+			manager.removeWeapon(displaced);
+
+		final WeaponInstance deathMachineInstance = deathMachine.getNewInstance(player, slot);
+		manager.addWeapon(deathMachineInstance);
+
+		int durationTicks = ConfigManager.getMainConfig().deathMachineDurationSeconds * 20;
+		COMZombies.scheduleTask(durationTicks, () ->
+		{
+			// Remove the temporary minigun.
+			manager.removeWeapon(deathMachineInstance);
+
+			if(!GameManager.INSTANCE.isPlayerInGame(player))
+				return;
+
+			// Restore the displaced weapon instance (if any) and its rendered item.
+			if(displaced != null)
+				manager.addWeapon(displaced);
+
+			if(savedStackCopy != null)
+				player.getInventory().setItem(slot, savedStackCopy);
+			else
+				player.getInventory().setItem(slot, null);
+
+			manager.updateWeapons();
+			player.updateInventory();
 		});
 	}
 

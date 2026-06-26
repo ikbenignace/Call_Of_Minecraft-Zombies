@@ -14,7 +14,9 @@ public enum PowerUp
 	DOUBLE_POINTS("Double points", Material.EXPERIENCE_BOTTLE, Sound.BLOCK_GLASS_BREAK),
 	FIRE_SALE("Fire sale", Material.GOLD_INGOT, Sound.ITEM_FLINTANDSTEEL_USE),
 	BONUS_POINTS("Bonus points", Material.EMERALD, Sound.ENTITY_PLAYER_LEVELUP),
-	RANDOM_PERK("Random perk", Material.POTION, Sound.ENTITY_WITCH_DRINK);
+	RANDOM_PERK("Random perk", Material.POTION, Sound.ENTITY_WITCH_DRINK),
+	DEATH_MACHINE("Death Machine", Material.IRON_BLOCK, Sound.ENTITY_IRON_GOLEM_ATTACK),
+	BONFIRE_SALE("Bonfire Sale", Material.BLAZE_POWDER, Sound.ITEM_FIRECHARGE_USE);
 
 	private final String display;
 	private final Material material;

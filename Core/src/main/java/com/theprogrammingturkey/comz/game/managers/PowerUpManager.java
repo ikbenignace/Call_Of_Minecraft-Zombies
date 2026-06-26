@@ -155,7 +155,7 @@ public class PowerUpManager
 		{
 			List<PowerUp> availableRewards = powerups.keySet().stream().filter(powerUp ->
 			{
-				if(powerUp == PowerUp.FIRE_SALE && game.boxManager.isMultiBox())
+				if((powerUp == PowerUp.FIRE_SALE || powerUp == PowerUp.BONFIRE_SALE) && game.boxManager.isMultiBox())
 					return false;
 				return powerups.get(powerUp);
 			}).collect(Collectors.toList());

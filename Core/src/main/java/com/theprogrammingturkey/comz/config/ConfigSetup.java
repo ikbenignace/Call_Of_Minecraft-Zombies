@@ -206,6 +206,16 @@ public class ConfigSetup
 	public double crawlerGasRadius;
 
 	/**
+	 * Tier 2 — Duration in seconds the Death Machine temporary minigun is held before it
+	 * is removed and the player's inventory is restored.
+	 */
+	public int deathMachineDurationSeconds;
+	/**
+	 * Tier 2 — Pack-a-Punch first-pack cost while Bonfire Sale is active (also runs a Fire Sale).
+	 */
+	public int bonfirePaPCost;
+
+	/**
 	 * Main method to assign values to every field.
 	 */
 	public void setup()
@@ -263,6 +273,8 @@ public class ConfigSetup
 		lastZombieCrawler = plugin.getConfig().getBoolean("config.gameSettings.lastZombieCrawler", true);
 		crawlerHealth = plugin.getConfig().getDouble("config.gameSettings.crawlerHealth", 2.0);
 		crawlerGasRadius = plugin.getConfig().getDouble("config.gameSettings.crawlerGasRadius", 3.0);
+		deathMachineDurationSeconds = plugin.getConfig().getInt("config.gameSettings.deathMachineDurationSeconds", 30);
+		bonfirePaPCost = plugin.getConfig().getInt("config.gameSettings.bonfirePaPCost", 1000);
 
 		Leaderboard.loadLeaderboard();
 	}

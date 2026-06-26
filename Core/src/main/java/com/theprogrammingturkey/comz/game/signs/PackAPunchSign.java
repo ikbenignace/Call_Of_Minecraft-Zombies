@@ -64,7 +64,7 @@ public class PackAPunchSign implements IGameSign
 			return;
 		}
 
-		int cost = Integer.parseInt(lines[2]);
+		int cost = Game.effectivePaPCost(game.getPaPCostOverride(), Integer.parseInt(lines[2]));
 		if(PointManager.INSTANCE.canBuy(player, cost))
 		{
 			CommandUtil.sendMessageToPlayer(player, ChatColor.RED + "Your " + ChatColor.GOLD + gun.getType().getName() + ChatColor.RED + " was Pack-A-Punched");

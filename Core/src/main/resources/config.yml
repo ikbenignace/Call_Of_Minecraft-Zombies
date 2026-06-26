@@ -83,6 +83,10 @@ config:
     packAPunchRepackEnabled: true
     #Point cost to re-Pack-a-Punch a gun for an ammo refill.
     packAPunchRepackCost: 2500
+    #Seconds the Death Machine power-up minigun is held before it is removed (BO2 ~30s).
+    deathMachineDurationSeconds: 30
+    #Pack-a-Punch first-pack cost while Bonfire Sale is active (also triggers a Fire Sale). BO2 ~1000.
+    bonfirePaPCost: 1000
   ReviveSettings:
     ReviveTimer: 4
     ReviveRange: 2
