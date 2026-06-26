@@ -226,6 +226,19 @@ public class ConfigSetup
 	public int vulturePointsDrop;
 
 	/**
+	 * Tier 2 — Trap: how long (seconds) a triggered trap stays active killing zombies.
+	 */
+	public int trapDurationSeconds;
+	/**
+	 * Tier 2 — Trap: cooldown (seconds) after a trap finishes before it can be re-triggered.
+	 */
+	public int trapCooldownSeconds;
+	/**
+	 * Tier 2 — Trap: radius (blocks) around the trap center within which zombies are killed.
+	 */
+	public double trapKillRadius;
+
+	/**
 	 * Main method to assign values to every field.
 	 */
 	public void setup()
@@ -287,6 +300,9 @@ public class ConfigSetup
 		bonfirePaPCost = plugin.getConfig().getInt("config.gameSettings.bonfirePaPCost", 1000);
 		vultureDropChance = plugin.getConfig().getInt("config.gameSettings.vultureDropChance", 10);
 		vulturePointsDrop = plugin.getConfig().getInt("config.gameSettings.vulturePointsDrop", 25);
+		trapDurationSeconds = plugin.getConfig().getInt("config.trap.durationSeconds", 10);
+		trapCooldownSeconds = plugin.getConfig().getInt("config.trap.cooldownSeconds", 60);
+		trapKillRadius = plugin.getConfig().getDouble("config.trap.killRadius", 4.0);
 
 		Leaderboard.loadLeaderboard();
 	}

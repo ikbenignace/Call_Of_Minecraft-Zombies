@@ -163,6 +163,11 @@ public class Game
 	public TeleporterManager teleporterManager;
 
 	/**
+	 * Tier 2 — contains all of the buyable kill-zone traps in the game
+	 */
+	public TrapManager trapManager;
+
+	/**
 	 * contains all of the downed players in the game
 	 */
 	public DownedPlayerManager downedPlayerManager;
@@ -207,6 +212,7 @@ public class Game
 		perkManager = new PerkManager();
 		powerUpManager = new PowerUpManager();
 		teleporterManager = new TeleporterManager(this);
+		trapManager = new TrapManager(this);
 		downedPlayerManager = new DownedPlayerManager();
 		signManager = new SignManager(this);
 
@@ -942,6 +948,9 @@ public class Game
 		if(arenaSaveJson.has("teleporters"))
 			teleporterManager.loadAllTeleportersToGame(arenaSaveJson.get("teleporters").getAsJsonArray());
 
+		if(arenaSaveJson.has("traps"))
+			trapManager.loadAllTrapsToGame(arenaSaveJson.get("traps").getAsJsonArray());
+
 		signManager.updateGame();
 
 		return true;
@@ -973,6 +982,7 @@ public class Game
 		arenaSaveJson.add("barriers", barrierManager.save());
 		arenaSaveJson.add("doors", doorManager.save());
 		arenaSaveJson.add("teleporters", teleporterManager.save());
+		arenaSaveJson.add("traps", trapManager.save());
 
 		return gamejson;
 	}

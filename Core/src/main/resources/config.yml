@@ -107,3 +107,10 @@ config:
     padKillRadius: 3.0
     #Play a sound when teleporting.
     sound: true
+  trap:
+    #How long (seconds) a triggered trap stays active killing zombies.
+    durationSeconds: 10
+    #Cooldown (seconds) after a trap finishes before it can be re-triggered.
+    cooldownSeconds: 60
+    #Radius (blocks) around the trap center within which zombies are killed.
+    killRadius: 4.0
