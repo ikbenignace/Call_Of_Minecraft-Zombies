@@ -165,9 +165,21 @@ public class DownedPlayerManager
 		down.setPlayerDown();
 		downedPlayers.add(down);
 		player.setHealth(1D);
-		game.sendMessageToPlayers(player.getName() + " has gone down! Stand close and right click them to revive");
 
-		trySoloSelfRevive(player, game, down);
+		// Solo Quick Revive self-revive schedules an automatic get-up; if it fires, it owns the
+		// messaging ("getting back up..."). Only show the co-op "another player must revive you"
+		// prompt when nobody is going to self-revive AND there is actually someone who could revive
+		// (co-op). In a solo game with no self-revive the player never reaches here — Game.playerDowned
+		// ends the game instead — so the co-op prompt is never wrongly shown to a lone player.
+		boolean selfReviving = trySoloSelfRevive(player, game, down);
+		if(!selfReviving && game.getPlayersInGame().size() > 1)
+		{
+			game.sendMessageToPlayers(player.getName() + " has gone down! Stand close and right click them to revive");
+		}
+		else if(!selfReviving)
+		{
+			com.theprogrammingturkey.comz.util.CommandUtil.sendMessageToPlayer(player, org.bukkit.ChatColor.RED + "" + org.bukkit.ChatColor.BOLD + "You have gone down!");
+		}
 	}
 
 	/**
@@ -176,7 +188,7 @@ public class DownedPlayerManager
 	 * decrement their remaining uses. No-op in co-op (more than one player), without the perk, or once
 	 * uses are exhausted (the player then bleeds out / the game ends per existing logic).
 	 */
-	private void trySoloSelfRevive(Player player, Game game, DownedPlayer down)
+	private boolean trySoloSelfRevive(Player player, Game game, DownedPlayer down)
 	{
 		boolean solo = game.getPlayersInGame().size() == 1;
 		boolean hasQuickRevive = game.perkManager.hasPerk(player, PerkType.QUICK_REVIVE);
@@ -184,16 +196,17 @@ public class DownedPlayerManager
 		int usesRemaining = getSelfReviveUses(player.getUniqueId(), max);
 
 		if(!canSelfRevive(solo, hasQuickRevive, usesRemaining))
-			return;
+			return false;
 
 		int remaining = consumeSelfReviveUse(player.getUniqueId(), max);
-		int delayTicks = ConfigManager.getMainConfig().soloReviveDelaySeconds * 20;
-		COMZombies.scheduleTask(delayTicks, () ->
+		int delaySeconds = ConfigManager.getMainConfig().soloReviveDelaySeconds;
+		COMZombies.scheduleTask(delaySeconds * 20, () ->
 		{
 			if(down.isPlayerDown())
 				down.revivePlayer();
 		});
-		CommandUtil.sendMessageToPlayer(player, "Quick Revive self-revive — " + remaining + " left");
+		CommandUtil.sendMessageToPlayer(player, org.bukkit.ChatColor.YELLOW + "Quick Revive: getting back up in " + delaySeconds + "s (" + remaining + " self-revive" + (remaining == 1 ? "" : "s") + " left)");
+		return true;
 	}
 
 	/**
