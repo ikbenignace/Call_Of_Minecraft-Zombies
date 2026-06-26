@@ -99,6 +99,12 @@ config:
     vultureDropChance: 10
     #Vulture Aid: points awarded when a Vulture Aid drop rolls the points reward (other rolls refill ammo).
     vulturePointsDrop: 25
+    #Tier 4 boss rounds: a boss round (George Romero / Brutus, alternating) occurs every Nth wave. 0 disables boss rounds. Takes precedence over dog rounds on shared waves.
+    bossRoundEveryX: 0
+    #Boss max-health multiplier on top of the normal zombie health curve for the round (clamped so a boss is never weaker than a normal zombie).
+    bossHealthMultiplier: 8.0
+    #Brutus ability: seconds one of a damaged player's perks is temporarily disabled before being restored.
+    brutusDisableSeconds: 5
   ReviveSettings:
     ReviveTimer: 4
     ReviveRange: 2

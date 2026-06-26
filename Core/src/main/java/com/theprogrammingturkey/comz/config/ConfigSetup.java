@@ -294,6 +294,22 @@ public class ConfigSetup
 	public double whosWhoReviveRange;
 
 	/**
+	 * Tier 4 — Boss-round cadence: a boss round occurs every Nth wave. 0 (default) disables boss
+	 * rounds entirely. Boss rounds take precedence over dog rounds on shared waves.
+	 */
+	public int bossRoundEveryX;
+	/**
+	 * Tier 4 — Boss max-health multiplier applied on top of the normal zombie health curve for the
+	 * round (clamped so a boss is never weaker than a normal zombie). Default 8.0.
+	 */
+	public double bossHealthMultiplier;
+	/**
+	 * Tier 4 — Brutus ability: seconds one of a damaged player's perks is temporarily disabled
+	 * before it is restored. Default 5.
+	 */
+	public int brutusDisableSeconds;
+
+	/**
 	 * Main method to assign values to every field.
 	 */
 	public void setup()
@@ -368,6 +384,9 @@ public class ConfigSetup
 		soloReviveDelaySeconds = plugin.getConfig().getInt("config.ReviveSettings.SoloReviveDelaySeconds", 5);
 		whosWhoSeconds = plugin.getConfig().getInt("config.perks.whosWhoSeconds", 20);
 		whosWhoReviveRange = plugin.getConfig().getDouble("config.perks.whosWhoReviveRange", 3.0);
+		bossRoundEveryX = plugin.getConfig().getInt("config.gameSettings.bossRoundEveryX", 0);
+		bossHealthMultiplier = plugin.getConfig().getDouble("config.gameSettings.bossHealthMultiplier", 8.0);
+		brutusDisableSeconds = plugin.getConfig().getInt("config.gameSettings.brutusDisableSeconds", 5);
 
 		Leaderboard.loadLeaderboard();
 		PlayerDataManager.load();

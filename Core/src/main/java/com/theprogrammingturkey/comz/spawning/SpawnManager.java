@@ -37,6 +37,7 @@ public class SpawnManager
 	{
 		roundSpawnerMap.put(RoundSpawnType.REGULAR, new ZombieSpawner());
 		roundSpawnerMap.put(RoundSpawnType.HELL_HOUNDS, new HellHoundSpawner());
+		roundSpawnerMap.put(RoundSpawnType.BOSS, new BossSpawner());
 	}
 
 	private final Game game;
@@ -49,6 +50,7 @@ public class SpawnManager
 	private int mobsSpawned = 0;
 	private int mobsToSpawn = 0;
 	private boolean dogRound = false;
+	private boolean bossRound = false;
 
 	/** 0L — stuck-detection state: last sampled location and accumulated no-progress ticks per mob. */
 	private final Map<Mob, Location> stuckLastLoc = new HashMap<>();
@@ -168,6 +170,9 @@ public class SpawnManager
 		{
 			if(dogRound && ConfigManager.getMainConfig().dogRoundMaxAmmoDrop)
 				game.powerUpManager.dropPowerUp(entity, PowerUp.MAX_AMMO);
+			// Tier 4 — last boss of a boss round drops a guaranteed Max Ammo + Random Perk.
+			if(bossRound && entity instanceof Mob)
+				BossSpawner.dropBossRewards(game, (Mob) entity);
 			game.nextWave();
 		}
 		else
@@ -185,7 +190,7 @@ public class SpawnManager
 	 */
 	private void maybeConvertLastZombie()
 	{
-		if(dogRound)
+		if(dogRound || bossRound)
 			return;
 		if(!shouldConvertLastZombie(mobs.size(), mobsSpawned, mobsToSpawn, ConfigManager.getMainConfig().lastZombieCrawler))
 			return;
@@ -289,6 +294,16 @@ public class SpawnManager
 	public static boolean shouldConvertLastZombie(int aliveCount, int mobsSpawned, int mobsToSpawn, boolean enabled)
 	{
 		return enabled && aliveCount == 1 && mobsSpawned >= mobsToSpawn;
+	}
+
+	/**
+	 * Tier 4 — whether {@code wave} is a boss round given the configured cadence. Boss rounds are
+	 * disabled entirely when {@code every <= 0}, and round 0 never triggers one. Pure gate so the
+	 * cadence is unit-testable without a running game.
+	 */
+	public static boolean isBossRound(int wave, int every)
+	{
+		return every > 0 && wave > 0 && wave % every == 0;
 	}
 
 	private void smartSpawn(final int wave)
@@ -484,8 +499,23 @@ public class SpawnManager
 
 		ConfigSetup cfg = ConfigManager.getMainConfig();
 
+		// Tier 4 — boss rounds take precedence over dog rounds on shared waves.
+		if(isBossRound(wave, cfg.bossRoundEveryX))
+		{
+			bossRound = true;
+			dogRound = false;
+			// Small wave: a handful of heavy bosses (at least 1, ~half the player count).
+			mobsToSpawn = Math.max(1, game.getPlayersInGame().size() / 2);
+			roundSpawner = roundSpawnerMap.get(RoundSpawnType.BOSS);
+			setSpawnInterval(spawnInterval / spawnDelayFactor);
+			if(spawnInterval < 0.5)
+				spawnInterval = 0.5;
+			return RoundSpawnType.BOSS;
+		}
+
 		if(game.getDogRoundEveryX() != -1 && game.getDogRoundEveryX() != 0 && wave % game.getDogRoundEveryX() == 0)
 		{
+			bossRound = false;
 			dogRound = true;
 			mobsToSpawn = dogCount(game.getPlayersInGame().size(), cfg.dogsPerPlayer);
 			roundSpawner = roundSpawnerMap.get(RoundSpawnType.HELL_HOUNDS);
@@ -496,6 +526,7 @@ public class SpawnManager
 		}
 		else
 		{
+			bossRound = false;
 			dogRound = false;
 			mobsToSpawn = zombiesThisRound(wave, players.size(), cfg.zombieBoardBase, cfg.zombieBoardPerPlayer, cfg.zombieRoundMultiplier);
 			roundSpawner = roundSpawnerMap.get(RoundSpawnType.REGULAR);
@@ -555,6 +586,8 @@ public class SpawnManager
 		this.canSpawn = false;
 		this.mobsSpawned = 0;
 		this.mobsToSpawn = 0;
+		this.dogRound = false;
+		this.bossRound = false;
 		this.spawnInterval = COMZombies.getPlugin().getConfig().getInt("config.gameSettings.zombieSpawnDelay");
 	}
 

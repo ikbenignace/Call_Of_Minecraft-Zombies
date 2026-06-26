@@ -5,8 +5,11 @@ import com.theprogrammingturkey.comz.config.ConfigManager;
 import com.theprogrammingturkey.comz.game.Game;
 import com.theprogrammingturkey.comz.game.GameManager;
 import com.theprogrammingturkey.comz.game.features.PerkType;
+import com.theprogrammingturkey.comz.game.managers.PerkManager;
+import com.theprogrammingturkey.comz.spawning.BossSpawner;
 import com.theprogrammingturkey.comz.spawning.RoundSpawner;
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.Effect;
 import org.bukkit.Material;
 import org.bukkit.entity.Entity;
@@ -25,6 +28,7 @@ import org.bukkit.metadata.MetadataValue;
 import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class EntityListener implements Listener
@@ -118,6 +122,11 @@ public class EntityListener implements Listener
 
 					//heal system
 					resetHealingTimer(player);
+
+					// Tier 4 — Brutus ability: when Brutus damages a player, temporarily disable one
+					// of that player's perks, then restore it after brutusDisableSeconds (reversible).
+					if(damager instanceof Mob && BossSpawner.isBrutus((Mob) damager))
+						brutusDisablePerk(game, player);
 
 					if(damage == 0)
 						e.setCancelled(true);
@@ -236,5 +245,32 @@ public class EntityListener implements Listener
 	{
 		stopHealingTimer(player);
 		startHealingTimer(player);
+	}
+
+	/**
+	 * Tier 4 — Brutus perk-disable: removes one of the player's currently held perks and restores
+	 * it after {@code brutusDisableSeconds}. No-op if the player holds no perks. Reversible and
+	 * simple: a full remove + re-grant of a single random perk rather than a greyed-out icon.
+	 */
+	private void brutusDisablePerk(Game game, final Player player)
+	{
+		List<PerkType> held = game.perkManager.getPlayersPerks(player);
+		if(held.isEmpty())
+			return;
+
+		final PerkType disabled = held.get(COMZombies.rand.nextInt(held.size()));
+		game.perkManager.removePerkEffect(player, disabled);
+		player.sendMessage(ChatColor.RED + "Brutus disabled your " + disabled + "!");
+
+		long restoreTicks = (long) Math.max(1, ConfigManager.getMainConfig().brutusDisableSeconds) * 20L;
+		COMZombies.scheduleTask(restoreTicks, () ->
+		{
+			if(!game.getPlayersInGame().contains(player))
+				return;
+			if(game.perkManager.hasPerk(player, disabled))
+				return;
+			PerkManager.givePerk(game, player, disabled);
+			player.sendMessage(ChatColor.GREEN + "Your " + disabled + " is back.");
+		});
 	}
 }
