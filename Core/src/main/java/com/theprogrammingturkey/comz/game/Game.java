@@ -1332,7 +1332,16 @@ public class Game
 
 		player.setFireTicks(0);
 
-		if(downedPlayerManager.numDownedPlayers() + 1 == getPlayersInGame().size())
+		// Tier 3 — solo Quick Revive self-revive: in a solo game the lone player going down would
+		// normally end the game; if they hold Quick Revive with uses remaining, down them instead so
+		// the auto-self-revive (scheduled in setPlayerDowned) can bring them back.
+		boolean solo = getPlayersInGame().size() == 1;
+		boolean canSelfRevive = solo && DownedPlayerManager.canSelfRevive(
+				true,
+				perkManager.hasPerk(player, PerkType.QUICK_REVIVE),
+				downedPlayerManager.getSelfReviveUses(player.getUniqueId(), ConfigManager.getMainConfig().soloQuickReviveUses));
+
+		if(!canSelfRevive && downedPlayerManager.numDownedPlayers() + 1 == getPlayersInGame().size())
 			endGame();
 		else
 			downedPlayerManager.setPlayerDowned(player, this);

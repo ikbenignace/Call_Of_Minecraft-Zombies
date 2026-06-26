@@ -272,6 +272,17 @@ public class ConfigSetup
 	public boolean tombstoneEnabled;
 
 	/**
+	 * Tier 3 — solo self-revive: number of times Quick Revive can self-revive a lone player in a
+	 * solo (1-player) game (BO1/BO2 solo behavior). Default 3.
+	 */
+	public int soloQuickReviveUses;
+	/**
+	 * Tier 3 — solo self-revive: delay in seconds before the automatic self-revive fires after a
+	 * lone player goes down. Default 5.
+	 */
+	public int soloReviveDelaySeconds;
+
+	/**
 	 * Main method to assign values to every field.
 	 */
 	public void setup()
@@ -342,6 +353,8 @@ public class ConfigSetup
 		wunderwaffeChainRadius = plugin.getConfig().getDouble("config.wonderWeapons.wunderwaffeChainRadius", 6.0);
 		bankDepositFeePercent = plugin.getConfig().getInt("config.bank.depositFeePercent", 10);
 		tombstoneEnabled = plugin.getConfig().getBoolean("config.perks.tombstoneEnabled", true);
+		soloQuickReviveUses = plugin.getConfig().getInt("config.perks.soloQuickReviveUses", 3);
+		soloReviveDelaySeconds = plugin.getConfig().getInt("config.ReviveSettings.SoloReviveDelaySeconds", 5);
 
 		Leaderboard.loadLeaderboard();
 		PlayerDataManager.load();

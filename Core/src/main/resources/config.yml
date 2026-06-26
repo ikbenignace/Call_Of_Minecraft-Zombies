@@ -11,6 +11,8 @@ config:
     doubleTapFireMultiplier: 1.5
     #Tombstone Soda: when true, a player holding the perk keeps their perks on down and reclaims them on their next revive/respawn. BO2 behavior.
     tombstoneEnabled: true
+    #Solo self-revive: number of times Quick Revive auto-revives a lone player in a solo (1-player) game. BO1/BO2 solo behavior.
+    soloQuickReviveUses: 3
   gameSettings:
     #Range to allow knife attacks. (Values over 6 are set to 6, the vanilla value.)
     MeleeRange: 2
@@ -97,6 +99,8 @@ config:
     ReviveTimer: 4
     ReviveRange: 2
     MaxDownTime: 60
+    #Solo self-revive: seconds before Quick Revive auto-revives a lone downed player in a solo game.
+    SoloReviveDelaySeconds: 5
   Economy:
     CostPerJoin: 0
     MoneyPerKill: 1

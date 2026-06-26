@@ -1,9 +1,11 @@
 package com.theprogrammingturkey.comz.game.managers;
 
+import com.theprogrammingturkey.comz.COMZombies;
 import com.theprogrammingturkey.comz.config.ConfigManager;
 import com.theprogrammingturkey.comz.game.Game;
 import com.theprogrammingturkey.comz.game.features.DownedPlayer;
 import com.theprogrammingturkey.comz.game.features.PerkType;
+import com.theprogrammingturkey.comz.util.CommandUtil;
 import org.bukkit.entity.Player;
 
 import java.util.ArrayList;
@@ -23,12 +25,51 @@ public class DownedPlayerManager
 	private final Map<UUID, List<PerkType>> tombstoneSnapshots = new HashMap<>();
 
 	/**
+	 * Tier 3 — solo Quick Revive self-revive uses remaining, keyed by player UUID. Initialized lazily
+	 * to {@code soloQuickReviveUses} the first time a solo player goes down holding Quick Revive, then
+	 * decremented on each automatic self-revive. The map is scoped to a single DownedPlayerManager
+	 * instance, and a fresh manager is created per game (see {@code Game} constructor), so a new game
+	 * always starts with a fresh use counter without an explicit reset hook.
+	 */
+	private final Map<UUID, Integer> soloSelfReviveUses = new HashMap<>();
+
+	/**
 	 * Tier 3 — pure reclaim gate. Perks are re-granted only when a saved tombstone snapshot exists
 	 * for the player AND the Tombstone Soda feature is enabled in config.
 	 */
 	public static boolean shouldReclaim(boolean hasSnapshot, boolean enabled)
 	{
 		return hasSnapshot && enabled;
+	}
+
+	/**
+	 * Tier 3 — pure solo self-revive gate. A downed player auto-revives via Quick Revive only when
+	 * the game is solo (a single player) AND they hold the Quick Revive perk AND they still have at
+	 * least one self-revive use remaining.
+	 */
+	public static boolean canSelfRevive(boolean solo, boolean hasQuickRevive, int usesRemaining)
+	{
+		return solo && hasQuickRevive && usesRemaining > 0;
+	}
+
+	/**
+	 * Tier 3 — self-revive uses remaining for a player, lazily initialized to {@code max} the first
+	 * time it is queried for that player.
+	 */
+	public int getSelfReviveUses(UUID playerId, int max)
+	{
+		return soloSelfReviveUses.computeIfAbsent(playerId, id -> max);
+	}
+
+	/**
+	 * Tier 3 — consume one self-revive use for a player, returning the remaining count after the
+	 * decrement (never below zero).
+	 */
+	public int consumeSelfReviveUse(UUID playerId, int max)
+	{
+		int remaining = Math.max(0, getSelfReviveUses(playerId, max) - 1);
+		soloSelfReviveUses.put(playerId, remaining);
+		return remaining;
 	}
 
 	/**
@@ -92,6 +133,34 @@ public class DownedPlayerManager
 		downedPlayers.add(down);
 		player.setHealth(1D);
 		game.sendMessageToPlayers(player.getName() + " has gone down! Stand close and right click them to revive");
+
+		trySoloSelfRevive(player, game, down);
+	}
+
+	/**
+	 * Tier 3 — in a solo (1-player) game, if the lone downed player holds Quick Revive and still has
+	 * self-revive uses remaining, schedule an automatic self-revive after the configured delay and
+	 * decrement their remaining uses. No-op in co-op (more than one player), without the perk, or once
+	 * uses are exhausted (the player then bleeds out / the game ends per existing logic).
+	 */
+	private void trySoloSelfRevive(Player player, Game game, DownedPlayer down)
+	{
+		boolean solo = game.getPlayersInGame().size() == 1;
+		boolean hasQuickRevive = game.perkManager.hasPerk(player, PerkType.QUICK_REVIVE);
+		int max = ConfigManager.getMainConfig().soloQuickReviveUses;
+		int usesRemaining = getSelfReviveUses(player.getUniqueId(), max);
+
+		if(!canSelfRevive(solo, hasQuickRevive, usesRemaining))
+			return;
+
+		int remaining = consumeSelfReviveUse(player.getUniqueId(), max);
+		int delayTicks = ConfigManager.getMainConfig().soloReviveDelaySeconds * 20;
+		COMZombies.scheduleTask(delayTicks, () ->
+		{
+			if(down.isPlayerDown())
+				down.revivePlayer();
+		});
+		CommandUtil.sendMessageToPlayer(player, "Quick Revive self-revive — " + remaining + " left");
 	}
 
 	public void removeDownedPlayer(Player player)
