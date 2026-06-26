@@ -156,6 +156,8 @@ config:
     #Tier 4 - Buildable: point cost charged at the station to dispense one random missing part to the interacting player (how players obtain parts).
     partCost: 500
   permaPerks:
+    #Master switch for the whole perma-perk system. false = no progress tracked and no effects applied (server-owner off switch).
+    enabled: true
     #Tier 4 - Perma-perks: long-term progression. Performing revives across games is tracked per player UUID (persisted in playerdata.json) and permanently unlocks passive bonuses applied at game entry.
     #Perma Jugg (lite): lifetime revives required to unlock. Once unlocked, the player spawns into every game with a short Regeneration burst.
     permaJuggReviveThreshold: 10

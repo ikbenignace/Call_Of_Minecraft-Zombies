@@ -52,6 +52,8 @@ public class PermaPerkManager
 	public static void recordRevive(Player reviver)
 	{
 		ConfigSetup config = ConfigManager.getMainConfig();
+		if(!config.permaPerksEnabled)
+			return;
 		UUID uuid = reviver.getUniqueId();
 		int revives = PlayerDataManager.incrementRevivesPerformed(uuid);
 
@@ -81,6 +83,8 @@ public class PermaPerkManager
 	public static void applyOnGameEntry(Player player)
 	{
 		ConfigSetup config = ConfigManager.getMainConfig();
+		if(!config.permaPerksEnabled)
+			return;
 		UUID uuid = player.getUniqueId();
 
 		if(PlayerDataManager.hasUnlocked(uuid, PlayerDataManager.PERMA_JUGG))

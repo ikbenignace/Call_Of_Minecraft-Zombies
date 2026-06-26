@@ -332,6 +332,11 @@ public class ConfigSetup
 	public int buildablePartCost;
 
 	/**
+	 * Tier 4 — Perma-perks master switch. When false, no progress is tracked and no perma-perk
+	 * effect is applied (already-unlocked players simply get nothing). Default true.
+	 */
+	public boolean permaPerksEnabled;
+	/**
 	 * Tier 4 — Perma-perks: lifetime revives a player must perform (across all games) before the
 	 * permanent "Perma Jugg (lite)" bonus unlocks. Default 10.
 	 */
@@ -351,6 +356,21 @@ public class ConfigSetup
 	 * who have unlocked Perma Quick Revive (lite). Default 5.
 	 */
 	public int permaQuickReviveSpeedSeconds;
+
+	// ---- Custom resource pack -------------------------------------------------
+
+	/** Whether COM:Z pushes its custom resource pack to players who join a game. */
+	public boolean resourcePackEnabled;
+	/** Download URL of the hosted resource-pack .zip. */
+	public String resourcePackUrl;
+	/** 40-char hex SHA-1 of the .zip (enables client-side caching; empty = always re-download). */
+	public String resourcePackSha1;
+	/** Whether the pack is forced (client must accept to keep playing). */
+	public boolean resourcePackForce;
+	/** Prompt shown in the client's accept dialog. */
+	public String resourcePackPrompt;
+	/** When forced, remove a player from the game if they decline / fail to download the pack. */
+	public boolean resourcePackKickOnDecline;
 
 	/**
 	 * Main method to assign values to every field.
@@ -434,10 +454,18 @@ public class ConfigSetup
 		zombieShieldHits = plugin.getConfig().getInt("config.buildable.zombieShieldHits", 5);
 		zombieShieldDamageReduction = plugin.getConfig().getDouble("config.buildable.zombieShieldDamageReduction", 1.0);
 		buildablePartCost = plugin.getConfig().getInt("config.buildable.partCost", 500);
+		permaPerksEnabled = plugin.getConfig().getBoolean("config.permaPerks.enabled", true);
 		permaJuggReviveThreshold = plugin.getConfig().getInt("config.permaPerks.permaJuggReviveThreshold", 10);
 		permaJuggRegenSeconds = plugin.getConfig().getInt("config.permaPerks.permaJuggRegenSeconds", 5);
 		permaQuickReviveThreshold = plugin.getConfig().getInt("config.permaPerks.permaQuickReviveThreshold", 15);
 		permaQuickReviveSpeedSeconds = plugin.getConfig().getInt("config.permaPerks.permaQuickReviveSpeedSeconds", 5);
+
+		resourcePackEnabled = plugin.getConfig().getBoolean("config.resourcePack.enabled", false);
+		resourcePackUrl = plugin.getConfig().getString("config.resourcePack.url", "");
+		resourcePackSha1 = plugin.getConfig().getString("config.resourcePack.sha1", "");
+		resourcePackForce = plugin.getConfig().getBoolean("config.resourcePack.force", true);
+		resourcePackPrompt = plugin.getConfig().getString("config.resourcePack.prompt", "Install the Call of Minecraft: Zombies pack for custom guns, perks & sounds");
+		resourcePackKickOnDecline = plugin.getConfig().getBoolean("config.resourcePack.kickOnDecline", false);
 
 		Leaderboard.loadLeaderboard();
 		PlayerDataManager.load();
