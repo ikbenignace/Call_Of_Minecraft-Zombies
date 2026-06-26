@@ -266,6 +266,12 @@ public class ConfigSetup
 	public int bankDepositFeePercent;
 
 	/**
+	 * Tier 3 — Tombstone Soda: when enabled, a player holding the perk has their perks snapshotted
+	 * on down and re-granted when they are reclaimed on revive/next-round respawn. Default true.
+	 */
+	public boolean tombstoneEnabled;
+
+	/**
 	 * Main method to assign values to every field.
 	 */
 	public void setup()
@@ -335,6 +341,7 @@ public class ConfigSetup
 		wunderwaffeChainCount = plugin.getConfig().getInt("config.wonderWeapons.wunderwaffeChainCount", 5);
 		wunderwaffeChainRadius = plugin.getConfig().getDouble("config.wonderWeapons.wunderwaffeChainRadius", 6.0);
 		bankDepositFeePercent = plugin.getConfig().getInt("config.bank.depositFeePercent", 10);
+		tombstoneEnabled = plugin.getConfig().getBoolean("config.perks.tombstoneEnabled", true);
 
 		Leaderboard.loadLeaderboard();
 		PlayerDataManager.load();

@@ -9,6 +9,8 @@ config:
     speedColaReloadMultiplier: 0.5
     #Double Tap fire-delay divisor (1.5 = fire 1.5x faster). BO2: Double Tap speeds fire rate.
     doubleTapFireMultiplier: 1.5
+    #Tombstone Soda: when true, a player holding the perk keeps their perks on down and reclaims them on their next revive/respawn. BO2 behavior.
+    tombstoneEnabled: true
   gameSettings:
     #Range to allow knife attacks. (Values over 6 are set to 6, the vanilla value.)
     MeleeRange: 2
