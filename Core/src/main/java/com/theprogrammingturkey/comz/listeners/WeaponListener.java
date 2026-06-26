@@ -132,14 +132,15 @@ public class WeaponListener implements Listener
 
 									double zombieHitLocY = toDamageIntesect.intersection.getY() - entToDamage.getLocation().getY();
 									double eyeHeight = ((Mob) entToDamage).getEyeHeight();
-									if(zombieHitLocY > eyeHeight - (entToDamage.getHeight() - eyeHeight))
+									boolean headshot = zombieHitLocY > eyeHeight - (entToDamage.getHeight() - eyeHeight);
+									if(headshot)
 									{
 										damage *= 1.5f;
 										for(int i = 0; i < 20; i++)
 											event.getPlayer().getWorld().spawnParticle(Particle.ENCHANTED_HIT, entToDamage.getLocation().getX(), entToDamage.getLocation().getY() + eyeHeight, entToDamage.getLocation().getZ(), 0, COMZombies.rand.nextDouble(2d) - 1d, COMZombies.rand.nextDouble(2d) - 1d, COMZombies.rand.nextDouble(2d) - 1d, 1);
 									}
 
-									game.damageMob(mob, player, damage);
+									game.damageMob(mob, player, damage, headshot, false);
 								}
 							}
 						}
