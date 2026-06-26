@@ -173,6 +173,11 @@ public class Game
 	public BuildableManager buildableManager;
 
 	/**
+	 * Tier 4 — the arena's easter-egg quest engine (per-arena multi-step objective)
+	 */
+	public QuestManager questManager;
+
+	/**
 	 * contains all of the downed players in the game
 	 */
 	public DownedPlayerManager downedPlayerManager;
@@ -219,6 +224,7 @@ public class Game
 		teleporterManager = new TeleporterManager(this);
 		trapManager = new TrapManager(this);
 		buildableManager = new BuildableManager(this);
+		questManager = new QuestManager(this);
 		downedPlayerManager = new DownedPlayerManager();
 		signManager = new SignManager(this);
 
@@ -488,6 +494,9 @@ public class Game
 		}
 
 		waveNumber++;
+
+		// Tier 4 — fire any "reach round N" easter-egg quest step now that the round advanced.
+		questManager.onRoundReached(waveNumber);
 
 		//get death and downed players and let them respawn or revive
 		for(Player player : getDeathPlayers())
@@ -963,6 +972,9 @@ public class Game
 		if(arenaSaveJson.has("buildables"))
 			buildableManager.loadAllBuildablesToGame(arenaSaveJson.get("buildables").getAsJsonArray());
 
+		if(arenaSaveJson.has("quest"))
+			questManager.load(arenaSaveJson.get("quest"));
+
 		signManager.updateGame();
 
 		return true;
@@ -996,6 +1008,7 @@ public class Game
 		arenaSaveJson.add("teleporters", teleporterManager.save());
 		arenaSaveJson.add("traps", trapManager.save());
 		arenaSaveJson.add("buildables", buildableManager.save());
+		arenaSaveJson.add("quest", questManager.save());
 
 		return gamejson;
 	}

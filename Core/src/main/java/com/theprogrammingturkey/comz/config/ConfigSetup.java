@@ -244,6 +244,12 @@ public class ConfigSetup
 	public double trapKillRadius;
 
 	/**
+	 * Tier 4 — Quest: points granted to every player in the arena when the easter-egg
+	 * quest is completed.
+	 */
+	public int questCompletionReward;
+
+	/**
 	 * Tier 2 — Thundergun: velocity magnitude applied to each zombie blasted away from the
 	 * shooter along the look direction (massive knockback wonder-weapon effect).
 	 */
@@ -412,6 +418,7 @@ public class ConfigSetup
 		trapDurationSeconds = plugin.getConfig().getInt("config.trap.durationSeconds", 10);
 		trapCooldownSeconds = plugin.getConfig().getInt("config.trap.cooldownSeconds", 60);
 		trapKillRadius = plugin.getConfig().getDouble("config.trap.killRadius", 4.0);
+		questCompletionReward = plugin.getConfig().getInt("config.quest.completionReward", 5000);
 		thundergunKnockback = plugin.getConfig().getDouble("config.wonderWeapons.thundergunKnockback", 3.0);
 		wunderwaffeChainCount = plugin.getConfig().getInt("config.wonderWeapons.wunderwaffeChainCount", 5);
 		wunderwaffeChainRadius = plugin.getConfig().getDouble("config.wonderWeapons.wunderwaffeChainRadius", 6.0);

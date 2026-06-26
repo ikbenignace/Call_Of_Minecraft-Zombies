@@ -85,6 +85,10 @@ public class SignListener implements Listener
 		GAME_SIGNS.put("buildable", buildable);
 		GAME_SIGNS.put("build", buildable);
 		GAME_SIGNS.put("buildable station", buildable);
+
+		QuestSign quest = new QuestSign();
+		GAME_SIGNS.put("quest", quest);
+		GAME_SIGNS.put("easter egg", quest);
 	}
 
 	@EventHandler(priority = EventPriority.HIGHEST)

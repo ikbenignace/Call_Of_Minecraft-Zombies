@@ -132,6 +132,12 @@ config:
     cooldownSeconds: 60
     #Radius (blocks) around the trap center within which zombies are killed.
     killRadius: 4.0
+  quest:
+    #Tier 4 easter-egg quest framework. A per-arena multi-step objective engine.
+    #Quests are authored entirely via data: a "quest" object in arenas.json plus
+    #[Zombies]/Quest signs placed in the world. See QuestManager for the schema.
+    #Points granted to every player in the arena when the easter-egg quest completes.
+    completionReward: 5000
   wonderWeapons:
     #Thundergun: velocity magnitude applied to each blasted zombie along the shooter's look direction (massive knockback).
     thundergunKnockback: 3.0
