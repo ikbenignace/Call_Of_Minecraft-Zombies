@@ -239,6 +239,22 @@ public class ConfigSetup
 	public double trapKillRadius;
 
 	/**
+	 * Tier 2 — Thundergun: velocity magnitude applied to each zombie blasted away from the
+	 * shooter along the look direction (massive knockback wonder-weapon effect).
+	 */
+	public double thundergunKnockback;
+	/**
+	 * Tier 2 — Wunderwaffe DG-2: maximum number of additional zombies the initial lightning
+	 * hit chains to (each chained zombie is struck and damaged). Caps the chain to avoid loops.
+	 */
+	public int wunderwaffeChainCount;
+	/**
+	 * Tier 2 — Wunderwaffe DG-2: radius (blocks) within which the chain searches for the next
+	 * nearest un-chained zombie from the most recently struck one.
+	 */
+	public double wunderwaffeChainRadius;
+
+	/**
 	 * Main method to assign values to every field.
 	 */
 	public void setup()
@@ -303,6 +319,9 @@ public class ConfigSetup
 		trapDurationSeconds = plugin.getConfig().getInt("config.trap.durationSeconds", 10);
 		trapCooldownSeconds = plugin.getConfig().getInt("config.trap.cooldownSeconds", 60);
 		trapKillRadius = plugin.getConfig().getDouble("config.trap.killRadius", 4.0);
+		thundergunKnockback = plugin.getConfig().getDouble("config.wonderWeapons.thundergunKnockback", 3.0);
+		wunderwaffeChainCount = plugin.getConfig().getInt("config.wonderWeapons.wunderwaffeChainCount", 5);
+		wunderwaffeChainRadius = plugin.getConfig().getDouble("config.wonderWeapons.wunderwaffeChainRadius", 6.0);
 
 		Leaderboard.loadLeaderboard();
 	}

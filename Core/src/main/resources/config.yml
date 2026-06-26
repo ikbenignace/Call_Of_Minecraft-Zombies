@@ -114,3 +114,10 @@ config:
     cooldownSeconds: 60
     #Radius (blocks) around the trap center within which zombies are killed.
     killRadius: 4.0
+  wonderWeapons:
+    #Thundergun: velocity magnitude applied to each blasted zombie along the shooter's look direction (massive knockback).
+    thundergunKnockback: 3.0
+    #Wunderwaffe DG-2: max number of additional zombies the lightning chains to after the initial hit (caps the chain).
+    wunderwaffeChainCount: 5
+    #Wunderwaffe DG-2: radius (blocks) searched for the next nearest un-chained zombie from the last struck one.
+    wunderwaffeChainRadius: 6.0

@@ -2,6 +2,7 @@ package com.theprogrammingturkey.comz.listeners;
 
 import com.theprogrammingturkey.comz.COMZombies;
 import com.theprogrammingturkey.comz.config.ConfigManager;
+import com.theprogrammingturkey.comz.config.ConfigSetup;
 import com.theprogrammingturkey.comz.game.Game;
 import com.theprogrammingturkey.comz.game.Game.GameStatus;
 import com.theprogrammingturkey.comz.game.GameManager;
@@ -16,6 +17,7 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
+import org.bukkit.World;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
@@ -31,10 +33,47 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.Vector;
 
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 public class WeaponListener implements Listener
 {
+	/** guns.json display name of the Thundergun (base) wonder weapon. */
+	private static final String THUNDERGUN = "Thundergun";
+	/** guns.json display name of the Thundergun Pack-a-Punch variant. */
+	private static final String THUNDERGUN_PAP = "Zeus Cannon";
+	/** guns.json display name of the Wunderwaffe DG-2 (base) wonder weapon. */
+	private static final String WUNDERWAFFE = "Wunderwaffe DG-2";
+	/** guns.json display name of the Wunderwaffe Pack-a-Punch variant. */
+	private static final String WUNDERWAFFE_PAP = "Wunderwaffe DG-3 JZ";
+
+	/**
+	 * Pure selection helper: given the squared distances of a set of candidates, return the
+	 * indices of the {@code count} nearest, ordered nearest-first. Used by the Wunderwaffe to
+	 * pick its chain victims without any Bukkit dependency (and thus unit-testable).
+	 *
+	 * @param distancesSquared squared distance of each candidate (index = candidate id)
+	 * @param count            how many nearest indices to return; clamped to the candidate count
+	 * @return list of candidate indices, nearest first (empty if count is 0 or no candidates)
+	 * @throws IllegalArgumentException if count is negative
+	 */
+	public static List<Integer> nNearestIndices(double[] distancesSquared, int count)
+	{
+		if(count < 0)
+			throw new IllegalArgumentException("count must be >= 0");
+		if(count == 0 || distancesSquared.length == 0)
+			return new ArrayList<>();
+		return IntStream.range(0, distancesSquared.length)
+				.boxed()
+				.sorted(Comparator.comparingDouble(i -> distancesSquared[i]))
+				.limit(count)
+				.collect(Collectors.toList());
+	}
+
 	@EventHandler(priority = EventPriority.HIGHEST)
 	public void onPlayerInteractEvent(PlayerInteractEvent event)
 	{
@@ -148,9 +187,110 @@ public class WeaponListener implements Listener
 									game.damageMob(mob, player, damage, headshot, false);
 								}
 							}
+
+							applyWonderWeaponEffect(game, player, gun, toDamage, dirVec);
 						}
 					}
 				}
+			}
+		}
+	}
+
+	/**
+	 * Tier 2 — per-weapon custom fire behavior for the wonder weapons. Keyed off the gun's
+	 * display name; ordinary guns match nothing here and are unaffected. All effects are guarded
+	 * against null worlds / empty hit lists.
+	 *
+	 * <ul>
+	 *   <li><b>Thundergun</b> — blasts every hit zombie strongly away from the shooter along the
+	 *       look direction (knockback scaled by {@code thundergunKnockback}) with a boom + smoke.</li>
+	 *   <li><b>Wunderwaffe DG-2</b> — chains lightning from the initial hit zombie to up to
+	 *       {@code wunderwaffeChainCount} nearest other zombies within {@code wunderwaffeChainRadius},
+	 *       striking and lethally damaging each. Already-chained zombies are tracked to avoid loops.</li>
+	 * </ul>
+	 */
+	private void applyWonderWeaponEffect(Game game, Player player, GunInstance gun, List<RayTrace.RayEntityIntersection> toDamage, Vector dirVec)
+	{
+		if(toDamage == null || toDamage.isEmpty())
+			return;
+
+		String name = gun.getType().getName();
+		World world = player.getWorld();
+		if(world == null)
+			return;
+
+		if(name.equalsIgnoreCase(THUNDERGUN) || name.equalsIgnoreCase(THUNDERGUN_PAP))
+		{
+			Vector push = dirVec.clone().normalize().multiply(ConfigManager.getMainConfig().thundergunKnockback);
+			push.setY(Math.max(push.getY(), 0.4)); // a little lift so zombies are flung, not ground-dragged
+
+			for(RayTrace.RayEntityIntersection hit : toDamage)
+			{
+				if(!(hit.hitEnt instanceof Mob))
+					continue;
+				Mob mob = (Mob) hit.hitEnt;
+				mob.setVelocity(push.clone());
+				world.spawnParticle(Particle.CLOUD, mob.getLocation().add(0, 1, 0), 12, 0.3, 0.3, 0.3, 0.05);
+			}
+
+			Location origin = player.getLocation();
+			world.playSound(origin, Sound.ENTITY_LIGHTNING_BOLT_THUNDER, 1.4F, 0.6F);
+			world.spawnParticle(Particle.EXPLOSION, player.getEyeLocation().add(dirVec.clone().normalize()), 3, 0.5, 0.5, 0.5, 0);
+		}
+		else if(name.equalsIgnoreCase(WUNDERWAFFE) || name.equalsIgnoreCase(WUNDERWAFFE_PAP))
+		{
+			ConfigSetup cfg = ConfigManager.getMainConfig();
+			int chainCount = cfg.wunderwaffeChainCount;
+			double chainRadius = cfg.wunderwaffeChainRadius;
+			float chainDamage = (float) gun.getType().damage;
+
+			// Seed from the initial hit zombie (closest hit in toDamage for the non-multi case).
+			Mob seed = null;
+			for(RayTrace.RayEntityIntersection hit : toDamage)
+			{
+				if(hit.hitEnt instanceof Mob)
+				{
+					seed = (Mob) hit.hitEnt;
+					break;
+				}
+			}
+			if(seed == null)
+				return;
+
+			Set<Mob> chained = new HashSet<>();
+			chained.add(seed);
+			// Strike the seed too for the lightning visual.
+			world.strikeLightningEffect(seed.getLocation());
+
+			Mob current = seed;
+			while(chained.size() <= chainCount)
+			{
+				List<Mob> candidates = new ArrayList<>();
+				double radiusSq = chainRadius * chainRadius;
+				for(Mob mob : game.spawnManager.getEntities())
+				{
+					if(chained.contains(mob) || mob.isDead())
+						continue;
+					if(mob.getLocation().distanceSquared(current.getLocation()) <= radiusSq)
+						candidates.add(mob);
+				}
+				if(candidates.isEmpty())
+					break;
+
+				double[] dists = new double[candidates.size()];
+				Location from = current.getLocation();
+				for(int i = 0; i < candidates.size(); i++)
+					dists[i] = candidates.get(i).getLocation().distanceSquared(from);
+
+				List<Integer> nearest = nNearestIndices(dists, 1);
+				if(nearest.isEmpty())
+					break;
+
+				Mob next = candidates.get(nearest.get(0));
+				world.strikeLightningEffect(next.getLocation());
+				game.damageMob(next, player, chainDamage, false, false);
+				chained.add(next);
+				current = next;
 			}
 		}
 	}

@@ -908,6 +908,58 @@
           "particle_color": "FF1919",
           "multi_hit": true
         }
+      },
+      {
+        "name": "Thundergun",
+        "material": "GOLDEN_SHOVEL",
+        "sound": "ENTITY_LIGHTNING_BOLT_THUNDER",
+        "clip_ammo": 2,
+        "total_ammo": 12,
+        "damage": 100,
+        "fire_delay": 14,
+        "reload_time": 3.5,
+        "max_distance": 25.0,
+        "particle_color": "E0E0FF",
+        "multi_hit": true,
+        "pack_a_punch_gun": {
+          "name": "Zeus Cannon",
+          "material": "GOLDEN_SHOVEL",
+          "sound": "ENTITY_LIGHTNING_BOLT_THUNDER",
+          "clip_ammo": 2,
+          "total_ammo": 24,
+          "damage": 150,
+          "fire_delay": 14,
+          "reload_time": 3.0,
+          "max_distance": 30.0,
+          "particle_color": "66CCFF",
+          "multi_hit": true
+        }
+      },
+      {
+        "name": "Wunderwaffe DG-2",
+        "material": "LIGHTNING_ROD",
+        "sound": "ENTITY_LIGHTNING_BOLT_IMPACT",
+        "clip_ammo": 3,
+        "total_ammo": 15,
+        "damage": 120,
+        "fire_delay": 12,
+        "reload_time": 4.0,
+        "max_distance": 40.0,
+        "particle_color": "FFFF66",
+        "multi_hit": false,
+        "pack_a_punch_gun": {
+          "name": "Wunderwaffe DG-3 JZ",
+          "material": "LIGHTNING_ROD",
+          "sound": "ENTITY_LIGHTNING_BOLT_IMPACT",
+          "clip_ammo": 4,
+          "total_ammo": 24,
+          "damage": 200,
+          "fire_delay": 12,
+          "reload_time": 3.5,
+          "max_distance": 50.0,
+          "particle_color": "FFFFAA",
+          "multi_hit": false
+        }
       }
     ]
   }
