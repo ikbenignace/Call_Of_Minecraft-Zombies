@@ -57,6 +57,12 @@ config:
     meleeKillBonus: 60
     #Base knife one-shots zombies through (and including) this round; knife damage derives from the HP curve at this round.
     knifeOneShotThroughRound: 9
+    #When a round's zombies are all spawned and exactly one regular zombie remains, turn it into a slow gas-emitting crawler so players can hold the round (BO behavior).
+    lastZombieCrawler: true
+    #Max health (plugin HP scale) a zombie is set to when converted into a crawler.
+    crawlerHealth: 2.0
+    #Radius (blocks) around a crawler within which its toxic gas poisons players.
+    crawlerGasRadius: 3.0
     #Seconds a zombie may make no progress before it teleports to a reachable spawn near a player (fixes stuck/"1 zombie left" hangs). 0 disables.
     zombieStuckSeconds: 6
     #A zombie moving less than this many blocks within a check interval counts as no progress.

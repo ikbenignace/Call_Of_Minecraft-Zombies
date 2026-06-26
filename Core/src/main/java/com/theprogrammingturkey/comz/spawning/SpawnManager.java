@@ -170,8 +170,29 @@ public class SpawnManager
 				game.powerUpManager.dropPowerUp(entity, PowerUp.MAX_AMMO);
 			game.nextWave();
 		}
+		else
+		{
+			maybeConvertLastZombie();
+		}
 
 		game.scoreboard.update();
+	}
+
+	/**
+	 * Tier 2 — When the wave is fully spawned and exactly one regular (non-dog) zombie remains
+	 * alive, and it is not already a crawler, convert it to a crawler so players can hold the
+	 * round. Called whenever the alive count drops (kills) and on the periodic update tick.
+	 */
+	private void maybeConvertLastZombie()
+	{
+		if(dogRound)
+			return;
+		if(!shouldConvertLastZombie(mobs.size(), mobsSpawned, mobsToSpawn, ConfigManager.getMainConfig().lastZombieCrawler))
+			return;
+
+		Mob last = mobs.get(0);
+		if(!ZombieSpawner.isCrawler(last))
+			ZombieSpawner.convertToCrawler(game, last);
 	}
 
 	public boolean addPoint(SpawnPoint point)
@@ -259,6 +280,17 @@ public class SpawnManager
 		return movedDistance >= moveThreshold ? 0L : prevStuckTicks + intervalTicks;
 	}
 
+	/**
+	 * Tier 2 — Whether the single remaining zombie of a round should be converted into a slow
+	 * crawler so players can hold the round. True only when the feature is enabled, the whole
+	 * wave has already been spawned ({@code mobsSpawned >= mobsToSpawn}) and exactly one zombie
+	 * is alive. Pure decision extracted for testability.
+	 */
+	public static boolean shouldConvertLastZombie(int aliveCount, int mobsSpawned, int mobsToSpawn, boolean enabled)
+	{
+		return enabled && aliveCount == 1 && mobsSpawned >= mobsToSpawn;
+	}
+
 	private void smartSpawn(final int wave)
 	{
 		if(!this.canSpawn || wave != game.getWave())
@@ -336,6 +368,8 @@ public class SpawnManager
 					checkStuck(mob, nearest);
 				}
 			}
+
+			maybeConvertLastZombie();
 
 			update();
 		});

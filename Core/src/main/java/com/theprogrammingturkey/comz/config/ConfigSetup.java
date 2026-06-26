@@ -192,6 +192,20 @@ public class ConfigSetup
 	public boolean teleporterSound;
 
 	/**
+	 * Tier 2 — When a round's zombies are all spawned and exactly one regular zombie remains,
+	 * convert it into a slow gas-emitting crawler so players can hold the round (BO behavior).
+	 */
+	public boolean lastZombieCrawler;
+	/**
+	 * Tier 2 — Max health (plugin HP scale) a zombie is set to when converted into a crawler.
+	 */
+	public double crawlerHealth;
+	/**
+	 * Tier 2 — Radius (blocks) around a crawler within which its gas poisons players.
+	 */
+	public double crawlerGasRadius;
+
+	/**
 	 * Main method to assign values to every field.
 	 */
 	public void setup()
@@ -246,6 +260,9 @@ public class ConfigSetup
 		teleporterChargeUpTicks = plugin.getConfig().getInt("config.teleporter.chargeUpTicks", 40);
 		teleporterPadKillRadius = plugin.getConfig().getDouble("config.teleporter.padKillRadius", 3.0);
 		teleporterSound = plugin.getConfig().getBoolean("config.teleporter.sound", true);
+		lastZombieCrawler = plugin.getConfig().getBoolean("config.gameSettings.lastZombieCrawler", true);
+		crawlerHealth = plugin.getConfig().getDouble("config.gameSettings.crawlerHealth", 2.0);
+		crawlerGasRadius = plugin.getConfig().getDouble("config.gameSettings.crawlerGasRadius", 3.0);
 
 		Leaderboard.loadLeaderboard();
 	}

@@ -1140,7 +1140,9 @@ public class Game
 		double mobHealth = mob.getHealth() - damageAmount;
 		mob.playEffect(EntityEffect.HURT);
 
-		if(isInstaKill())
+		// Tier 2 — Insta-Kill must not instantly remove a last-zombie crawler, otherwise it would
+		// auto-end the round players are deliberately holding. Crawlers take normal damage instead.
+		if(isInstaKill() && !com.theprogrammingturkey.comz.spawning.ZombieSpawner.isCrawler(mob))
 		{
 			if(mob instanceof Zombie)
 				player.getWorld().playSound(mob.getLocation(), Sound.ENTITY_ZOMBIE_DEATH, 1f, 1f);
