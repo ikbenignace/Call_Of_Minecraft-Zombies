@@ -167,3 +167,19 @@ config:
     permaQuickReviveThreshold: 15
     #Perma Quick Revive (lite): seconds of Speed granted at game entry once unlocked.
     permaQuickReviveSpeedSeconds: 5
+  resourcePack:
+    #Custom resource pack: push the COM:Z pack (custom gun/perk/power-up models + sounds) to players when they join a game.
+    #Host the pack .zip somewhere players can download it (e.g. a GitHub release asset or web server) and put the direct URL below.
+    enabled: false
+    #Direct download URL of the pack .zip.
+    url: ""
+    #40-char hex SHA-1 of the .zip (run `sha1sum pack.zip`). Lets clients cache the pack; leave empty to skip caching (re-downloads every join).
+    sha1: ""
+    #Force the pack: the client must accept it. With kickOnDecline below, players who refuse are removed from the game.
+    force: true
+    #Text shown in the client's accept-pack dialog.
+    prompt: "Install the Call of Minecraft: Zombies pack for custom guns, perks & sounds"
+    #When force is true, remove a player from their game if they decline or fail to download the pack.
+    kickOnDecline: false
+    #All sound mappings (event sounds, per-power-up, per-gun shoot/reload) live in the separate
+    #sounds.json config so they can be tuned in one place. See that file.

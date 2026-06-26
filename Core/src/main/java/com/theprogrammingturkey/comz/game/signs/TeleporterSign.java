@@ -88,7 +88,7 @@ public class TeleporterSign implements IGameSign
 
 					// 0k — sound + brief blindness now, then the actual teleport after the charge-up delay.
 					if(cfg.teleporterSound)
-						origin.getWorld().playSound(origin, Sound.ENTITY_ENDERMAN_TELEPORT, 1.0f, 1.0f);
+						com.theprogrammingturkey.comz.util.SoundUtil.play(origin.getWorld(), origin, com.theprogrammingturkey.comz.util.SoundConfig.get("teleporter", Sound.ENTITY_ENDERMAN_TELEPORT.name()), org.bukkit.SoundCategory.MASTER, 1.0f, 1.0f);
 					player.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, cfg.teleporterChargeUpTicks + 30, 30));
 
 						// Tier 2 — capture opt-in before the deferred task; lines is stable here.

@@ -115,7 +115,7 @@ public class Door
 		if(!blocks.isEmpty())
 		{
 			Block b = blocks.keySet().toArray(new Block[0])[0];
-			world.playSound(b.getLocation(), Sound.BLOCK_WOODEN_DOOR_OPEN, 1L, 1L);
+			com.theprogrammingturkey.comz.util.SoundUtil.play(world, b.getLocation(), com.theprogrammingturkey.comz.util.SoundConfig.get("door.open", Sound.BLOCK_WOODEN_DOOR_OPEN.name()), org.bukkit.SoundCategory.MASTER, 1, 1);
 		}
 	}
 

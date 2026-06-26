@@ -292,7 +292,8 @@ public class PowerUpDropListener implements Listener
 		for(Player pl : game.getPlayersInGame())
 		{
 			pl.sendMessage(ChatColor.RED + "" + ChatColor.BOLD + powerUp.getDisplay() + "!");
-			pl.playSound(pl.getLocation(), powerUp.getSound(), 1, 1);
+			String sound = com.theprogrammingturkey.comz.util.SoundConfig.get("powerup." + powerUp.name(), powerUp.getSound().name());
+			com.theprogrammingturkey.comz.util.SoundUtil.play(pl, pl.getLocation(), sound, org.bukkit.SoundCategory.MASTER, 1, 1);
 		}
 	}
 }

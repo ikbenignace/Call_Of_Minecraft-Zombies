@@ -2,9 +2,7 @@ package com.theprogrammingturkey.comz.game.weapons;
 
 import com.google.gson.JsonObject;
 import com.theprogrammingturkey.comz.config.CustomConfig;
-import com.theprogrammingturkey.comz.util.Compat;
 import org.bukkit.Color;
-import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 
 public abstract class BaseGun extends Weapon
@@ -26,7 +24,14 @@ public abstract class BaseGun extends Weapon
 	public Color particleColor = Color.GRAY;
 	public boolean multiHit;
 
-	public Sound sound;
+	/**
+	 * Per-shot sound, as either a legacy Bukkit {@code Sound} enum name or a namespaced
+	 * resource-pack event key (e.g. {@code comz:weapon.python.shoot}). Played through
+	 * {@code SoundUtil}, which auto-detects which kind it is.
+	 */
+	public String soundKey;
+	/** Per-gun reload sound (enum name or pack event key); null/blank = no reload sound. */
+	public String reloadSoundKey;
 
 	public BaseGun(String name, WeaponType type)
 	{
@@ -47,8 +52,9 @@ public abstract class BaseGun extends Weapon
 		if(particleColor.matches("\\A[0-9a-fA-F]{6}$"))
 			this.particleColor = Color.fromRGB(Integer.parseInt(particleColor, 16));
 
-		Sound defaultSound = this.isPackAPunched() ? Sound.ENTITY_GHAST_SHOOT : Sound.BLOCK_LAVA_POP;
-		this.sound = Compat.sound(CustomConfig.getString(json, "sound", null), defaultSound);
+		String defaultSound = this.isPackAPunched() ? "ENTITY_GHAST_SHOOT" : "BLOCK_LAVA_POP";
+		this.soundKey = CustomConfig.getString(json, "sound", defaultSound);
+		this.reloadSoundKey = CustomConfig.getString(json, "reload_sound", null);
 	}
 
 	public void updateAmmo(int clip, int total)

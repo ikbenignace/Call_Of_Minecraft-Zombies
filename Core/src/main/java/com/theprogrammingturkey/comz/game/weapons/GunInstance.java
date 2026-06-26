@@ -6,8 +6,10 @@ import com.theprogrammingturkey.comz.COMZombies;
 import com.theprogrammingturkey.comz.config.ConfigManager;
 import com.theprogrammingturkey.comz.game.Game;
 import com.theprogrammingturkey.comz.game.GameManager;
+import com.theprogrammingturkey.comz.util.SoundUtil;
 import org.bukkit.ChatColor;
 import org.bukkit.Sound;
+import org.bukkit.SoundCategory;
 import org.bukkit.World;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Entity;
@@ -150,6 +152,8 @@ public class GunInstance extends WeaponInstance
 				return;
 
 			isReloading = true;
+			String reloadSound = com.theprogrammingturkey.comz.util.SoundConfig.gun(gun.getName(), gun.isPackAPunched(), "reload", gun.reloadSoundKey);
+			SoundUtil.play(player, player.getLocation(), reloadSound, SoundCategory.PLAYERS, 1, 1);
 			Game game = GameManager.INSTANCE.getGame(player);
 			long reloadTicks = reloadTicks(
 					gun.reloadTime,
@@ -243,7 +247,8 @@ public class GunInstance extends WeaponInstance
 
 		World world = player.getWorld();
 
-		world.playSound(player.getLocation(), gun.sound, 1, 1);
+		String shootSound = com.theprogrammingturkey.comz.util.SoundConfig.gun(gun.getName(), gun.isPackAPunched(), "shoot", gun.soundKey);
+		SoundUtil.play(world, player.getLocation(), shootSound, SoundCategory.PLAYERS, 1, 1);
 
 		updateWeapon();
 		canFire = false;

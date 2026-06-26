@@ -140,7 +140,7 @@ public class Trap
 			return;
 
 		world.spawnParticle(Particle.FLAME, center.getX(), center.getY() + 1, center.getZ(), 30, radius / 2, 0.5, radius / 2, 0.01);
-		world.playSound(center, Sound.BLOCK_FIRE_AMBIENT, 1.0f, 1.0f);
+		com.theprogrammingturkey.comz.util.SoundUtil.play(world, center, com.theprogrammingturkey.comz.util.SoundConfig.get("trap", Sound.BLOCK_FIRE_AMBIENT.name()), org.bukkit.SoundCategory.MASTER, 1.0f, 1.0f);
 
 		if(radius <= 0)
 			return;

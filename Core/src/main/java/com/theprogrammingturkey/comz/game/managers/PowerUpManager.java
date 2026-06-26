@@ -169,6 +169,8 @@ public class PowerUpManager
 
 	public void dropPowerUp(Entity mob, PowerUp powerUp)
 	{
-		dropItem(mob, new ItemStack(powerUp.getMaterial(), 1));
+		ItemStack stack = new ItemStack(powerUp.getMaterial(), 1);
+		com.theprogrammingturkey.comz.util.PackModels.apply(stack, powerUp.getModelKey());
+		dropItem(mob, stack);
 	}
 }

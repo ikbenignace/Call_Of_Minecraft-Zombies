@@ -134,6 +134,7 @@ public class COMZombies extends JavaPlugin
 		m.registerEvents(new PlayerListener(), this);
 		m.registerEvents(new OnInventoryChangeEvent(), this);
 		m.registerEvents(new ScopeListener(), this);
+		m.registerEvents(new ResourcePackListener(), this);
 	}
 
 	/**

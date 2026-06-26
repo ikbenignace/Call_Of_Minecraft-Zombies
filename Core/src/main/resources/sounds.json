@@ -1,0 +1,46 @@
+{
+  "_comment": "COM:Z sound registry. Each value is EITHER a Bukkit Sound enum name (e.g. BLOCK_ANVIL_USE) OR a namespaced resource-pack event (e.g. comz:weapon.python.shoot). Blank/missing keys keep the vanilla default. After installing the custom pack, point values at comz:* events to use its audio. Per-gun overrides live under 'guns' (keyed by the gun's in-game name); '_default'/'_defaultPaP' apply to any gun without a specific entry, and themselves fall back to the 'sound'/'reload_sound' set in guns.json.",
+  "perk": {
+    "buy": "ENTITY_GENERIC_DRINK",
+    "noPower": "ENTITY_GHAST_AMBIENT"
+  },
+  "box": {
+    "open": "BLOCK_CHEST_OPEN",
+    "spin": "BLOCK_NOTE_BLOCK_HARP",
+    "lock": "ENTITY_EXPERIENCE_ORB_PICKUP",
+    "pickup": "BLOCK_LAVA_POP"
+  },
+  "round": {
+    "start": "BLOCK_PORTAL_AMBIENT",
+    "regular": "BLOCK_PORTAL_TRAVEL",
+    "dogs": "ENTITY_ENDER_DRAGON_GROWL"
+  },
+  "packapunch": "BLOCK_ANVIL_USE",
+  "teleporter": "ENTITY_ENDERMAN_TELEPORT",
+  "door": {
+    "open": "BLOCK_WOODEN_DOOR_OPEN"
+  },
+  "trap": "BLOCK_FIRE_AMBIENT",
+  "gun": {
+    "buy": "ENTITY_GHAST_SHOOT"
+  },
+  "game": {
+    "join": "ENTITY_ZOMBIE_AMBIENT"
+  },
+  "powerup": {
+    "MAX_AMMO": "ENTITY_PLAYER_BIG_FALL",
+    "INSTA_KILL": "ENTITY_LIGHTNING_BOLT_THUNDER",
+    "CARPENTER": "BLOCK_STONE_BREAK",
+    "NUKE": "ENTITY_GENERIC_EXPLODE",
+    "DOUBLE_POINTS": "BLOCK_GLASS_BREAK",
+    "FIRE_SALE": "ITEM_FLINTANDSTEEL_USE",
+    "BONUS_POINTS": "ENTITY_PLAYER_LEVELUP",
+    "RANDOM_PERK": "ENTITY_WITCH_DRINK",
+    "DEATH_MACHINE": "ENTITY_IRON_GOLEM_ATTACK",
+    "BONFIRE_SALE": "ITEM_FIRECHARGE_USE"
+  },
+  "guns": {
+    "_default": { "shoot": "", "reload": "" },
+    "_defaultPaP": { "shoot": "", "reload": "" }
+  }
+}

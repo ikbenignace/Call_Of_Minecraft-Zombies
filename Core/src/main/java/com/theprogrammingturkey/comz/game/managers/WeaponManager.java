@@ -47,6 +47,7 @@ public class WeaponManager
 		BasicGun gun = new BasicGun(DEATH_MACHINE_NAME, WeaponType.SPECIAL);
 		gun.material = org.bukkit.Material.IRON_BLOCK;
 		gun.modelData = -1;
+		gun.itemModel = "powerup/death_machine";
 		gun.damage = 1000;
 		gun.fireDelay = 1;
 		gun.clipAmmo = 999;
@@ -54,7 +55,7 @@ public class WeaponManager
 		gun.reloadTime = 0;
 		gun.distance = 60;
 		gun.multiHit = true;
-		gun.sound = org.bukkit.Sound.ENTITY_IRON_GOLEM_ATTACK;
+		gun.soundKey = "ENTITY_IRON_GOLEM_ATTACK";
 		return gun;
 	}
 

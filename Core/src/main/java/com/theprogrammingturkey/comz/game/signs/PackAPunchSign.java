@@ -82,7 +82,7 @@ public class PackAPunchSign implements IGameSign
 			if(PointManager.INSTANCE.canBuy(player, repackCost))
 			{
 				CommandUtil.sendMessageToPlayer(player, ChatColor.RED + "Your " + ChatColor.GOLD + gun.getType().getName() + ChatColor.RED + " was refilled");
-				player.getWorld().playSound(player.getLocation(), Sound.BLOCK_ANVIL_USE, 1, 1);
+				com.theprogrammingturkey.comz.util.SoundUtil.play(player.getWorld(), player.getLocation(), com.theprogrammingturkey.comz.util.SoundConfig.get("packapunch", Sound.BLOCK_ANVIL_USE.name()), org.bukkit.SoundCategory.MASTER, 1, 1);
 				gun.maxAmmo();
 				PointManager.INSTANCE.takePoints(player, repackCost);
 			}

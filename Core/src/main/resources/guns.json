@@ -4,6 +4,7 @@
       {
         "name": "B23R",
         "material": "DIAMOND_HOE",
+        "item_model": "comz:gun/b23r",
         "sound": "BLOCK_LAVA_POP",
         "clip_ammo": 15,
         "total_ammo": 105,
@@ -16,6 +17,7 @@
         "pack_a_punch_gun": {
           "name": "B34R",
           "material": "DIAMOND_HOE",
+          "item_model": "comz:gun/b23r_pap",
           "sound": "ENTITY_GHAST_SHOOT",
           "clip_ammo": 20,
           "total_ammo": 180,
@@ -30,6 +32,7 @@
       {
         "name": "Executioner",
         "material": "STONE_HOE",
+        "item_model": "comz:gun/executioner",
         "sound": "BLOCK_LAVA_POP",
         "clip_ammo": 5,
         "total_ammo": 75,
@@ -42,6 +45,7 @@
         "pack_a_punch_gun": {
           "name": "Voice of Justice",
           "material": "STONE_HOE",
+          "item_model": "comz:gun/executioner_pap",
           "sound": "ENTITY_GHAST_SHOOT",
           "clip_ammo": 5,
           "total_ammo": 100,
@@ -56,6 +60,7 @@
       {
         "name": "Five-Seven",
         "material": "IRON_HOE",
+        "item_model": "comz:gun/five_seven",
         "sound": "BLOCK_LAVA_POP",
         "clip_ammo": 20,
         "total_ammo": 120,
@@ -68,6 +73,7 @@
         "pack_a_punch_gun": {
           "name": "Ultra",
           "material": "IRON_HOE",
+          "item_model": "comz:gun/five_seven_pap",
           "sound": "ENTITY_GHAST_SHOOT",
           "clip_ammo": 20,
           "total_ammo": 200,
@@ -82,6 +88,7 @@
       {
         "name": "Kap-40",
         "material": "GOLDEN_HOE",
+        "item_model": "comz:gun/kap40",
         "sound": "BLOCK_LAVA_POP",
         "clip_ammo": 12,
         "total_ammo": 96,
@@ -94,6 +101,7 @@
         "pack_a_punch_gun": {
           "name": "Karmic Atom Perforator-4000",
           "material": "GOLDEN_HOE",
+          "item_model": "comz:gun/kap40_pap",
           "sound": "ENTITY_GHAST_SHOOT",
           "clip_ammo": 15,
           "total_ammo": 180,
@@ -108,6 +116,7 @@
       {
         "name": "M1911",
         "material": "WOODEN_HOE",
+        "item_model": "comz:gun/m1911",
         "sound": "BLOCK_LAVA_POP",
         "clip_ammo": 8,
         "total_ammo": 80,
@@ -120,6 +129,7 @@
         "pack_a_punch_gun": {
           "name": "C-3000 b1at-ch35",
           "material": "WOODEN_HOE",
+          "item_model": "comz:gun/m1911_pap",
           "sound": "ENTITY_GHAST_SHOOT",
           "clip_ammo": 6,
           "total_ammo": 50,
@@ -134,6 +144,7 @@
       {
         "name": "Python",
         "material": "NETHERITE_HOE",
+        "item_model": "comz:gun/python",
         "sound": "BLOCK_LAVA_POP",
         "clip_ammo": 6,
         "total_ammo": 84,
@@ -146,6 +157,7 @@
         "pack_a_punch_gun": {
           "name": "Cobra",
           "material": "NETHERITE_HOE",
+          "item_model": "comz:gun/python_pap",
           "sound": "ENTITY_GHAST_SHOOT",
           "clip_ammo": 12,
           "total_ammo": 96,
@@ -164,6 +176,7 @@
       {
         "name": "M1216",
         "material": "WOODEN_SWORD",
+        "item_model": "comz:gun/m1216",
         "sound": "BLOCK_LAVA_POP",
         "clip_ammo": 16,
         "total_ammo": 84,
@@ -176,6 +189,7 @@
         "pack_a_punch_gun": {
           "name": "Mesmerizer",
           "material": "WOODEN_SWORD",
+          "item_model": "comz:gun/m1216_pap",
           "sound": "ENTITY_GHAST_SHOOT",
           "clip_ammo": 24,
           "total_ammo": 72,
@@ -190,6 +204,7 @@
       {
         "name": "Olympia",
         "material": "STONE_SWORD",
+        "item_model": "comz:gun/olympia",
         "sound": "BLOCK_LAVA_POP",
         "clip_ammo": 2,
         "total_ammo": 38,
@@ -202,6 +217,7 @@
         "pack_a_punch_gun": {
           "name": "Hades",
           "material": "STONE_SWORD",
+          "item_model": "comz:gun/olympia_pap",
           "sound": "ENTITY_GHAST_SHOOT",
           "clip_ammo": 2,
           "total_ammo": 60,
@@ -216,6 +232,7 @@
       {
         "name": "R870 MCS",
         "material": "IRON_SWORD",
+        "item_model": "comz:gun/r870",
         "sound": "BLOCK_LAVA_POP",
         "clip_ammo": 6,
         "total_ammo": 48,
@@ -228,6 +245,7 @@
         "pack_a_punch_gun": {
           "name": "Refitted-870 Mechanical Cranium Sequencer",
           "material": "IRON_SWORD",
+          "item_model": "comz:gun/r870_pap",
           "sound": "ENTITY_GHAST_SHOOT",
           "clip_ammo": 10,
           "total_ammo": 70,
@@ -242,6 +260,7 @@
       {
         "name": "S12",
         "material": "GOLDEN_SWORD",
+        "item_model": "comz:gun/s12",
         "sound": "BLOCK_LAVA_POP",
         "clip_ammo": 10,
         "total_ammo": 30,
@@ -254,6 +273,7 @@
         "pack_a_punch_gun": {
           "name": "Synthetic Dozen",
           "material": "GOLDEN_SWORD",
+          "item_model": "comz:gun/s12_pap",
           "sound": "ENTITY_GHAST_SHOOT",
           "clip_ammo": 10,
           "total_ammo": 50,
@@ -272,6 +292,7 @@
       {
         "name": "AN-94",
         "material": "WOODEN_PICKAXE",
+        "item_model": "comz:gun/an94",
         "sound": "BLOCK_LAVA_POP",
         "clip_ammo": 30,
         "total_ammo": 90,
@@ -284,6 +305,7 @@
         "pack_a_punch_gun": {
           "name": "Actuated Neutralizer 94000",
           "material": "WOODEN_PICKAXE",
+          "item_model": "comz:gun/an94_pap",
           "sound": "ENTITY_GHAST_SHOOT",
           "clip_ammo": 50,
           "total_ammo": 600,
@@ -298,6 +320,7 @@
       {
         "name": "Colt M16A1",
         "material": "STONE_PICKAXE",
+        "item_model": "comz:gun/m16",
         "sound": "BLOCK_LAVA_POP",
         "clip_ammo": 30,
         "total_ammo": 120,
@@ -310,6 +333,7 @@
         "pack_a_punch_gun": {
           "name": "Skullcrusher",
           "material": "STONE_PICKAXE",
+          "item_model": "comz:gun/m16_pap",
           "sound": "ENTITY_GHAST_SHOOT",
           "clip_ammo": 30,
           "total_ammo": 270,
@@ -324,6 +348,7 @@
       {
         "name": "FAL",
         "material": "IRON_PICKAXE",
+        "item_model": "comz:gun/fal",
         "sound": "BLOCK_LAVA_POP",
         "clip_ammo": 20,
         "total_ammo": 180,
@@ -336,6 +361,7 @@
         "pack_a_punch_gun": {
           "name": "EPC WN",
           "material": "IRON_PICKAXE",
+          "item_model": "comz:gun/fal_pap",
           "sound": "ENTITY_GHAST_SHOOT",
           "clip_ammo": 30,
           "total_ammo": 360,
@@ -350,6 +376,7 @@
       {
         "name": "M8A1",
         "material": "GOLDEN_PICKAXE",
+        "item_model": "comz:gun/m8a1",
         "sound": "BLOCK_LAVA_POP",
         "clip_ammo": 32,
         "total_ammo": 192,
@@ -362,6 +389,7 @@
         "pack_a_punch_gun": {
           "name": "Micro Aerator",
           "material": "GOLDEN_PICKAXE",
+          "item_model": "comz:gun/m8a1_pap",
           "sound": "ENTITY_GHAST_SHOOT",
           "clip_ammo": 42,
           "total_ammo": 336,
@@ -376,6 +404,7 @@
       {
         "name": "M14",
         "material": "DIAMOND_PICKAXE",
+        "item_model": "comz:gun/m14",
         "sound": "BLOCK_LAVA_POP",
         "clip_ammo": 8,
         "total_ammo": 96,
@@ -388,6 +417,7 @@
         "pack_a_punch_gun": {
           "name": "Mnesia",
           "material": "DIAMOND_PICKAXE",
+          "item_model": "comz:gun/m14_pap",
           "sound": "ENTITY_GHAST_SHOOT",
           "clip_ammo": 16,
           "total_ammo": 192,
@@ -402,6 +432,7 @@
       {
         "name": "M27",
         "material": "NETHERITE_PICKAXE",
+        "item_model": "comz:gun/m27",
         "sound": "BLOCK_LAVA_POP",
         "clip_ammo": 30,
         "total_ammo": 240,
@@ -414,6 +445,7 @@
         "pack_a_punch_gun": {
           "name": "Mystifier",
           "material": "NETHERITE_PICKAXE",
+          "item_model": "comz:gun/m27_pap",
           "sound": "ENTITY_GHAST_SHOOT",
           "clip_ammo": 30,
           "total_ammo": 360,
@@ -428,6 +460,7 @@
       {
         "name": "MTAR",
         "material": "LEATHER_HORSE_ARMOR",
+        "item_model": "comz:gun/mtar",
         "sound": "BLOCK_LAVA_POP",
         "clip_ammo": 30,
         "total_ammo": 240,
@@ -440,6 +473,7 @@
         "pack_a_punch_gun": {
           "name": "Malevolent Taxonomic Anodized Redeemer",
           "material": "LEATHER_HORSE_ARMOR",
+          "item_model": "comz:gun/mtar_pap",
           "sound": "ENTITY_GHAST_SHOOT",
           "clip_ammo": 30,
           "total_ammo": 360,
@@ -454,6 +488,7 @@
       {
         "name": "SMR",
         "material": "IRON_HORSE_ARMOR",
+        "item_model": "comz:gun/smr",
         "sound": "BLOCK_LAVA_POP",
         "clip_ammo": 20,
         "total_ammo": 140,
@@ -466,6 +501,7 @@
         "pack_a_punch_gun": {
           "name": "SM1L3R",
           "material": "IRON_HORSE_ARMOR",
+          "item_model": "comz:gun/smr_pap",
           "sound": "ENTITY_GHAST_SHOOT",
           "clip_ammo": 30,
           "total_ammo": 390,
@@ -480,6 +516,7 @@
       {
         "name": "Type 25",
         "material": "GOLDEN_HORSE_ARMOR",
+        "item_model": "comz:gun/type25",
         "sound": "BLOCK_LAVA_POP",
         "clip_ammo": 30,
         "total_ammo": 150,
@@ -492,6 +529,7 @@
         "pack_a_punch_gun": {
           "name": "Strain 25",
           "material": "GOLDEN_HORSE_ARMOR",
+          "item_model": "comz:gun/type25_pap",
           "sound": "ENTITY_GHAST_SHOOT",
           "clip_ammo": 30,
           "total_ammo": 270,
@@ -510,6 +548,7 @@
       {
         "name": "HAMR",
         "material": "WOODEN_SHOVEL",
+        "item_model": "comz:gun/hamr",
         "sound": "BLOCK_LAVA_POP",
         "clip_ammo": 135,
         "total_ammo": 1375,
@@ -522,6 +561,7 @@
         "pack_a_punch_gun": {
           "name": "SLDG-HAMR",
           "material": "WOODEN_SHOVEL",
+          "item_model": "comz:gun/hamr_pap",
           "sound": "ENTITY_GHAST_SHOOT",
           "clip_ammo": 125,
           "total_ammo": 625,
@@ -536,6 +576,7 @@
       {
         "name": "LSAT",
         "material": "STONE_SHOVEL",
+        "item_model": "comz:gun/lsat",
         "sound": "BLOCK_LAVA_POP",
         "clip_ammo": 100,
         "total_ammo": 400,
@@ -548,6 +589,7 @@
         "pack_a_punch_gun": {
           "name": "FSIRT",
           "material": "STONE_SHOVEL",
+          "item_model": "comz:gun/lsat_pap",
           "sound": "ENTITY_GHAST_SHOOT",
           "clip_ammo": 100,
           "total_ammo": 600,
@@ -562,6 +604,7 @@
       {
         "name": "RPD",
         "material": "GOLDEN_SHOVEL",
+        "item_model": "comz:gun/rpd",
         "sound": "BLOCK_LAVA_POP",
         "clip_ammo": 100,
         "total_ammo": 400,
@@ -574,6 +617,7 @@
         "pack_a_punch_gun": {
           "name": "Relativistic Punishment Device",
           "material": "GOLDEN_SHOVEL",
+          "item_model": "comz:gun/rpd_pap",
           "sound": "ENTITY_GHAST_SHOOT",
           "clip_ammo": 125,
           "total_ammo": 750,
@@ -588,6 +632,7 @@
       {
         "name": "Mk 48",
         "material": "IRON_SHOVEL",
+        "item_model": "comz:gun/mk48",
         "sound": "BLOCK_LAVA_POP",
         "clip_ammo": 100,
         "total_ammo": 400,
@@ -600,6 +645,7 @@
         "pack_a_punch_gun": {
           "name": "Mauler 48000",
           "material": "IRON_SHOVEL",
+          "item_model": "comz:gun/mk48_pap",
           "sound": "ENTITY_GHAST_SHOOT",
           "clip_ammo": 125,
           "total_ammo": 750,
@@ -618,6 +664,7 @@
       {
         "name": "Chicom CQB",
         "material": "WOODEN_AXE",
+        "item_model": "comz:gun/chicom",
         "sound": "BLOCK_LAVA_POP",
         "clip_ammo": 40,
         "total_ammo": 120,
@@ -630,6 +677,7 @@
         "pack_a_punch_gun": {
           "name": "Chicom Cataclysmic Quadruple Burst",
           "material": "WOODEN_AXE",
+          "item_model": "comz:gun/chicom_pap",
           "sound": "ENTITY_GHAST_SHOOT",
           "clip_ammo": 40,
           "total_ammo": 200,
@@ -644,6 +692,7 @@
       {
         "name": "MP5",
         "material": "STONE_AXE",
+        "item_model": "comz:gun/mp5",
         "sound": "BLOCK_LAVA_POP",
         "clip_ammo": 30,
         "total_ammo": 120,
@@ -656,6 +705,7 @@
         "pack_a_punch_gun": {
           "name": "MP115 Kollider",
           "material": "STONE_AXE",
+          "item_model": "comz:gun/mp5_pap",
           "sound": "ENTITY_GHAST_SHOOT",
           "clip_ammo": 40,
           "total_ammo": 200,
@@ -670,6 +720,7 @@
       {
         "name": "PDW-57",
         "material": "IRON_AXE",
+        "item_model": "comz:gun/pdw57",
         "sound": "BLOCK_LAVA_POP",
         "clip_ammo": 50,
         "total_ammo": 200,
@@ -682,6 +733,7 @@
         "pack_a_punch_gun": {
           "name": "Predictive Death Wish 57000",
           "material": "IRON_AXE",
+          "item_model": "comz:gun/pdw57_pap",
           "sound": "ENTITY_GHAST_SHOOT",
           "clip_ammo": 50,
           "total_ammo": 350,
@@ -696,6 +748,7 @@
       {
         "name": "MSMC",
         "material": "DIAMOND_AXE",
+        "item_model": "comz:gun/msmc",
         "sound": "BLOCK_LAVA_POP",
         "clip_ammo": 30,
         "total_ammo": 180,
@@ -708,6 +761,7 @@
         "pack_a_punch_gun": {
           "name": "Tika-Tovo",
           "material": "DIAMOND_AXE",
+          "item_model": "comz:gun/msmc_pap",
           "sound": "ENTITY_GHAST_SHOOT",
           "clip_ammo": 40,
           "total_ammo": 240,
@@ -722,6 +776,7 @@
       {
         "name": "Skorpion EVO",
         "material": "GOLDEN_AXE",
+        "item_model": "comz:gun/skorpion",
         "sound": "BLOCK_LAVA_POP",
         "clip_ammo": 30,
         "total_ammo": 180,
@@ -734,6 +789,7 @@
         "pack_a_punch_gun": {
           "name": "Scorpio Evolution",
           "material": "GOLDEN_AXE",
+          "item_model": "comz:gun/skorpion_pap",
           "sound": "ENTITY_GHAST_SHOOT",
           "clip_ammo": 40,
           "total_ammo": 240,
@@ -748,6 +804,7 @@
       {
         "name": "Vector K10",
         "material": "NETHERITE_AXE",
+        "item_model": "comz:gun/vector",
         "sound": "BLOCK_LAVA_POP",
         "clip_ammo": 40,
         "total_ammo": 200,
@@ -760,6 +817,7 @@
         "pack_a_punch_gun": {
           "name": "Vector Kannon-10000",
           "material": "NETHERITE_AXE",
+          "item_model": "comz:gun/vector_pap",
           "sound": "ENTITY_GHAST_SHOOT",
           "clip_ammo": 50,
           "total_ammo": 300,
@@ -774,6 +832,7 @@
       {
         "name": "Peacekeeper",
         "material": "LEATHER_HORSE_ARMOR",
+        "item_model": "comz:gun/peacekeeper",
         "sound": "BLOCK_LAVA_POP",
         "clip_ammo": 32,
         "total_ammo": 192,
@@ -786,6 +845,7 @@
         "pack_a_punch_gun": {
           "name": "Peacekeeper MK2",
           "material": "LEATHER_HORSE_ARMOR",
+          "item_model": "comz:gun/peacekeeper_pap",
           "sound": "ENTITY_GHAST_SHOOT",
           "clip_ammo": 40,
           "total_ammo": 280,
@@ -805,6 +865,7 @@
         "name": "Barret 50KCAL",
         "sound": "BLOCK_LAVA_POP",
         "material": "BLAZE_ROD",
+        "item_model": "comz:gun/barret",
         "clip_ammo": 5,
         "total_ammo": 30,
         "damage": 50,
@@ -816,6 +877,7 @@
         "pack_a_punch_gun": {
           "name": "Macro Annihilator",
           "material": "BLAZE_ROD",
+          "item_model": "comz:gun/barret_pap",
           "sound": "ENTITY_GHAST_SHOOT",
           "clip_ammo": 7,
           "total_ammo": 42,
@@ -831,6 +893,7 @@
         "name": "DSR 50",
         "sound": "BLOCK_LAVA_POP",
         "material": "STICK",
+        "item_model": "comz:gun/dsr50",
         "clip_ammo": 4,
         "total_ammo": 48,
         "damage": 50,
@@ -842,6 +905,7 @@
         "pack_a_punch_gun": {
           "name": "Dead Specimen Reactor 5000",
           "material": "STICK",
+          "item_model": "comz:gun/dsr50_pap",
           "sound": "ENTITY_GHAST_SHOOT",
           "clip_ammo": 8,
           "total_ammo": 96,
@@ -857,6 +921,7 @@
         "name": "SVU-AS",
         "sound": "BLOCK_LAVA_POP",
         "material": "BONE",
+        "item_model": "comz:gun/svu",
         "clip_ammo": 12,
         "total_ammo": 48,
         "damage": 30,
@@ -868,6 +933,7 @@
         "pack_a_punch_gun": {
           "name": "Shadowy Veil Utilizer",
           "material": "BONE",
+          "item_model": "comz:gun/svu_pap",
           "sound": "ENTITY_GHAST_SHOOT",
           "clip_ammo": 12,
           "total_ammo": 192,
@@ -886,6 +952,7 @@
       {
         "name": "Ray Gun",
         "material": "DIAMOND_SHOVEL",
+        "item_model": "comz:gun/raygun",
         "sound": "BLOCK_LAVA_POP",
         "clip_ammo": 20,
         "total_ammo": 160,
@@ -898,6 +965,7 @@
         "pack_a_punch_gun": {
           "name": "Porter's X2 Ray Gun",
           "material": "DIAMOND_SHOVEL",
+          "item_model": "comz:gun/raygun_pap",
           "sound": "ENTITY_GHAST_SHOOT",
           "clip_ammo": 40,
           "total_ammo": 200,
@@ -912,6 +980,7 @@
       {
         "name": "Thundergun",
         "material": "GOLDEN_SHOVEL",
+        "item_model": "comz:gun/thundergun",
         "sound": "ENTITY_LIGHTNING_BOLT_THUNDER",
         "clip_ammo": 2,
         "total_ammo": 12,
@@ -924,6 +993,7 @@
         "pack_a_punch_gun": {
           "name": "Zeus Cannon",
           "material": "GOLDEN_SHOVEL",
+          "item_model": "comz:gun/thundergun_pap",
           "sound": "ENTITY_LIGHTNING_BOLT_THUNDER",
           "clip_ammo": 2,
           "total_ammo": 24,
@@ -938,6 +1008,7 @@
       {
         "name": "Wunderwaffe DG-2",
         "material": "LIGHTNING_ROD",
+        "item_model": "comz:gun/wunderwaffe",
         "sound": "ENTITY_LIGHTNING_BOLT_IMPACT",
         "clip_ammo": 3,
         "total_ammo": 15,
@@ -950,6 +1021,7 @@
         "pack_a_punch_gun": {
           "name": "Wunderwaffe DG-3 JZ",
           "material": "LIGHTNING_ROD",
+          "item_model": "comz:gun/wunderwaffe_pap",
           "sound": "ENTITY_LIGHTNING_BOLT_IMPACT",
           "clip_ammo": 4,
           "total_ammo": 24,
