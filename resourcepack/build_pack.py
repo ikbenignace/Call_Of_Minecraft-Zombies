@@ -40,10 +40,10 @@ GUN = {
     "an94":        (f"{MC}/2blops/galil",          f"{MC}/2blops/galil",            True),
     "m16":         (f"{MC}/2blops/m16",            f"{MC}/2blops/pap/skullcrusher", False),
     "fal":         (f"{MC}/3d_guns/fal",           f"{MC}/2blops/pap/epc_wn",       False),
-    "m8a1":        (f"{MC}/2blops/m16",            f"{MC}/2blops/m16",              True),
+    "m8a1":        (f"{MC}/3d_guns/famas",         f"{MC}/3d_guns/famas",           True),
     "m14":         (f"{MC}/2blops/m14",            f"{MC}/2blops/pap/mnesia",       False),
     "m27":         (f"{MC}/2blops/commando",       f"{MC}/2blops/commando",         True),
-    "mtar":        (f"{MC}/2blops/galil",          f"{MC}/2blops/galil",            True),
+    "mtar":        (f"{MC}/3d_guns/aug",           f"{MC}/3d_guns/aug",             True),
     "smr":         (f"{MC}/2blops/m14",            f"{MC}/2blops/m14",              True),
     "type25":      (f"{MC}/2blops/commando",       f"{MC}/2blops/commando",         True),
     "hamr":        (f"{MC}/2blops/hk21",           f"{MC}/2blops/hk21",             True),
@@ -178,8 +178,21 @@ def main():
     for slug, mp in MISC.items():
         emit(f"misc/{slug}", mp)
 
+    # Throwables: monkey bomb has a model; grenade has only a texture (custom/item/lethal/m67),
+    # so we generate a simple comz item model for it. Both replace the vanilla slime/magma look.
+    emit("throwable/monkey_bomb", f"{MC}/wonder/monkey_bomb")
+    grenade_model_dir = os.path.join(out, "assets", "comz", "models", "item")
+    os.makedirs(grenade_model_dir, exist_ok=True)
+    json.dump({"parent": "item/generated", "textures": {"layer0": "minecraft:custom/item/lethal/m67"}},
+              open(os.path.join(grenade_model_dir, "grenade.json"), "w"), indent=2)
+    p = os.path.join(items_root, "throwable", "grenade.json")
+    os.makedirs(os.path.dirname(p), exist_ok=True)
+    json.dump({"model": {"type": "minecraft:model", "model": "comz:item/grenade"}}, open(p, "w"), indent=2)
+    written += 1
+
     # 2) model closure + textures, copy only those
     models, textures = resolve_models(src_models, roots)
+    textures.add("custom/item/lethal/m67")  # grenade model texture (not reachable via a source model)
     for m in models:
         copy_rel(src_models, os.path.join(out_mc, "models"), m + ".json")
     tex_copied = 0

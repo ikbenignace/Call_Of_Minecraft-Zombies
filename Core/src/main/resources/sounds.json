@@ -40,7 +40,153 @@
     "BONFIRE_SALE": "ITEM_FIRECHARGE_USE"
   },
   "guns": {
-    "_default": { "shoot": "", "reload": "" },
-    "_defaultPaP": { "shoot": "", "reload": "" }
+    "_default": {
+      "shoot": "",
+      "reload": ""
+    },
+    "_defaultPaP": {
+      "shoot": "custom.weapon.shoot.pap",
+      "reload": ""
+    },
+    "B23R": {
+      "shoot": "custom.weapon.shoot.cz75",
+      "reload": "custom.weapon.reload_start.cz75"
+    },
+    "Executioner": {
+      "shoot": "custom.weapon.shoot.python",
+      "reload": "custom.weapon.reload_start.python"
+    },
+    "Five-Seven": {
+      "shoot": "custom.weapon.shoot.m1911",
+      "reload": "custom.weapon.reload_start.m1911"
+    },
+    "Kap-40": {
+      "shoot": "custom.weapon.shoot.cz75",
+      "reload": "custom.weapon.reload_start.cz75"
+    },
+    "M1911": {
+      "shoot": "custom.weapon.shoot.m1911",
+      "reload": "custom.weapon.reload_start.m1911"
+    },
+    "Python": {
+      "shoot": "custom.weapon.shoot.python",
+      "reload": "custom.weapon.reload_start.python"
+    },
+    "M1216": {
+      "shoot": "custom.weapon.shoot.spas",
+      "reload": "custom.weapon.reload_end.spas"
+    },
+    "Olympia": {
+      "shoot": "custom.weapon.shoot.db",
+      "reload": "custom.weapon.reload_start.db"
+    },
+    "R870 MCS": {
+      "shoot": "custom.weapon.shoot.stake",
+      "reload": ""
+    },
+    "S12": {
+      "shoot": "custom.weapon.shoot.spas",
+      "reload": "custom.weapon.reload_end.spas"
+    },
+    "AN-94": {
+      "shoot": "custom.weapon.shoot.ak74",
+      "reload": "custom.weapon.reload_start.ak74"
+    },
+    "Colt M16A1": {
+      "shoot": "custom.weapon.shoot.m16",
+      "reload": ""
+    },
+    "FAL": {
+      "shoot": "custom.weapon.shoot.fal",
+      "reload": "custom.weapon.reload_start.fal"
+    },
+    "M8A1": {
+      "shoot": "custom.weapon.shoot.famas",
+      "reload": "custom.weapon.reload_start.famas"
+    },
+    "M14": {
+      "shoot": "custom.weapon.shoot.m14",
+      "reload": "custom.weapon.reload_start.m14"
+    },
+    "M27": {
+      "shoot": "custom.weapon.shoot.comm",
+      "reload": "custom.weapon.reload_start.comm"
+    },
+    "MTAR": {
+      "shoot": "custom.weapon.shoot.galil",
+      "reload": "custom.weapon.reload_start.galil"
+    },
+    "SMR": {
+      "shoot": "custom.weapon.shoot.m14",
+      "reload": "custom.weapon.reload_start.m14"
+    },
+    "Type 25": {
+      "shoot": "custom.weapon.shoot.comm",
+      "reload": "custom.weapon.reload_start.comm"
+    },
+    "HAMR": {
+      "shoot": "custom.weapon.shoot.hk21",
+      "reload": "custom.weapon.reload_start.hk21"
+    },
+    "LSAT": {
+      "shoot": "custom.weapon.shoot.hk21",
+      "reload": "custom.weapon.reload_start.hk21"
+    },
+    "RPD": {
+      "shoot": "custom.weapon.shoot.rpk",
+      "reload": "custom.weapon.reload_start.rpk"
+    },
+    "Mk 48": {
+      "shoot": "custom.weapon.shoot.hk21",
+      "reload": "custom.weapon.reload_start.hk21"
+    },
+    "Chicom CQB": {
+      "shoot": "custom.weapon.shoot.mpl",
+      "reload": "custom.weapon.reload_start.mpl"
+    },
+    "MP5": {
+      "shoot": "custom.weapon.shoot.mp5",
+      "reload": "custom.weapon.reload_start.mp5"
+    },
+    "PDW-57": {
+      "shoot": "custom.weapon.shoot.spectre",
+      "reload": "custom.weapon.reload_start.spectre"
+    },
+    "MSMC": {
+      "shoot": "custom.weapon.shoot.pm63",
+      "reload": "custom.weapon.reload_start.pm63"
+    },
+    "Skorpion EVO": {
+      "shoot": "custom.weapon.shoot.pm63",
+      "reload": "custom.weapon.reload_start.pm63"
+    },
+    "Vector K10": {
+      "shoot": "custom.weapon.shoot.spectre",
+      "reload": "custom.weapon.reload_start.spectre"
+    },
+    "Peacekeeper": {
+      "shoot": "custom.weapon.shoot.ak74",
+      "reload": "custom.weapon.reload_start.ak74"
+    },
+    "Barret 50KCAL": {
+      "shoot": "custom.weapon.shoot.l96",
+      "reload": "custom.weapon.reload_start.l96"
+    },
+    "DSR 50": {
+      "shoot": "custom.weapon.shoot.l96",
+      "reload": "custom.weapon.reload_start.l96"
+    },
+    "SVU-AS": {
+      "shoot": "custom.weapon.shoot.drag",
+      "reload": "custom.weapon.reload_start.drag"
+    },
+    "Ray Gun": {
+      "shoot": "custom.weapon.shoot.ray",
+      "reload": "custom.weapon.reload_start.ray"
+    },
+    "Thundergun": {
+      "shoot": "custom.weapon.shoot.thun",
+      "reload": "custom.weapon.reload_start.thun"
+    }
   }
 }

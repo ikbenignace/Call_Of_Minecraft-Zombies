@@ -51,6 +51,10 @@ public final class SoundConfig
 	 */
 	public static String gun(String gunName, boolean packAPunched, String which, String def)
 	{
+		// Per-gun overrides point at custom-pack weapon events; only use them when the pack is on,
+		// so servers without it keep the vanilla guns.json sound instead of going silent.
+		if(!PackModels.isPackEnabled())
+			return def;
 		JsonObject guns = childObject(root, "guns");
 		if(guns != null)
 		{

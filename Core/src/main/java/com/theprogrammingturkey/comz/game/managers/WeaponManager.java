@@ -128,9 +128,11 @@ public class WeaponManager
 		weapons.clear();
 		Weapon grenade = new Weapon("Grenade", WeaponType.GRENADE);
 		grenade.totalAmmo = 4;
+		grenade.itemModel = "comz:throwable/grenade";
 		WeaponManager.registerWeapon(grenade);
 		Weapon monkeyBomb = new Weapon("Monkey Bomb", WeaponType.MONKEY_BOMB);
 		monkeyBomb.totalAmmo = 4;
+		monkeyBomb.itemModel = "comz:throwable/monkey_bomb";
 		WeaponManager.registerWeapon(monkeyBomb);
 
 		// Tier 2 — Death Machine power-up minigun. Hardcoded (like grenade/monkey bomb) so it
