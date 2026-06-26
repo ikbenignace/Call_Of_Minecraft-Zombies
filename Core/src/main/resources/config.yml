@@ -13,6 +13,10 @@ config:
     tombstoneEnabled: true
     #Solo self-revive: number of times Quick Revive auto-revives a lone player in a solo (1-player) game. BO1/BO2 solo behavior.
     soloQuickReviveUses: 3
+    #Who's Who: seconds a lone player spends as a ghost to reach their body and self-revive before dying for real (simplified solo approximation; see DownedPlayerManager).
+    whosWhoSeconds: 20
+    #Who's Who: distance in blocks the ghost must be within of their body location to self-revive.
+    whosWhoReviveRange: 3.0
   gameSettings:
     #Range to allow knife attacks. (Values over 6 are set to 6, the vanilla value.)
     MeleeRange: 2

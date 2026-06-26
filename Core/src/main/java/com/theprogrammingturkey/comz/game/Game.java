@@ -1330,7 +1330,22 @@ public class Game
 		if(downedPlayerManager.isDownedPlayer(player))
 			return;
 
+		// Tier 3 — Who's Who: a ghost mid self-revive is alive and mobile, so a fresh down must not
+		// re-trigger; ignore until the current ghost resolves (revive or timeout).
+		if(downedPlayerManager.isGhost(player))
+			return;
+
 		player.setFireTicks(0);
+
+		// Tier 3 — Who's Who takes precedence over solo Quick Revive: in a solo game, if the lone
+		// player holds Who's Who, route them into ghost mode instead of the normal downed/death path
+		// (and instead of solo Quick Revive). See WhosWhoGhost for the simplified approximation.
+		boolean soloGame = getPlayersInGame().size() == 1;
+		if(DownedPlayerManager.canEnterWhosWho(soloGame, perkManager.hasPerk(player, PerkType.WHOS_WHO), downedPlayerManager.isGhost(player)))
+		{
+			if(downedPlayerManager.startWhosWho(player, this))
+				return;
+		}
 
 		// Tier 3 — solo Quick Revive self-revive: in a solo game the lone player going down would
 		// normally end the game; if they hold Quick Revive with uses remaining, down them instead so

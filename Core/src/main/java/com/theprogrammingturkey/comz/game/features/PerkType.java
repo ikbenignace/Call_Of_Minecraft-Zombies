@@ -27,6 +27,7 @@ public enum PerkType
 	ELECTRIC_C,
 	VULTURE_AID,
 	TOMBSTONE_SODA,
+	WHOS_WHO,
 	DER_WUNDERFIZZ;
 
 	public static PerkType getPerkType(String name)
@@ -40,6 +41,8 @@ public enum PerkType
 			return VULTURE_AID;
 		if(name.equalsIgnoreCase("tombstone soda") || name.equalsIgnoreCase("tombstone"))
 			return TOMBSTONE_SODA;
+		if(name.equalsIgnoreCase("whos who") || name.equalsIgnoreCase("who's who") || name.equalsIgnoreCase("whoswho"))
+			return WHOS_WHO;
 		return null;
 	}
 
@@ -100,6 +103,10 @@ public enum PerkType
 				stack = new ItemStack(Material.WITHER_ROSE, 1);
 				Perktype = "Tombstone Soda";
 				break;
+			case WHOS_WHO:
+				stack = new ItemStack(Material.SKELETON_SKULL, 1);
+				Perktype = "Who's Who";
+				break;
 			default:
 				break;
 		}
@@ -158,6 +165,9 @@ public enum PerkType
 				break;
 			case TOMBSTONE_SODA:
 				stack = new ItemStack(Material.WITHER_ROSE, 1);
+				break;
+			case WHOS_WHO:
+				stack = new ItemStack(Material.SKELETON_SKULL, 1);
 				break;
 			default:
 				break;

@@ -283,6 +283,17 @@ public class ConfigSetup
 	public int soloReviveDelaySeconds;
 
 	/**
+	 * Tier 3 — Who's Who: duration in seconds of the ghost self-revive window before the lone player
+	 * dies for real if they have not reached their body. Default 20.
+	 */
+	public int whosWhoSeconds;
+	/**
+	 * Tier 3 — Who's Who: distance (in blocks) within which the ghost must be of their body location to
+	 * self-revive. Default 3.0.
+	 */
+	public double whosWhoReviveRange;
+
+	/**
 	 * Main method to assign values to every field.
 	 */
 	public void setup()
@@ -355,6 +366,8 @@ public class ConfigSetup
 		tombstoneEnabled = plugin.getConfig().getBoolean("config.perks.tombstoneEnabled", true);
 		soloQuickReviveUses = plugin.getConfig().getInt("config.perks.soloQuickReviveUses", 3);
 		soloReviveDelaySeconds = plugin.getConfig().getInt("config.ReviveSettings.SoloReviveDelaySeconds", 5);
+		whosWhoSeconds = plugin.getConfig().getInt("config.perks.whosWhoSeconds", 20);
+		whosWhoReviveRange = plugin.getConfig().getDouble("config.perks.whosWhoReviveRange", 3.0);
 
 		Leaderboard.loadLeaderboard();
 		PlayerDataManager.load();
