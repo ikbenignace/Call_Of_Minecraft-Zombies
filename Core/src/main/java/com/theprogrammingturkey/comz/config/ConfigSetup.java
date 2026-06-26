@@ -1,5 +1,6 @@
 package com.theprogrammingturkey.comz.config;
 
+import com.theprogrammingturkey.comz.game.managers.PlayerDataManager;
 import com.theprogrammingturkey.comz.leaderboards.Leaderboard;
 import com.theprogrammingturkey.comz.COMZombies;
 
@@ -259,6 +260,12 @@ public class ConfigSetup
 	public double wunderwaffeChainRadius;
 
 	/**
+	 * Tier 3 — Percentage fee (0-100) taken off a Bank deposit. The remainder is credited to the
+	 * player's persistent bank balance. Default 10 (BO2-style banking levy).
+	 */
+	public int bankDepositFeePercent;
+
+	/**
 	 * Main method to assign values to every field.
 	 */
 	public void setup()
@@ -327,7 +334,9 @@ public class ConfigSetup
 		thundergunKnockback = plugin.getConfig().getDouble("config.wonderWeapons.thundergunKnockback", 3.0);
 		wunderwaffeChainCount = plugin.getConfig().getInt("config.wonderWeapons.wunderwaffeChainCount", 5);
 		wunderwaffeChainRadius = plugin.getConfig().getDouble("config.wonderWeapons.wunderwaffeChainRadius", 6.0);
+		bankDepositFeePercent = plugin.getConfig().getInt("config.bank.depositFeePercent", 10);
 
 		Leaderboard.loadLeaderboard();
+		PlayerDataManager.load();
 	}
 }

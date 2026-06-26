@@ -123,3 +123,6 @@ config:
     wunderwaffeChainCount: 5
     #Wunderwaffe DG-2: radius (blocks) searched for the next nearest un-chained zombie from the last struck one.
     wunderwaffeChainRadius: 6.0
+  bank:
+    #Tier 3 - percentage fee (0-100) taken off a Bank deposit; the remainder is banked. BO2-style levy. Bank balance persists across games per player UUID.
+    depositFeePercent: 10

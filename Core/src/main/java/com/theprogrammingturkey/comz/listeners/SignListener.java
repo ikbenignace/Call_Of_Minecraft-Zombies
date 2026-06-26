@@ -74,6 +74,12 @@ public class SignListener implements Listener
 
 		TrapSign trap = new TrapSign();
 		GAME_SIGNS.put("trap", trap);
+
+		BankSign bank = new BankSign();
+		GAME_SIGNS.put("bank", bank);
+
+		FridgeSign fridge = new FridgeSign();
+		GAME_SIGNS.put("fridge", fridge);
 	}
 
 	@EventHandler(priority = EventPriority.HIGHEST)
