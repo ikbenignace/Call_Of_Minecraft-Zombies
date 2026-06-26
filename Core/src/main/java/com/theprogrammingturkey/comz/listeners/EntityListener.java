@@ -4,8 +4,11 @@ import com.theprogrammingturkey.comz.COMZombies;
 import com.theprogrammingturkey.comz.config.ConfigManager;
 import com.theprogrammingturkey.comz.game.Game;
 import com.theprogrammingturkey.comz.game.GameManager;
+import com.theprogrammingturkey.comz.game.features.BuildableItems;
 import com.theprogrammingturkey.comz.game.features.PerkType;
 import com.theprogrammingturkey.comz.game.managers.PerkManager;
+import com.theprogrammingturkey.comz.util.CommandUtil;
+import org.bukkit.inventory.ItemStack;
 import com.theprogrammingturkey.comz.spawning.BossSpawner;
 import com.theprogrammingturkey.comz.spawning.RoundSpawner;
 import org.bukkit.Bukkit;
@@ -113,6 +116,10 @@ public class EntityListener implements Listener
 					if(game.perkManager.getPlayersPerks(player).contains(PerkType.JUGGERNOG))
 						damage = damage / (float) ConfigManager.getMainConfig().juggernogHealth;
 
+					// Tier 4 — Zombie Shield (buildable): while held, reduce incoming zombie melee
+					// damage and consume one of the shield's hits. When hits run out it breaks.
+					damage = applyZombieShield(player, damage);
+
 					damage = game.damagePlayer(player, damage);
 					e.setDamage(damage);
 
@@ -208,6 +215,57 @@ public class EntityListener implements Listener
 		Entity ent = e.getEntity();
 		if(ent instanceof Player && GameManager.INSTANCE.isPlayerInGame((Player) ent))
 			e.setCancelled(true);
+	}
+
+	/**
+	 * Tier 4 — Zombie Shield damage hook. If the player is holding a Zombie Shield (main hand
+	 * or off hand) with hits remaining, reduces the incoming damage by
+	 * {@code config.buildable.zombieShieldDamageReduction} and decrements the shield's hit count
+	 * (updating its lore). When the count hits zero the shield item is removed (it breaks).
+	 *
+	 * @return the (possibly reduced) damage to apply.
+	 */
+	private float applyZombieShield(Player player, float damage)
+	{
+		ItemStack hand = player.getInventory().getItemInMainHand();
+		boolean offHand = false;
+		if(!BuildableItems.isZombieShield(hand))
+		{
+			hand = player.getInventory().getItemInOffHand();
+			offHand = true;
+			if(!BuildableItems.isZombieShield(hand))
+				return damage;
+		}
+
+		int hitsLeft = BuildableItems.getShieldHitsRemaining(hand);
+		if(hitsLeft <= 0)
+			return damage;
+
+		double reduction = ConfigManager.getMainConfig().zombieShieldDamageReduction;
+		reduction = Math.max(0.0, Math.min(1.0, reduction));
+		float reduced = (float) (damage * (1.0 - reduction));
+
+		int remaining = hitsLeft - 1;
+		if(remaining <= 0)
+		{
+			// Shield breaks.
+			if(offHand)
+				player.getInventory().setItemInOffHand(null);
+			else
+				player.getInventory().setItemInMainHand(null);
+			player.getWorld().playSound(player.getLocation(), org.bukkit.Sound.ENTITY_ITEM_BREAK, 1.0f, 1.0f);
+			CommandUtil.sendMessageToPlayer(player, ChatColor.RED + "Your Zombie Shield broke!");
+		}
+		else
+		{
+			ItemStack updated = BuildableItems.createZombieShield(remaining);
+			if(offHand)
+				player.getInventory().setItemInOffHand(updated);
+			else
+				player.getInventory().setItemInMainHand(updated);
+		}
+
+		return reduced;
 	}
 
 	private void startHealingTimer(Player player)

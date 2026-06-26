@@ -142,3 +142,10 @@ config:
   bank:
     #Tier 3 - percentage fee (0-100) taken off a Bank deposit; the remainder is banked. BO2-style levy. Bank balance persists across games per player UUID.
     depositFeePercent: 10
+  buildable:
+    #Tier 4 - Zombie Shield: number of zombie hits the equipped shield absorbs (reduced/no damage) before it breaks and is consumed.
+    zombieShieldHits: 5
+    #Tier 4 - Zombie Shield: fraction (0.0-1.0) of zombie melee damage blocked while the shield is held. 1.0 = fully blocks, 0.5 = halves damage.
+    zombieShieldDamageReduction: 1.0
+    #Tier 4 - Buildable: point cost charged at the station to dispense one random missing part to the interacting player (how players obtain parts).
+    partCost: 500

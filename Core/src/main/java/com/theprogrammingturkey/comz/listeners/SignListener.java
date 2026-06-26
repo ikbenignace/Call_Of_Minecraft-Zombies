@@ -80,6 +80,11 @@ public class SignListener implements Listener
 
 		FridgeSign fridge = new FridgeSign();
 		GAME_SIGNS.put("fridge", fridge);
+
+		BuildableSign buildable = new BuildableSign();
+		GAME_SIGNS.put("buildable", buildable);
+		GAME_SIGNS.put("build", buildable);
+		GAME_SIGNS.put("buildable station", buildable);
 	}
 
 	@EventHandler(priority = EventPriority.HIGHEST)

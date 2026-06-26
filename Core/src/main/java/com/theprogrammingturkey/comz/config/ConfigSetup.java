@@ -310,6 +310,22 @@ public class ConfigSetup
 	public int brutusDisableSeconds;
 
 	/**
+	 * Tier 4 — Zombie Shield (buildable): number of zombie hits the equipped shield absorbs
+	 * before it breaks and is consumed. Default 5.
+	 */
+	public int zombieShieldHits;
+	/**
+	 * Tier 4 — Zombie Shield (buildable): fraction (0.0-1.0) of zombie melee damage blocked while
+	 * the shield is held in the off-hand or main hand. 1.0 = fully blocks. Default 1.0.
+	 */
+	public double zombieShieldDamageReduction;
+	/**
+	 * Tier 4 — Buildable: point cost charged at a station to dispense one random still-missing
+	 * part to the interacting player (this is how players obtain parts). Default 500.
+	 */
+	public int buildablePartCost;
+
+	/**
 	 * Main method to assign values to every field.
 	 */
 	public void setup()
@@ -387,6 +403,9 @@ public class ConfigSetup
 		bossRoundEveryX = plugin.getConfig().getInt("config.gameSettings.bossRoundEveryX", 0);
 		bossHealthMultiplier = plugin.getConfig().getDouble("config.gameSettings.bossHealthMultiplier", 8.0);
 		brutusDisableSeconds = plugin.getConfig().getInt("config.gameSettings.brutusDisableSeconds", 5);
+		zombieShieldHits = plugin.getConfig().getInt("config.buildable.zombieShieldHits", 5);
+		zombieShieldDamageReduction = plugin.getConfig().getDouble("config.buildable.zombieShieldDamageReduction", 1.0);
+		buildablePartCost = plugin.getConfig().getInt("config.buildable.partCost", 500);
 
 		Leaderboard.loadLeaderboard();
 		PlayerDataManager.load();

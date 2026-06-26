@@ -168,6 +168,11 @@ public class Game
 	public TrapManager trapManager;
 
 	/**
+	 * Tier 4 — contains all of the parts-collection / assembly buildable stations in the game
+	 */
+	public BuildableManager buildableManager;
+
+	/**
 	 * contains all of the downed players in the game
 	 */
 	public DownedPlayerManager downedPlayerManager;
@@ -213,6 +218,7 @@ public class Game
 		powerUpManager = new PowerUpManager();
 		teleporterManager = new TeleporterManager(this);
 		trapManager = new TrapManager(this);
+		buildableManager = new BuildableManager(this);
 		downedPlayerManager = new DownedPlayerManager();
 		signManager = new SignManager(this);
 
@@ -951,6 +957,9 @@ public class Game
 		if(arenaSaveJson.has("traps"))
 			trapManager.loadAllTrapsToGame(arenaSaveJson.get("traps").getAsJsonArray());
 
+		if(arenaSaveJson.has("buildables"))
+			buildableManager.loadAllBuildablesToGame(arenaSaveJson.get("buildables").getAsJsonArray());
+
 		signManager.updateGame();
 
 		return true;
@@ -983,6 +992,7 @@ public class Game
 		arenaSaveJson.add("doors", doorManager.save());
 		arenaSaveJson.add("teleporters", teleporterManager.save());
 		arenaSaveJson.add("traps", trapManager.save());
+		arenaSaveJson.add("buildables", buildableManager.save());
 
 		return gamejson;
 	}
