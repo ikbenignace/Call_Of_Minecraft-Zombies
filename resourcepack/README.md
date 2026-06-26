@@ -41,8 +41,12 @@ those models use, and sounds minus the big unused folders (`custom/maps`, `custo
 resolves to a real model and reports which guns use a closest-fallback model (see
 `gun-model-mapping.md`).
 
-- **Per-gun custom audio** is opt-in: set `guns.<GunName>.shoot`/`reload` in `sounds.json` to the
-  pack's `comz:` weapon events (kept vanilla by default so no-pack servers still get audio).
+- **Sounds default to the pack's audio** when it's enabled: `sounds.json` maps every named gun to
+  its `custom.weapon.shoot/reload_*` event and the perk/power-up/round/box/door events to the
+  pack's `custom.*` events. When the pack is disabled, `SoundConfig` falls back to the vanilla
+  enums automatically, so no-pack servers keep working audio. Edit `sounds.json` to retune.
+- **3D model import**: drop real 3D models in `resourcepack/models3d/<slug>/` to replace a gun's
+  fallback — the builder picks them up automatically. See `models3d/README.md`.
 
 ## Host & enable
 
@@ -66,11 +70,11 @@ resolves to a real model and reports which guns use a closest-fallback model (se
 
 ## Known gaps / follow-ups
 
-- **25 BO2 guns use closest-class fallback models** (see `gun-model-mapping.md`). Drop real
-  BO2 models under `assets/minecraft/models/custom/item/bo2/<slug>` and repoint the slug in
-  `build_pack.py`.
-- **Perks share one bottle model** — add per-perk models and repoint `PERK_MODEL`.
-- **Per-gun custom audio is opt-in** — set `sound`/`reload_sound` in `guns.json` to the pack's
-  `comz:` events (kept as vanilla enums by default so servers without the pack still get audio).
+- **23 guns use 2D-sprite fallback models** — the source pack only has 9 unique true-3D gun
+  models (all in use; 13 guns are true 3D). The rest are the pack's 2D handheld sprites. To make
+  one true 3D, drop a model in `resourcepack/models3d/<slug>/` (see that folder's README).
+- **Perks share one bottle model** — `perk_bottle_base` is an empty template, so perk custom
+  models are gated off (`CUSTOM_PERK_MODELS=false` in `PerkType`); perks show vanilla icons until
+  textured per-perk models exist.
 - **Boss models** (George/Brutus) cannot be reskinned individually by a resource pack — a
   reskin would change all zombies/piglin-brutes. Only their sounds/name/glow distinguish them.
