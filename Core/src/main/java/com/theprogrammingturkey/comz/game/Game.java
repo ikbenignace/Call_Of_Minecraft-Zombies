@@ -574,6 +574,9 @@ public class Game
 		{
 			COMZombies.log.log(Level.SEVERE, "The " + startingGun + " is listed as the starting gun, but it could not be found! Did you forget to change this?");
 		}
+
+		// Tier 4 — apply any perma-perks this player has earned across previous games (passive bonuses).
+		PermaPerkManager.applyOnGameEntry(player);
 	}
 
 	/**

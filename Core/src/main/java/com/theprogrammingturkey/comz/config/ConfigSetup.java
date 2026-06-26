@@ -326,6 +326,27 @@ public class ConfigSetup
 	public int buildablePartCost;
 
 	/**
+	 * Tier 4 — Perma-perks: lifetime revives a player must perform (across all games) before the
+	 * permanent "Perma Jugg (lite)" bonus unlocks. Default 10.
+	 */
+	public int permaJuggReviveThreshold;
+	/**
+	 * Tier 4 — Perma-perks: duration in seconds of the Regeneration burst granted at game entry to
+	 * players who have unlocked Perma Jugg (lite). Default 5.
+	 */
+	public int permaJuggRegenSeconds;
+	/**
+	 * Tier 4 — Perma-perks: lifetime revives a player must perform (across all games) before the
+	 * permanent "Perma Quick Revive (lite)" bonus unlocks. Default 15.
+	 */
+	public int permaQuickReviveThreshold;
+	/**
+	 * Tier 4 — Perma-perks: duration in seconds of the Speed burst granted at game entry to players
+	 * who have unlocked Perma Quick Revive (lite). Default 5.
+	 */
+	public int permaQuickReviveSpeedSeconds;
+
+	/**
 	 * Main method to assign values to every field.
 	 */
 	public void setup()
@@ -406,6 +427,10 @@ public class ConfigSetup
 		zombieShieldHits = plugin.getConfig().getInt("config.buildable.zombieShieldHits", 5);
 		zombieShieldDamageReduction = plugin.getConfig().getDouble("config.buildable.zombieShieldDamageReduction", 1.0);
 		buildablePartCost = plugin.getConfig().getInt("config.buildable.partCost", 500);
+		permaJuggReviveThreshold = plugin.getConfig().getInt("config.permaPerks.permaJuggReviveThreshold", 10);
+		permaJuggRegenSeconds = plugin.getConfig().getInt("config.permaPerks.permaJuggRegenSeconds", 5);
+		permaQuickReviveThreshold = plugin.getConfig().getInt("config.permaPerks.permaQuickReviveThreshold", 15);
+		permaQuickReviveSpeedSeconds = plugin.getConfig().getInt("config.permaPerks.permaQuickReviveSpeedSeconds", 5);
 
 		Leaderboard.loadLeaderboard();
 		PlayerDataManager.load();

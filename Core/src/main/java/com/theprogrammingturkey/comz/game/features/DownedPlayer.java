@@ -4,6 +4,7 @@ import com.theprogrammingturkey.comz.COMZombies;
 import com.theprogrammingturkey.comz.config.ConfigManager;
 import com.theprogrammingturkey.comz.economy.PointManager;
 import com.theprogrammingturkey.comz.game.Game;
+import com.theprogrammingturkey.comz.game.managers.PermaPerkManager;
 import com.theprogrammingturkey.comz.game.managers.PlayerWeaponManager;
 import com.theprogrammingturkey.comz.game.managers.WeaponManager;
 import com.theprogrammingturkey.comz.game.weapons.WeaponInstance;
@@ -84,6 +85,9 @@ public class DownedPlayer implements Listener
 			reviver.sendMessage(ChatColor.GREEN + "You revived " + ChatColor.DARK_GREEN + player.getName());
 			PlayerStats stats = Leaderboard.getPlayerStatFromPlayer(reviver);
 			stats.setRevives(stats.getRevives() + 1);
+			// Tier 4 — perma-perk progression: count this revive toward the reviver's lifetime total
+			// and unlock any perma-perks whose play threshold has now been crossed.
+			PermaPerkManager.recordRevive(reviver);
 		}
 		clearDownedState();
 		game.downedPlayerManager.downedPlayerRevived(this);

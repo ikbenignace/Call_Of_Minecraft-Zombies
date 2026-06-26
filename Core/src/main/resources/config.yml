@@ -149,3 +149,13 @@ config:
     zombieShieldDamageReduction: 1.0
     #Tier 4 - Buildable: point cost charged at the station to dispense one random missing part to the interacting player (how players obtain parts).
     partCost: 500
+  permaPerks:
+    #Tier 4 - Perma-perks: long-term progression. Performing revives across games is tracked per player UUID (persisted in playerdata.json) and permanently unlocks passive bonuses applied at game entry.
+    #Perma Jugg (lite): lifetime revives required to unlock. Once unlocked, the player spawns into every game with a short Regeneration burst.
+    permaJuggReviveThreshold: 10
+    #Perma Jugg (lite): seconds of Regeneration granted at game entry once unlocked.
+    permaJuggRegenSeconds: 5
+    #Perma Quick Revive (lite): lifetime revives required to unlock. Once unlocked, the player spawns into every game with a short Speed burst to reach downed teammates faster.
+    permaQuickReviveThreshold: 15
+    #Perma Quick Revive (lite): seconds of Speed granted at game entry once unlocked.
+    permaQuickReviveSpeedSeconds: 5
