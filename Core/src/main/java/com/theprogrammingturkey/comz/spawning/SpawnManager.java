@@ -5,11 +5,13 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.theprogrammingturkey.comz.COMZombies;
 import com.theprogrammingturkey.comz.config.ConfigManager;
+import com.theprogrammingturkey.comz.config.ConfigSetup;
 import com.theprogrammingturkey.comz.config.CustomConfig;
 import com.theprogrammingturkey.comz.game.Game;
 import com.theprogrammingturkey.comz.game.Game.GameStatus;
 import com.theprogrammingturkey.comz.game.GameManager;
 import com.theprogrammingturkey.comz.game.features.Door;
+import com.theprogrammingturkey.comz.game.features.PowerUp;
 import com.theprogrammingturkey.comz.util.BlockUtils;
 import com.theprogrammingturkey.comz.util.Util;
 import org.bukkit.Bukkit;
@@ -46,6 +48,7 @@ public class SpawnManager
 	private final double spawnDelayFactor;
 	private int mobsSpawned = 0;
 	private int mobsToSpawn = 0;
+	private boolean dogRound = false;
 
 	public SpawnManager(Game game)
 	{
@@ -154,7 +157,11 @@ public class SpawnManager
 		mobs.remove(entity);
 
 		if(mobs.isEmpty() && mobsSpawned >= mobsToSpawn)
+		{
+			if(dogRound && ConfigManager.getMainConfig().dogRoundMaxAmmoDrop)
+				game.powerUpManager.dropPowerUp(entity, PowerUp.MAX_AMMO);
 			game.nextWave();
+		}
 
 		game.scoreboard.update();
 	}
@@ -201,6 +208,39 @@ public class SpawnManager
 				.collect(Collectors.toCollection(ArrayList::new));
 	}
 
+	/**
+	 * 0b — Maximum zombies allowed on the board at once. Scales with player count:
+	 * {@code base + perPlayer * (players - 1)}, clamped so a 0/1 player game uses {@code base}.
+	 */
+	public static int maxOnBoard(int players, int base, int perPlayer)
+	{
+		return base + perPlayer * Math.max(0, players - 1);
+	}
+
+	/**
+	 * 0b — Total zombies spawned in a given round. Early rounds (1-4) ramp up over the
+	 * board max; from round 5 on the wave multiplier takes over. Never less than 1.
+	 */
+	public static int zombiesThisRound(int wave, int players, int base, int perPlayer, double mult)
+	{
+		int boardMax = maxOnBoard(players, base, perPlayer);
+		double multiplier = wave <= 0 ? 1
+				: wave == 1 ? 0.2
+				: wave == 2 ? 0.4
+				: wave == 3 ? 0.6
+				: wave == 4 ? 0.8
+				: wave * mult;
+		return Math.max(1, (int) (multiplier * boardMax));
+	}
+
+	/**
+	 * 0g — Number of hell hounds on a dog round: {@code perPlayer * players}, at least 1.
+	 */
+	public static int dogCount(int players, int perPlayer)
+	{
+		return Math.max(1, perPlayer * players);
+	}
+
 	private void smartSpawn(final int wave)
 	{
 		if(!this.canSpawn || wave != game.getWave())
@@ -210,7 +250,8 @@ public class SpawnManager
 		if(this.mobsSpawned >= this.mobsToSpawn)
 			return;
 
-		if(mobs.size() >= ConfigManager.getMainConfig().maxZombies)
+		ConfigSetup cfg = ConfigManager.getMainConfig();
+		if(mobs.size() >= maxOnBoard(game.getPlayersInGame().size(), cfg.zombieBoardBase, cfg.zombieBoardPerPlayer))
 		{
 			COMZombies.scheduleTask((int) spawnInterval * 20L, () -> smartSpawn(wave));
 			return;
@@ -340,9 +381,12 @@ public class SpawnManager
 		canSpawn = false;
 		mobsSpawned = 0;
 
+		ConfigSetup cfg = ConfigManager.getMainConfig();
+
 		if(game.getDogRoundEveryX() != -1 && game.getDogRoundEveryX() != 0 && wave % game.getDogRoundEveryX() == 0)
 		{
-			mobsToSpawn = 10;
+			dogRound = true;
+			mobsToSpawn = dogCount(game.getPlayersInGame().size(), cfg.dogsPerPlayer);
 			roundSpawner = roundSpawnerMap.get(RoundSpawnType.HELL_HOUNDS);
 			setSpawnInterval(spawnInterval / spawnDelayFactor);
 			if(spawnInterval < 0.5)
@@ -351,7 +395,8 @@ public class SpawnManager
 		}
 		else
 		{
-			mobsToSpawn = (int) ((wave * 0.15) * 30) + (2 * players.size());
+			dogRound = false;
+			mobsToSpawn = zombiesThisRound(wave, players.size(), cfg.zombieBoardBase, cfg.zombieBoardPerPlayer, cfg.zombieRoundMultiplier);
 			roundSpawner = roundSpawnerMap.get(RoundSpawnType.REGULAR);
 			setSpawnInterval(spawnInterval / spawnDelayFactor);
 			if(spawnInterval < 0.5)
