@@ -67,6 +67,10 @@ public final class BuildableItems
 	{
 		ItemStack item = new ItemStack(Material.IRON_NUGGET, 1);
 		ItemMeta meta = item.getItemMeta();
+		// Bug fix: getItemMeta() can return null; mirror the null-guard used elsewhere in this
+		// class (getPartName/getShieldHitsRemaining) and skip meta mutations rather than NPE.
+		if(meta == null)
+			return item;
 		meta.setDisplayName(ChatColor.AQUA + "" + ChatColor.BOLD + capitalize(part) + " Part");
 		List<String> lore = new ArrayList<>();
 		lore.add(ChatColor.GRAY + "Part of: " + capitalize(buildableId.replace('_', ' ')));
@@ -123,6 +127,10 @@ public final class BuildableItems
 	{
 		ItemStack item = new ItemStack(Material.SHIELD, 1);
 		ItemMeta meta = item.getItemMeta();
+		// Bug fix: getItemMeta() can return null; mirror the null-guard used elsewhere in this
+		// class and skip meta mutations rather than NPE.
+		if(meta == null)
+			return item;
 		meta.setDisplayName(ChatColor.GOLD + "" + ChatColor.BOLD + "Zombie Shield");
 		List<String> lore = new ArrayList<>();
 		lore.add(ChatColor.GRAY + "Blocks zombie melee while held.");

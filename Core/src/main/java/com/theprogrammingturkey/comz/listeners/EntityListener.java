@@ -26,6 +26,7 @@ import org.bukkit.event.entity.EntityCombustEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityRegainHealthEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.metadata.MetadataValue;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -215,6 +216,19 @@ public class EntityListener implements Listener
 		Entity ent = e.getEntity();
 		if(ent instanceof Player && GameManager.INSTANCE.isPlayerInGame((Player) ent))
 			e.setCancelled(true);
+	}
+
+	/**
+	 * Bug fix: heal-timer leak. {@link #healTimers} entries were only ever removed when a player's
+	 * health reached full (via {@link #stopHealingTimer}). A player who disconnected mid-regen left
+	 * their task id in the map forever, so ids accumulated and a later player reusing the (stale)
+	 * Player key could mis-cancel the wrong scheduled task. Cancel and drop the leaving player's
+	 * heal task on quit.
+	 */
+	@EventHandler
+	public void onPlayerQuit(PlayerQuitEvent e)
+	{
+		stopHealingTimer(e.getPlayer());
 	}
 
 	/**
