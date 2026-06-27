@@ -154,6 +154,21 @@ public class DownedPlayerManager
 			downedPlayer.clearDownedState();
 	}
 
+	/**
+	 * Full reset for game end: clears the downed list AND all per-session state (solo self-revive
+	 * uses, tombstone snapshots, lingering Who's Who ghosts) so a re-used Game object starts the
+	 * next session clean. Use this from {@code Game.endGame} rather than {@link #clearDownedPlayers()}
+	 * alone, which would leave a player's exhausted self-revive uses in place across games.
+	 */
+	public void reset()
+	{
+		clearDownedPlayers();
+		downedPlayers.clear();
+		soloSelfReviveUses.clear();
+		tombstoneSnapshots.clear();
+		whosWhoGhosts.clear();
+	}
+
 	public int numDownedPlayers()
 	{
 		return downedPlayers.size();
@@ -172,13 +187,19 @@ public class DownedPlayerManager
 		// (co-op). In a solo game with no self-revive the player never reaches here — Game.playerDowned
 		// ends the game instead — so the co-op prompt is never wrongly shown to a lone player.
 		boolean selfReviving = trySoloSelfRevive(player, game, down);
-		if(!selfReviving && game.getPlayersInGame().size() > 1)
+		if(!selfReviving)
 		{
-			game.sendMessageToPlayers(player.getName() + " has gone down! Stand close and right click them to revive");
-		}
-		else if(!selfReviving)
-		{
-			com.theprogrammingturkey.comz.util.CommandUtil.sendMessageToPlayer(player, org.bukkit.ChatColor.RED + "" + org.bukkit.ChatColor.BOLD + "You have gone down!");
+			// Only prompt for a co-op revive when there is actually a teammate able to perform it:
+			// a living (IN_GAME, not-downed) player other than this one. Counting getPlayersInGame()
+			// was wrong — it includes DEAD players, so a lone survivor whose teammate had already
+			// bled out still got told to wait for a revive that could never come.
+			long revivers = game.getLivingPlayers().stream()
+					.filter(p -> !p.equals(player) && !isDownedPlayer(p))
+					.count();
+			if(revivers > 0)
+				game.sendMessageToPlayers(player.getName() + " has gone down! Stand close and right click them to revive");
+			else
+				CommandUtil.sendMessageToPlayer(player, org.bukkit.ChatColor.RED + "" + org.bukkit.ChatColor.BOLD + "You have gone down!");
 		}
 	}
 
@@ -200,6 +221,11 @@ public class DownedPlayerManager
 
 		int remaining = consumeSelfReviveUse(player.getUniqueId(), max);
 		int delaySeconds = ConfigManager.getMainConfig().soloReviveDelaySeconds;
+		// Guarantee the scheduled self-revive actually fires: stop the bleed-out timer from killing
+		// the player first if it is configured shorter than the self-revive delay. Without this the
+		// player could bleed out (-> setDead -> game over) before Quick Revive ever stood them up.
+		down.suppressBleedout();
+		down.showSelfReviveBar(delaySeconds);
 		COMZombies.scheduleTask(delaySeconds * 20, () ->
 		{
 			if(down.isPlayerDown())

@@ -247,6 +247,31 @@ public class Game
 		return gamePlayers.values().stream().filter(gp -> gp.isInGame() || gp.isDead()).map(GamePlayer::getPlayer).collect(Collectors.toList());
 	}
 
+	/**
+	 * Players who are still actively playing (state IN_GAME) — this INCLUDES the immobile downed
+	 * state (a downed player is still IN_GAME and may yet be revived) but EXCLUDES dead/spectating
+	 * players. Distinct from {@link #getPlayersInGame()}, which also counts dead players and so can
+	 * never reach zero on its own (a dead solo player would otherwise hang the game forever).
+	 */
+	public List<Player> getLivingPlayers()
+	{
+		return gamePlayers.values().stream().filter(GamePlayer::isInGame).map(GamePlayer::getPlayer).collect(Collectors.toList());
+	}
+
+	/**
+	 * Single authority for ending a running game once nobody can carry on. The moment an active
+	 * game has no IN_GAME players left — everyone is dead/spectating/left — the game ends. This is
+	 * the safety net for every death path (solo bleed-out, Who's Who timeout, the last co-op player
+	 * dying) because {@link #setDead(Player)} only flips a player to DEAD and DEAD players still
+	 * count in {@link #getPlayersInGame()}; without this check a solo player who bled out would be
+	 * left a permanent spectator in a session that never ends.
+	 */
+	public void checkGameEndCondition()
+	{
+		if(status == GameStatus.INGAME && getLivingPlayers().isEmpty())
+			endGame();
+	}
+
 	public boolean wasDisconnected(Player player)
 	{
 		return gamePlayers.containsKey(player);
@@ -656,6 +681,9 @@ public class Game
 	{
 		gamePlayers.computeIfAbsent(player, GamePlayer::new).setState(PlayerState.DEAD);
 		setPlayerSpectatorMode(player);
+		// A death may have been the last active player (solo bleed-out, Who's Who timeout, last
+		// co-op player). End the game if nobody is left playing so the session never hangs.
+		checkGameEndCondition();
 	}
 
 	public void setPlayerSpectatorMode(Player player)
@@ -880,7 +908,10 @@ public class Game
 
 		boxManager.resetBoxes();
 		perkManager.clearPerks();
-		downedPlayerManager.clearDownedPlayers();
+		// Full reset (not just clearDownedPlayers): also wipes per-session solo self-revive uses,
+		// tombstone snapshots and any lingering Who's Who ghost so a re-used Game object starts the
+		// next session clean (otherwise solo self-revive uses would never replenish between games).
+		downedPlayerManager.reset();
 		turnOffPower();
 		boxManager.loadAllBoxes();
 		barrierManager.unloadAllBarriers();
@@ -1365,7 +1396,16 @@ public class Game
 				downedPlayerManager.getSelfReviveUses(player.getUniqueId(), ConfigManager.getMainConfig().soloQuickReviveUses));
 
 		if(!canSelfRevive && downedPlayerManager.numDownedPlayers() + 1 == getPlayersInGame().size())
+		{
+			// Everyone is now down/out with no self-revive available — the run is over. Make the
+			// ending explicit (BO2 shows a Game Over) instead of silently yanking the player out.
+			for(Player pl : getPlayersInGame())
+			{
+				pl.sendTitle(ChatColor.DARK_RED + "" + ChatColor.BOLD + "GAME OVER", ChatColor.GRAY + "You survived to round " + waveNumber, 10, 60, 20);
+				CommandUtil.sendMessageToPlayer(pl, ChatColor.DARK_RED + "" + ChatColor.BOLD + "GAME OVER" + ChatColor.GRAY + " — you reached round " + waveNumber + ".");
+			}
 			endGame();
+		}
 		else
 			downedPlayerManager.setPlayerDowned(player, this);
 	}
