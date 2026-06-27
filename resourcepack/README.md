@@ -1,96 +1,45 @@
 # COM:Z Custom Resource Pack
 
-Custom gun/perk/power-up models + sounds for Call of Minecraft: Zombies, built from the
-BOZ "Alpha V3.2.0.1" pack and modernized for the 1.21.4+ / 26.2 item-model system.
+The complete custom pack for Call of Minecraft: Zombies lives here as plain project files
+under **`comz-pack/`** — custom gun / perk / power-up / throwable models + all gameplay sounds,
+ready for Minecraft 1.21.4+ / 26.2. No source packs or build step needed; edit the files
+directly.
 
-## Prebuilt pack (no source packs needed)
+## Layout (`comz-pack/`)
 
-The ready-to-host pack is committed at **`resourcepack/comz-pack.zip`** so any dev can use it
-without the original source packs. Host that zip and set in `config.yml`:
+- `pack.mcmeta` — modern `pack_format` + wide `supported_formats`.
+- `assets/comz/items/**` — item-definition files the plugin targets with
+  `setItemModel(comz:<key>)`: `gun/<slug>(_pap)`, `perk/<slug>`, `powerup/<slug>`,
+  `throwable/{grenade,monkey_bomb}`, `misc/box_teddy`.
+- `assets/comz/models/item/grenade.json` — the one generated model (grenade, from the m67 texture).
+- `assets/minecraft/models|textures/custom/**` — the gun/power-up/teddy models + textures.
+- `assets/minecraft/atlases/blocks.json` — registers `textures/custom/**` into the item atlas
+  (1.21.4+ only stitches the default dirs otherwise → black/purple items).
+- `assets/minecraft/sounds.json` + `sounds/custom/**` — all gameplay sounds (weapons, perks,
+  power-ups, rounds, mystery box, global). See `gun-model-mapping.md` for which model each gun uses.
 
-```yaml
-config:
-  resourcePack:
-    enabled: true
-    url: "https://.../comz-pack.zip"
-    sha1: "c7dadd94348ee2e2ef7a7a05479ce6c1cc942b26"
-    force: true
-```
+## Use it
 
-Rebuilding from source (below) is only needed to add 3D models or change which sounds ship.
-
-## How it hooks into the plugin
-
-- **Models** — the plugin sets the `minecraft:item_model` component on items via
-  `ItemMeta.setItemModel(comz:<key>)` (see `util/PackModels.java`). Guns read their key from
-  `guns.json` (`item_model`); perks/power-ups carry keys in `PerkType`/`PowerUp`. Keys:
-  `gun/<slug>`, `gun/<slug>_pap`, `perk/<slug>`, `powerup/<slug>`, `misc/box_teddy`.
-  Without the pack installed the component is ignored and items keep their vanilla look.
-- **Sounds** — `util/SoundUtil.java` plays a string that is either a Bukkit enum name OR a
-  namespaced pack event. **All** sound mappings live in the dedicated **`sounds.json`** config
-  (`plugins/COM_Zombies/sounds.json`): event sounds (`perk`, `box`, `round`, `packapunch`,
-  `teleporter`, `door`, `trap`, `gun.buy`, `game.join`), per-power-up (`powerup.<TYPE>`), and
-  per-gun overrides (`guns.<GunName>.shoot|reload`, with `_default`/`_defaultPaP` fallbacks that
-  themselves fall back to guns.json `sound`/`reload_sound`). Defaults are vanilla enums; point any
-  value at a `comz:` event to use the pack's audio. The pack also `replace:true`s several vanilla
-  events (glass break, explosions, …) so those are remapped automatically.
-
-### Safety when no pack is installed
-
-If `config.resourcePack.enabled` is **false**, the plugin applies **no** custom item models — items
-keep their plain vanilla material look, so clients never render a missing-model (black/purple) cube.
-Likewise `SoundUtil` skips any `comz:`-namespaced sound event while the pack is disabled (vanilla
-enum/`minecraft:` sounds always play). Enabling the pack is the server owner's assertion that the
-hosted zip is valid; a per-player gate on download success would require packet-level item rewriting
-and is out of scope.
-
-## Build
-
-```bash
-python3 resourcepack/build_pack.py "<source pack dir>" "<output dir>"
-# default source: ~/Downloads/.../Alpha V3.2.0.1 Resources, default output: resourcepack/build/comz-pack
-```
-
-The script is **pruning**: it copies only the models reachable from the item defs, the textures
-those models use, and sounds minus the big unused folders (`custom/maps`, `custom/players`,
-`custom/egg`, `ambient/cave`). The 310 MB raw pack becomes ~29 MB. It validates every item def
-resolves to a real model and reports which guns use a closest-fallback model (see
-`gun-model-mapping.md`).
-
-- **Sounds default to the pack's audio** when it's enabled: `sounds.json` maps every named gun to
-  its `custom.weapon.shoot/reload_*` event and the perk/power-up/round/box/door events to the
-  pack's `custom.*` events. When the pack is disabled, `SoundConfig` falls back to the vanilla
-  enums automatically, so no-pack servers keep working audio. Edit `sounds.json` to retune.
-- **3D model import**: drop real 3D models in `resourcepack/models3d/<slug>/` to replace a gun's
-  fallback — the builder picks them up automatically. See `models3d/README.md`.
-
-## Host & enable
-
-1. Zip the **contents** of the output dir (so `pack.mcmeta` is at the zip root), e.g.
-   `cd <output dir> && zip -r ../comz-pack.zip .`
-2. Upload the zip somewhere players can download it (GitHub release asset, web server, …).
-3. `sha1sum comz-pack.zip` → copy the 40-char hash.
-4. In `config.yml`:
+1. Zip the **contents** of `comz-pack/` (so `pack.mcmeta` is at the zip root).
+2. Host the zip (GitHub release asset, web server, …); `sha1sum` it.
+3. In `config.yml`:
    ```yaml
    config:
      resourcePack:
        enabled: true
        url: "https://.../comz-pack.zip"
-       sha1: "<sha1 from step 3>"
+       sha1: "<sha1 of your zip>"
        force: true
-       kickOnDecline: false
    ```
-5. Join a game → the client downloads the pack; watch the console for the
-   `PlayerResourcePackStatusEvent` outcome. If the client warns about the version, adjust
-   `PACK_FORMAT` / `SUPPORTED_*` in `build_pack.py` and rebuild.
+4. Join an arena → the client downloads it; watch console for the pack status. If the client
+   warns about the version, bump `pack_format` in `pack.mcmeta`.
 
-## Known gaps / follow-ups
+## Notes / known gaps
 
-- **23 guns use 2D-sprite fallback models** — the source pack only has 9 unique true-3D gun
-  models (all in use; 13 guns are true 3D). The rest are the pack's 2D handheld sprites. To make
-  one true 3D, drop a model in `resourcepack/models3d/<slug>/` (see that folder's README).
-- **Perks share one bottle model** — `perk_bottle_base` is an empty template, so perk custom
-  models are gated off (`CUSTOM_PERK_MODELS=false` in `PerkType`); perks show vanilla icons until
-  textured per-perk models exist.
-- **Boss models** (George/Brutus) cannot be reskinned individually by a resource pack — a
-  reskin would change all zombies/piglin-brutes. Only their sounds/name/glow distinguish them.
+- **23 guns use 2D-sprite models** — the source only had 9 true-3D gun models (all in use; 13 guns
+  are 3D). To make one true-3D, replace its model under `assets/minecraft/models/custom/item/...`
+  (+ texture) with a real 3D model and repoint its `assets/comz/items/gun/<slug>.json`.
+- **Perks show vanilla icons** — no per-perk bottle models exist (gated off in `PerkType`).
+- **Boss models** can't be reskinned by a vanilla pack (per-entity-type limitation).
+- Sound mappings (which event each gameplay sound uses) live in the plugin's `sounds.json`
+  config, not here.
