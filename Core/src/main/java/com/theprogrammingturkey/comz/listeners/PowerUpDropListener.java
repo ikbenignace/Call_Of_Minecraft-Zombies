@@ -18,7 +18,11 @@ import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.Color;
+import org.bukkit.Particle;
+import org.bukkit.World;
 import org.bukkit.entity.Item;
+import org.bukkit.entity.Mob;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -118,10 +122,25 @@ public class PowerUpDropListener implements Listener
 						barrier.repairFull();
 					break;
 				case NUKE:
+					// Clear, recognisable nuke feedback (a green flash + title, NOT a weather change —
+					// the lightning-bolt SOUND on Insta-Kill is what players mistook for a "thunderstorm").
+					for(Mob z : game.spawnManager.getEntities())
+					{
+						World zw = z.getWorld();
+						if(zw != null)
+							zw.spawnParticle(Particle.DUST, z.getLocation().add(0, 1, 0), 12, 0.4, 0.6, 0.4, new Particle.DustOptions(Color.fromRGB(0x66, 0xFF, 0x33), 1.8F));
+					}
 					for(Player pl : game.getPlayersInGame())
 					{
 						PointManager.INSTANCE.addPoints(pl, game.isDoublePoints() ? 800 : 400);
 						PointManager.INSTANCE.notifyPlayer(pl);
+						World w = pl.getWorld();
+						if(w != null)
+						{
+							w.spawnParticle(Particle.EXPLOSION_EMITTER, pl.getLocation().add(0, 1, 0), 1);
+							w.spawnParticle(Particle.DUST, pl.getLocation().add(0, 1, 0), 40, 1.0, 1.0, 1.0, new Particle.DustOptions(Color.fromRGB(0x88, 0xFF, 0x44), 2.0F));
+						}
+						pl.sendTitle(ChatColor.GREEN + "" + ChatColor.BOLD + "NUKE", ChatColor.GRAY + "All zombies eliminated", 5, 30, 15);
 					}
 					game.spawnManager.nuke();
 					break;
