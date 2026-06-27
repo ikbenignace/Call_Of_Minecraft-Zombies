@@ -23,6 +23,14 @@ public abstract class BaseGun extends Weapon
 	public int clipAmmo;
 	public Color particleColor = Color.GRAY;
 	public boolean multiHit;
+	/**
+	 * Explosive splash radius in blocks. 0 (default) = no splash; a positive value makes every shot
+	 * deal {@link #splashDamage} to all mobs within this radius of the impact point — the BO2 Ray Gun
+	 * / wonder-weapon "kill a group" behavior. Configured via guns.json {@code splash_radius}.
+	 */
+	public double splashRadius;
+	/** Damage dealt to each mob inside {@link #splashRadius}. guns.json {@code splash_damage}. */
+	public double splashDamage;
 
 	/**
 	 * Per-shot sound, as either a legacy Bukkit {@code Sound} enum name or a namespaced
@@ -47,6 +55,8 @@ public abstract class BaseGun extends Weapon
 		this.reloadTime = CustomConfig.getDouble(json, "reload_time", 0);
 		this.distance = CustomConfig.getDouble(json, "max_distance", 30);
 		this.multiHit = CustomConfig.getBoolean(json, "multi_hit", false);
+		this.splashRadius = CustomConfig.getDouble(json, "splash_radius", 0);
+		this.splashDamage = CustomConfig.getDouble(json, "splash_damage", 0);
 
 		String particleColor = CustomConfig.getString(json, "particle_color", "808080");
 		if(particleColor.matches("\\A[0-9a-fA-F]{6}$"))

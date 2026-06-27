@@ -962,6 +962,8 @@
         "max_distance": 50.0,
         "particle_color": "168,229,73",
         "multi_hit": true,
+        "splash_radius": 3.5,
+        "splash_damage": 60,
         "pack_a_punch_gun": {
           "name": "Porter's X2 Ray Gun",
           "material": "DIAMOND_SHOVEL",
@@ -974,7 +976,9 @@
           "reload_time": 2.5,
           "max_distance": 100.0,
           "particle_color": "FF1919",
-          "multi_hit": true
+          "multi_hit": true,
+          "splash_radius": 4.5,
+          "splash_damage": 110
         }
       },
       {
@@ -990,6 +994,8 @@
         "max_distance": 25.0,
         "particle_color": "E0E0FF",
         "multi_hit": true,
+        "splash_radius": 5.0,
+        "splash_damage": 80,
         "pack_a_punch_gun": {
           "name": "Zeus Cannon",
           "material": "GOLDEN_SHOVEL",
@@ -1002,7 +1008,9 @@
           "reload_time": 3.0,
           "max_distance": 30.0,
           "particle_color": "66CCFF",
-          "multi_hit": true
+          "multi_hit": true,
+          "splash_radius": 6.0,
+          "splash_damage": 130
         }
       },
       {

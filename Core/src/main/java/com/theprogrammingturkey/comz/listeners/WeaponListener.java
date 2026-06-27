@@ -222,6 +222,27 @@ public class WeaponListener implements Listener
 		if(world == null)
 			return;
 
+		// Generic explosive splash (BO2 Ray Gun / wonder-weapon "kill the group"): any gun with a
+		// splash_radius damages every mob within that radius of the impact point. Impact = where the
+		// shot first connected (the closest hit's intersection). Applies on top of the direct hit.
+		double splashRadius = gun.getType().splashRadius;
+		if(splashRadius > 0)
+		{
+			Location impact = toDamage.get(0).intersection.toLocation(world);
+			float splashDmg = (float) gun.getType().splashDamage;
+			double radiusSq = splashRadius * splashRadius;
+			for(Mob mob : game.spawnManager.getEntities())
+			{
+				if(mob.isDead())
+					continue;
+				if(mob.getLocation().distanceSquared(impact) <= radiusSq)
+					game.damageMob(mob, player, splashDmg, false, false);
+			}
+			world.spawnParticle(Particle.EXPLOSION, impact, 2, 0.4, 0.4, 0.4, 0);
+			world.spawnParticle(Particle.DUST, impact, 30, splashRadius / 2, splashRadius / 2, splashRadius / 2, new Particle.DustOptions(gun.getType().particleColor, 1.6F));
+			world.playSound(impact, Sound.ENTITY_GENERIC_EXPLODE, 0.8F, 1.4F);
+		}
+
 		if(name.equalsIgnoreCase(THUNDERGUN) || name.equalsIgnoreCase(THUNDERGUN_PAP))
 		{
 			Vector push = dirVec.clone().normalize().multiply(ConfigManager.getMainConfig().thundergunKnockback);
