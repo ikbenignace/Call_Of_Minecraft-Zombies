@@ -7,9 +7,14 @@ BOZ "Alpha V3.2.0.1" pack and modernized for the 1.21.4+ / 26.2 item-model syste
 
 - **Models** — the plugin sets the `minecraft:item_model` component on items via
   `ItemMeta.setItemModel(comz:<key>)` (see `util/PackModels.java`). Guns read their key from
-  `guns.json` (`item_model`); perks/power-ups carry keys in `PerkType`/`PowerUp`. Keys:
-  `gun/<slug>`, `gun/<slug>_pap`, `perk/<slug>`, `powerup/<slug>`, `misc/box_teddy`.
+  `guns.json` (`item_model`); power-ups carry keys in `PowerUp`. Keys:
+  `gun/<slug>`, `gun/<slug>_pap`, `powerup/<slug>`, `misc/box_teddy`.
   Without the pack installed the component is ignored and items keep their vanilla look.
+- **Perk icons** — perks are not items; they render as reskinned vanilla potion-effect icons.
+  Each perk maps to one `PotionEffectType` in `PerkType.java`; the pack overrides that effect's
+  `assets/minecraft/textures/mob_effect/<effect>.png`. Source art lives in `perk-icons/` (named by
+  effect) and is copied into the build by `build_pack.py`. Without the pack the player sees the
+  plain vanilla effect icon.
 - **Sounds** — `util/SoundUtil.java` plays a string that is either a Bukkit enum name OR a
   namespaced pack event. **All** sound mappings live in the dedicated **`sounds.json`** config
   (`plugins/COM_Zombies/sounds.json`): event sounds (`perk`, `box`, `round`, `packapunch`,
@@ -69,7 +74,9 @@ resolves to a real model and reports which guns use a closest-fallback model (se
 - **25 BO2 guns use closest-class fallback models** (see `gun-model-mapping.md`). Drop real
   BO2 models under `assets/minecraft/models/custom/item/bo2/<slug>` and repoint the slug in
   `build_pack.py`.
-- **Perks share one bottle model** — add per-perk models and repoint `PERK_MODEL`.
+- **Perk icons are placeholders** — `perk-icons/*.png` are generated stand-ins
+  (`generate_placeholders.py`). Drop real BO2 perk-bottle PNGs in (same effect filenames) and
+  rerun `build_pack.py`; no code change needed.
 - **Per-gun custom audio is opt-in** — set `sound`/`reload_sound` in `guns.json` to the pack's
   `comz:` events (kept as vanilla enums by default so servers without the pack still get audio).
 - **Boss models** (George/Brutus) cannot be reskinned individually by a resource pack — a

@@ -1,56 +1,61 @@
 package com.theprogrammingturkey.comz.game.features;
 
 import com.theprogrammingturkey.comz.COMZombies;
-import com.theprogrammingturkey.comz.util.PackModels;
 import org.bukkit.ChatColor;
 import org.bukkit.Effect;
-import org.bukkit.Material;
 import org.bukkit.Sound;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.potion.PotionEffectType;
 
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * Perks are no longer inventory items. Each perk rides on a unique vanilla {@link PotionEffectType}
+ * applied to the player (infinite duration, particles hidden), and the resource pack reskins that
+ * effect's {@code mob_effect/<name>.png} icon to the perk's bottle art. This frees the old hotbar
+ * perk slots and removes the 4-perk cap — a player can own every perk at once.
+ *
+ * <p>Each vanilla effect backs exactly one perk (a reskin is global). 8 effects are zero-impact in
+ * a land arena; 4 carry minor, accepted side-effects.
+ */
 public enum PerkType
 {
-	JUGGERNOG("perk/juggernog"),
-	SPEED_COLA("perk/speed_cola"),
-	QUICK_REVIVE("perk/quick_revive"),
-	DOUBLE_TAP("perk/double_tap"),
-	STAMIN_UP("perk/stamina_up"),
-	PHD_FLOPPER("perk/phd_flopper"),
-	DEADSHOT_DAIQ("perk/deadshot"),
-	MULE_KICK("perk/mule_kick"),
-	ELECTRIC_C("perk/electric_cherry"),
-	VULTURE_AID("perk/vulture_aid"),
-	TOMBSTONE_SODA("perk/tombstone"),
-	WHOS_WHO("perk/whos_who"),
-	DER_WUNDERFIZZ(null);
+	JUGGERNOG(PotionEffectType.HERO_OF_THE_VILLAGE, 0),
+	SPEED_COLA(PotionEffectType.LUCK, 0),
+	QUICK_REVIVE(PotionEffectType.UNLUCK, 0),
+	DOUBLE_TAP(PotionEffectType.DOLPHINS_GRACE, 0),
+	STAMIN_UP(PotionEffectType.SPEED, 1),
+	PHD_FLOPPER(PotionEffectType.FIRE_RESISTANCE, 0),
+	DEADSHOT_DAIQ(PotionEffectType.SATURATION, 0),
+	MULE_KICK(PotionEffectType.BAD_OMEN, 0),
+	ELECTRIC_C(PotionEffectType.CONDUIT_POWER, 0),
+	VULTURE_AID(PotionEffectType.WATER_BREATHING, 0),
+	TOMBSTONE_SODA(PotionEffectType.SLOW_FALLING, 0),
+	WHOS_WHO(PotionEffectType.HASTE, 0),
+	DER_WUNDERFIZZ(null, 0);
 
-	/**
-	 * Custom perk-bottle models are not shipped yet — the source pack only has an empty
-	 * {@code perk_bottle_base} template (no texture), which renders invisible. Until real
-	 * per-perk models exist, perks keep their distinct vanilla item icons. Flip to {@code true}
-	 * once {@code assets/comz/items/perk/<slug>} point at textured models.
-	 */
-	private static final boolean CUSTOM_PERK_MODELS = false;
+	/** Vanilla effect this perk shows as in the HUD (reskinned by the pack), or null (the machine). */
+	private final PotionEffectType iconEffect;
+	/** Amplifier for the applied effect (STAMIN_UP grants real Speed II; the rest are icon-only). */
+	private final int amplifier;
 
-	/** COM:Z pack item-model key for this perk's bottle, or null (e.g. the random machine). */
-	private final String modelKey;
-
-	PerkType(String modelKey)
+	PerkType(PotionEffectType iconEffect, int amplifier)
 	{
-		this.modelKey = modelKey;
+		this.iconEffect = iconEffect;
+		this.amplifier = amplifier;
 	}
 
-	/** Model key to apply, or null while custom perk models are not ready. */
-	private String activeModelKey()
+	public PotionEffectType getIconEffect()
 	{
-		return CUSTOM_PERK_MODELS ? modelKey : null;
+		return iconEffect;
+	}
+
+	public int getAmplifier()
+	{
+		return amplifier;
 	}
 
 	public static PerkType getPerkType(String name)
@@ -69,74 +74,25 @@ public enum PerkType
 		return null;
 	}
 
-	public void initialEffect(final Player player, PerkType type, int slot)
+	/** Plays the drink jingle + potion-break particle when a perk is consumed. No inventory item. */
+	public void initialEffect(final Player player)
 	{
 		final World world = player.getLocation().getWorld();
-		if(world != null)
+		if(world == null)
+			return;
+		// Per-perk BO2 jingle (perk.drink.<PERK>) if configured; else the generic double-glug.
+		String jingle = com.theprogrammingturkey.comz.util.SoundConfig.get("perk.drink." + name(), "");
+		if(!jingle.isEmpty())
+		{
+			COMZombies.scheduleTask(5, () -> com.theprogrammingturkey.comz.util.SoundUtil.play(world, player.getLocation(), jingle, org.bukkit.SoundCategory.MASTER, 1, 1));
+		}
+		else
 		{
 			String drink = com.theprogrammingturkey.comz.util.SoundConfig.get("perk.buy", Sound.ENTITY_GENERIC_DRINK.name());
 			COMZombies.scheduleTask(5, () -> com.theprogrammingturkey.comz.util.SoundUtil.play(world, player.getLocation(), drink, org.bukkit.SoundCategory.MASTER, 1, 1));
 			COMZombies.scheduleTask(10, () -> com.theprogrammingturkey.comz.util.SoundUtil.play(world, player.getLocation(), drink, org.bukkit.SoundCategory.MASTER, 1, 1));
-			COMZombies.scheduleTask(20, () -> world.playEffect(player.getLocation(), Effect.POTION_BREAK, 1));
 		}
-		ItemStack stack = new ItemStack(Material.AIR, 1);
-		String Perktype = "";
-		switch(type)
-		{
-			case JUGGERNOG:
-				stack = new ItemStack(Material.CHAINMAIL_CHESTPLATE, 1);
-				Perktype = "Juggernog";
-				break;
-			case SPEED_COLA:
-				stack = new ItemStack(Material.FEATHER, 1);
-				Perktype = "Speed Cola";
-				break;
-			case QUICK_REVIVE:
-				stack = new ItemStack(Material.GLISTERING_MELON_SLICE, 1);
-				Perktype = "Quick Revive";
-				break;
-			case DOUBLE_TAP:
-				stack = new ItemStack(Material.REPEATER, 1);
-				Perktype = "Double Tap";
-				break;
-			case STAMIN_UP:
-				stack = new ItemStack(Material.SUGAR, 1);
-				Perktype = "Stamina Up";
-				break;
-			case PHD_FLOPPER:
-				stack = new ItemStack(Material.FIRE_CHARGE);
-				Perktype = "PHD Flopper";
-				break;
-			case DEADSHOT_DAIQ:
-				stack = new ItemStack(Material.GUNPOWDER);
-				Perktype = "Deadshot Daiquiri";
-				break;
-			case MULE_KICK:
-				stack = new ItemStack(Material.STRING);
-				Perktype = "Mule Kick";
-				break;
-			case ELECTRIC_C:
-				stack = new ItemStack(Material.NETHER_STAR);
-				Perktype = "Electric Cherry";
-				break;
-			case VULTURE_AID:
-				stack = new ItemStack(Material.ROTTEN_FLESH);
-				Perktype = "Vulture Aid";
-				break;
-			case TOMBSTONE_SODA:
-				stack = new ItemStack(Material.WITHER_ROSE, 1);
-				Perktype = "Tombstone Soda";
-				break;
-			case WHOS_WHO:
-				stack = new ItemStack(Material.SKELETON_SKULL, 1);
-				Perktype = "Who's Who";
-				break;
-			default:
-				break;
-		}
-		PackModels.apply(stack, type.activeModelKey());
-		player.getInventory().setItem(slot, setItemMeta(stack, Perktype));
-		player.updateInventory();
+		COMZombies.scheduleTask(20, () -> world.playEffect(player.getLocation(), Effect.POTION_BREAK, 1));
 	}
 
 	public static void noPower(Player player)
@@ -144,62 +100,6 @@ public enum PerkType
 		World world = player.getLocation().getWorld();
 		String noPower = com.theprogrammingturkey.comz.util.SoundConfig.get("perk.noPower", Sound.ENTITY_GHAST_AMBIENT.name());
 		com.theprogrammingturkey.comz.util.SoundUtil.play(world, player.getLocation(), noPower, org.bukkit.SoundCategory.MASTER, 1, 1);
-	}
-
-	private ItemStack setItemMeta(ItemStack item, String type)
-	{
-		ItemMeta data = item.getItemMeta();
-		data.setDisplayName(type);
-		item.setItemMeta(data);
-		return item;
-	}
-
-	public ItemStack getPerkItem(PerkType type)
-	{
-		ItemStack stack = new ItemStack(Material.AIR, 1);
-		switch(type)
-		{
-			case JUGGERNOG:
-				stack = new ItemStack(Material.CHAINMAIL_CHESTPLATE, 1);
-				break;
-			case SPEED_COLA:
-				stack = new ItemStack(Material.FEATHER, 1);
-				break;
-			case QUICK_REVIVE:
-				stack = new ItemStack(Material.GLISTERING_MELON_SLICE, 1);
-				break;
-			case DOUBLE_TAP:
-				stack = new ItemStack(Material.REPEATER, 1);
-				break;
-			case STAMIN_UP:
-				stack = new ItemStack(Material.SUGAR, 1);
-				break;
-			case PHD_FLOPPER:
-				stack = new ItemStack(Material.FIRE_CHARGE);
-				break;
-			case DEADSHOT_DAIQ:
-				stack = new ItemStack(Material.GUNPOWDER);
-				break;
-			case MULE_KICK:
-				stack = new ItemStack(Material.STRING);
-				break;
-			case ELECTRIC_C:
-				stack = new ItemStack(Material.NETHER_STAR);
-				break;
-			case VULTURE_AID:
-				stack = new ItemStack(Material.ROTTEN_FLESH);
-				break;
-			case TOMBSTONE_SODA:
-				stack = new ItemStack(Material.WITHER_ROSE, 1);
-				break;
-			case WHOS_WHO:
-				stack = new ItemStack(Material.SKELETON_SKULL, 1);
-				break;
-			default:
-				break;
-		}
-		PackModels.apply(stack, type.activeModelKey());
-		return stack;
 	}
 
 	public static PerkType getRandomPerk(List<PerkType> exclude)

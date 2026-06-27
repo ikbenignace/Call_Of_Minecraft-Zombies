@@ -64,10 +64,8 @@ GUN = {
     "thundergun":  (f"{MC}/wonder/thundergun",     f"{MC}/wonder/thundergun",       False),
     "wunderwaffe": (f"{MC}/wonder/wunderwaffe",    f"{MC}/wonder/wunderwaffe",      False),
 }
-PERK_MODEL = f"{MC}/powerups/perk_bottle_base"
-PERK_SLUGS = ["juggernog", "speed_cola", "quick_revive", "double_tap", "stamina_up",
-              "phd_flopper", "deadshot", "mule_kick", "electric_cherry", "vulture_aid",
-              "tombstone", "whos_who"]
+# Perks are no longer items — they render as reskinned vanilla potion-effect icons. The pack
+# overrides each effect's mob_effect/<effect>.png from the local perk-icons/ folder (see below).
 POWERUP = {
     "max_ammo": f"{MC}/powerups/max_ammo", "insta_kill": f"{MC}/powerups/insta_kill",
     "carpenter": f"{MC}/powerups/carpenter", "nuke": f"{MC}/powerups/nuke",
@@ -171,8 +169,6 @@ def main():
 
     for slug, (base, pap, _dl) in GUN.items():
         emit(f"gun/{slug}", base); emit(f"gun/{slug}_pap", pap)
-    for slug in PERK_SLUGS:
-        emit(f"perk/{slug}", PERK_MODEL)
     for slug, mp in POWERUP.items():
         emit(f"powerup/{slug}", mp)
     for slug, mp in MISC.items():
@@ -187,6 +183,18 @@ def main():
         if copy_rel(src_tex, os.path.join(out_mc, "textures"), t + ".png"):
             tex_copied += 1
             copy_rel(src_tex, os.path.join(out_mc, "textures"), t + ".png.mcmeta")  # animation meta if any
+
+    # 2b) perk HUD icons: override vanilla mob_effect/<effect>.png from the local perk-icons/ folder.
+    # Perks render as reskinned potion-effect icons (PerkType.java maps each perk to one effect).
+    perk_icons_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "perk-icons")
+    mob_effect_out = os.path.join(out_mc, "textures", "mob_effect")
+    perk_icons_copied = 0
+    if os.path.isdir(perk_icons_dir):
+        os.makedirs(mob_effect_out, exist_ok=True)
+        for fn in sorted(os.listdir(perk_icons_dir)):
+            if fn.endswith(".png"):
+                shutil.copy2(os.path.join(perk_icons_dir, fn), os.path.join(mob_effect_out, fn))
+                perk_icons_copied += 1
 
     # 3) sounds: filter sounds.json + copy only kept oggs
     sounds_json = os.path.join(src_mc, "sounds.json")
@@ -224,6 +232,7 @@ def main():
         print(f"   MISSING {k} -> {m}")
     print(f"models:      {len(models)} copied")
     print(f"textures:    {tex_copied} copied")
+    print(f"perk icons:  {perk_icons_copied} mob_effect overrides copied")
     print(f"sounds:      {oggs_copied} oggs copied (dropped folders: {', '.join(DROP_SOUND_PREFIXES)})")
     needs = [s for s, (_b, _p, dl) in GUN.items() if dl]
     print(f"fallback guns (need real BO2 models later): {len(needs)} -> {', '.join(needs)}")
