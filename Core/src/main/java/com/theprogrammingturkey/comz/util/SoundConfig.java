@@ -27,6 +27,9 @@ public final class SoundConfig
 {
 	private static JsonObject root = new JsonObject();
 
+	/** Reload sound used for any gun that defines none of its own (see {@link #gun}). */
+	private static final String DEFAULT_RELOAD_SOUND = "custom.weapon.reload_start.m1911";
+
 	private SoundConfig()
 	{
 	}
@@ -134,6 +137,13 @@ public final class SoundConfig
 			if(fallback != null)
 				return fallback;
 		}
+		if(def != null && !def.isEmpty())
+			return def;
+		// Final safety net: a gun with no reload sound anywhere (no per-gun entry, no _default, no
+		// guns.json reload_sound) would otherwise reload silently. Fall back to the M1911 reload so
+		// every gun has an audible reload. (Shoot has its own non-pack default, so only reload here.)
+		if("reload".equalsIgnoreCase(which))
+			return DEFAULT_RELOAD_SOUND;
 		return def;
 	}
 

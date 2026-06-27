@@ -12,11 +12,13 @@ import com.theprogrammingturkey.comz.game.weapons.GunInstance;
 import com.theprogrammingturkey.comz.game.weapons.WeaponType;
 import com.theprogrammingturkey.comz.util.BlockUtils;
 import com.theprogrammingturkey.comz.util.RayTrace;
+import com.theprogrammingturkey.comz.util.SoundUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
+import org.bukkit.SoundCategory;
 import org.bukkit.World;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Entity;
@@ -29,6 +31,7 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.Vector;
 
@@ -324,10 +327,16 @@ public class WeaponListener implements Listener
 	@EventHandler
 	public void onGrenade(PlayerInteractEvent event)
 	{
-		if(!event.getAction().equals(Action.RIGHT_CLICK_AIR))
+		Action action = event.getAction();
+		// Throw on a right-click whether aimed at air OR a block — the old code only handled
+		// RIGHT_CLICK_AIR, so a player looking at the ground/a wall (the common case) couldn't throw.
+		if(action != Action.RIGHT_CLICK_AIR && action != Action.RIGHT_CLICK_BLOCK)
 			return;
-
-		if(event.getAction().equals(Action.RIGHT_CLICK_BLOCK) && BlockUtils.isSign(event.getClickedBlock().getType()))
+		// PlayerInteractEvent fires for both hands; only act on the main hand so we don't throw twice.
+		if(event.getHand() != EquipmentSlot.HAND)
+			return;
+		// Right-clicking a sign (buy / perk / box / Pack-a-Punch) must interact, not throw.
+		if(action == Action.RIGHT_CLICK_BLOCK && event.getClickedBlock() != null && BlockUtils.isSign(event.getClickedBlock().getType()))
 			return;
 
 		final Player player = event.getPlayer();
@@ -376,38 +385,62 @@ public class WeaponListener implements Listener
 				item.setVelocity(player.getLocation().getDirection().multiply(1));
 				item.setPickupDelay(1000);
 
-				ArmorStand attackEnt = (ArmorStand) player.getWorld().spawnEntity(item.getLocation().clone(), EntityType.ARMOR_STAND);
+				final ArmorStand attackEnt = (ArmorStand) player.getWorld().spawnEntity(item.getLocation().clone(), EntityType.ARMOR_STAND);
 				attackEnt.setVisible(false);
 				attackEnt.setGravity(false);
 				attackEnt.setAI(false);
+				attackEnt.setMarker(true);
+				attackEnt.setInvulnerable(true);
 				item.addPassenger(attackEnt);
 
 				for(Mob e : game.spawnManager.getEntities())
 					e.setTarget(attackEnt);
 
-				int ticker = COMZombies.scheduleTask(0, 5, () ->
+				// Throw cue + the iconic monkey music-box tune that lures the zombies in.
+				SoundUtil.play(player.getWorld(), item.getLocation(), "custom.monkeybomb.use", SoundCategory.PLAYERS, 1.2F, 1.0F);
+				SoundUtil.play(player.getWorld(), item.getLocation(), "custom.monkeybomb.tune", SoundCategory.PLAYERS, 1.0F, 1.0F);
+
+				// One self-terminating task: drives the lure (smoke + retarget), detonates at 140t, and
+				// cleans up the item + attractor stand. It aborts (removing both entities) the instant the
+				// item is gone or the game is no longer running, so it can never leak past the game's end.
+				final int[] tickerId = {-1};
+				final int[] elapsed = {0};
+				tickerId[0] = COMZombies.scheduleTask(0, 5, () ->
 				{
+					if(item.isDead() || !item.isValid() || game.getStatus() != GameStatus.INGAME)
+					{
+						if(!attackEnt.isDead())
+							attackEnt.remove();
+						if(!item.isDead())
+							item.remove();
+						Bukkit.getScheduler().cancelTask(tickerId[0]);
+						return;
+					}
+
 					item.getWorld().spawnParticle(Particle.SMOKE, item.getLocation().clone(), 0, COMZombies.rand.nextDouble() - 0.5, 0.5, COMZombies.rand.nextDouble() - 0.5, 0.05);
 					for(Mob e : game.spawnManager.getEntities())
 						e.setTarget(attackEnt);
-				});
 
-				COMZombies.scheduleTask(140, () ->
-				{
-					Location loc = item.getLocation();
-					player.getWorld().createExplosion(loc.getX(), loc.getY(), loc.getZ(), 0.0F, false, false);
-					List<Mob> ents = game.spawnManager.getEntities();
-					for(int i = ents.size() - 1; i >= 0; i--)
+					elapsed[0] += 5;
+					if(elapsed[0] >= 140)
 					{
-						Mob mob = ents.get(i);
-						float dist = (float) mob.getLocation().distance(item.getLocation());
-						if(dist < 5)
-							game.damageMob(mob, player, 50f / (dist * dist * dist));
-					}
+						Location loc = item.getLocation();
+						SoundUtil.play(item.getWorld(), loc, "custom.monkeybomb.exploding", SoundCategory.PLAYERS, 1.4F, 1.0F);
+						item.getWorld().createExplosion(loc.getX(), loc.getY(), loc.getZ(), 0.0F, false, false);
+						item.getWorld().spawnParticle(Particle.EXPLOSION, loc, 3, 0.5, 0.5, 0.5, 0);
+						List<Mob> ents = game.spawnManager.getEntities();
+						for(int i = ents.size() - 1; i >= 0; i--)
+						{
+							Mob mob = ents.get(i);
+							float dist = (float) mob.getLocation().distance(loc);
+							if(dist < 5)
+								game.damageMob(mob, player, 50f / (dist * dist * dist));
+						}
 
-					item.remove();
-					attackEnt.remove();
-					Bukkit.getScheduler().cancelTask(ticker);
+						attackEnt.remove();
+						item.remove();
+						Bukkit.getScheduler().cancelTask(tickerId[0]);
+					}
 				});
 			}
 		}

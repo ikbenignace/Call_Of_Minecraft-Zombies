@@ -1114,6 +1114,9 @@ public class Game
 		if(kMeta != null)
 			kMeta.setDisplayName(ChatColor.RED + "Knife");
 		knife.setItemMeta(kMeta);
+		// Give the starting knife the ballistic-knife model instead of a plain iron sword (pack only;
+		// no-op without the resource pack, so the item still works as a vanilla sword).
+		com.theprogrammingturkey.comz.util.PackModels.applyFull(knife, "gun/ballistic_knife");
 		ItemStack ib = new ItemStack(Material.GREEN_STAINED_GLASS_PANE, 1);
 		player.getInventory().setHelmet(getUnbreakableItem(Material.LEATHER_HELMET));
 		player.getInventory().setChestplate(getUnbreakableItem(Material.LEATHER_CHESTPLATE));
