@@ -57,4 +57,26 @@ public abstract class RoundSpawner
 		if(attr != null)
 			attr.setBaseValue(strength);
 	}
+
+	/**
+	 * Sets the entity's overall scale (model + hitbox). 1.0 is vanilla size. Used to shrink the
+	 * crawler so it reads as a small ground-hugging zombie with a tighter hitbox.
+	 */
+	public void setScale(Mob mob, double scale)
+	{
+		AttributeInstance attr = mob.getAttribute(Attribute.SCALE);
+		if(attr != null)
+			attr.setBaseValue(scale);
+	}
+
+	/**
+	 * Sets the entity's jump strength so a shrunken/slowed mob can still clear a one-block spawn
+	 * lip instead of stalling against it. Vanilla default is ~0.42.
+	 */
+	public void setJumpStrength(Mob mob, double strength)
+	{
+		AttributeInstance attr = mob.getAttribute(Attribute.JUMP_STRENGTH);
+		if(attr != null)
+			attr.setBaseValue(strength);
+	}
 }

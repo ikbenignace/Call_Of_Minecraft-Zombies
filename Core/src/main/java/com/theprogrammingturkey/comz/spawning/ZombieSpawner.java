@@ -9,6 +9,7 @@ import org.bukkit.Particle;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Mob;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Pose;
 import org.bukkit.entity.Zombie;
 import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.metadata.MetadataValue;
@@ -22,6 +23,12 @@ public class ZombieSpawner extends RoundSpawner
 
 	/** How often (ticks) a crawler emits its gas / re-applies the brief poison cloud. */
 	private static final long GAS_PERIOD_TICKS = 40L;
+
+	/** How often (ticks) the crawler upkeep tick runs (re-asserts the crawl pose, drives gas). */
+	private static final long CRAWLER_TICK_TICKS = 4L;
+
+	/** Crawl-pose re-asserts per gas emission ({@code GAS_PERIOD_TICKS / CRAWLER_TICK_TICKS}). */
+	private static final int TICKS_PER_GAS = (int) (GAS_PERIOD_TICKS / CRAWLER_TICK_TICKS);
 
 	private static final RoundSpawner SPEED_HELPER = new ZombieSpawner();
 
@@ -64,22 +71,50 @@ public class ZombieSpawner extends RoundSpawner
 		SPEED_HELPER.setSpeed(mob, 0.55f);
 		mob.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, Integer.MAX_VALUE, 0, true));
 
-		scheduleGas(game, mob);
+		// Read as a small ground-hugging crawler: shrink the model + hitbox (~0.6) and bump jump
+		// strength so the shorter body can still clear a one-block spawn lip instead of stalling.
+		SPEED_HELPER.setScale(mob, 0.6d);
+		SPEED_HELPER.setJumpStrength(mob, 0.6d);
+		applyCrawlPose(mob);
+
+		scheduleCrawlerTick(game, mob, 0);
 	}
 
 	/**
-	 * Drives the recurring gas tick for a crawler. Reschedules itself every
-	 * {@link #GAS_PERIOD_TICKS} until the mob dies or is removed from the game.
+	 * Forces the swimming/crawl pose so the zombie visibly crawls along the ground. Prefers Paper's
+	 * fixed-pose API ({@code setPose(Pose, true)}) when present (no per-tick flicker); otherwise
+	 * falls back to the cross-platform swimming flag, which the upkeep tick re-asserts.
 	 */
-	private static void scheduleGas(Game game, Mob mob)
+	private static void applyCrawlPose(Mob mob)
 	{
-		COMZombies.scheduleTask(GAS_PERIOD_TICKS, () ->
+		try
+		{
+			mob.getClass().getMethod("setPose", Pose.class, boolean.class).invoke(mob, Pose.SWIMMING, true);
+		}
+		catch(ReflectiveOperationException | RuntimeException ignored)
+		{
+			mob.setSwimming(true);
+		}
+	}
+
+	/**
+	 * Single guarded upkeep task for a crawler: re-asserts the crawl pose every
+	 * {@link #CRAWLER_TICK_TICKS} and emits the poison gas every {@link #GAS_PERIOD_TICKS}. It
+	 * self-terminates (no reschedule) the moment the mob dies or leaves the game, so it can never
+	 * leak past the crawler's lifetime or the game's end.
+	 */
+	private static void scheduleCrawlerTick(Game game, Mob mob, int tick)
+	{
+		COMZombies.scheduleTask(CRAWLER_TICK_TICKS, () ->
 		{
 			if(mob.isDead() || !game.spawnManager.isEntitySpawned(mob))
 				return;
 
-			emitGas(game, mob);
-			scheduleGas(game, mob);
+			applyCrawlPose(mob);
+			if(tick % TICKS_PER_GAS == 0)
+				emitGas(game, mob);
+
+			scheduleCrawlerTick(game, mob, tick + 1);
 		});
 	}
 
