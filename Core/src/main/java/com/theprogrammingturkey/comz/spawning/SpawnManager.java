@@ -398,7 +398,9 @@ public class SpawnManager
 	private void checkStuck(Mob mob, Player nearest)
 	{
 		ConfigSetup cfg = ConfigManager.getMainConfig();
-		if(cfg.zombieStuckSeconds <= 0 || nearest == null)
+		// Crawlers are intentionally slow (the round-hold zombie) — never teleport them, or the
+		// "1 zombie left" crawler gets yanked to a spawn point away from where players are holding.
+		if(cfg.zombieStuckSeconds <= 0 || nearest == null || ZombieSpawner.isCrawler(mob))
 		{
 			stuckLastLoc.remove(mob);
 			stuckTicks.remove(mob);

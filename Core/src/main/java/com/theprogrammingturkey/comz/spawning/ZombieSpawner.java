@@ -57,9 +57,12 @@ public class ZombieSpawner extends RoundSpawner
 		if(mob.getHealth() > crawlerHealth)
 			mob.setHealth(crawlerHealth);
 
-		// Very slow: drop the movement speed attribute and stack heavy slowness.
-		SPEED_HELPER.setSpeed(mob, 0.35f);
-		mob.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, Integer.MAX_VALUE, 3, true));
+		// Slow, but still able to crawl toward players: a mild speed cut + Slowness I. The previous
+		// 0.35x speed + Slowness IV combo left the crawler effectively frozen, which tripped the
+		// stuck-zombie teleporter and made it immobile after teleporting. Crawlers are also exempt
+		// from that teleporter (see SpawnManager.checkStuck) so the "hold" zombie stays where left.
+		SPEED_HELPER.setSpeed(mob, 0.55f);
+		mob.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, Integer.MAX_VALUE, 0, true));
 
 		scheduleGas(game, mob);
 	}

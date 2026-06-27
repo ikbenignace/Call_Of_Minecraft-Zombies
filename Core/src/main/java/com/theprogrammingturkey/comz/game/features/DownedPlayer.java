@@ -47,7 +47,9 @@ public class DownedPlayer implements Listener
 		isPlayerDown = true;
 		PlayerStats stats = Leaderboard.getPlayerStatFromPlayer(player);
 		stats.setDowns(stats.getDowns() + 1);
-		player.sendMessage(ChatColor.RED + "" + ChatColor.BOLD + "You have gone down and need to be revived!");
+		// The down message is sent by DownedPlayerManager.setPlayerDowned, which knows whether this
+		// is a co-op down (needs another player), a solo self-revive, or game over — so it isn't sent
+		// here (it used to always say "need to be revived", which made no sense in a solo game).
 		// Tier 3 — Tombstone Soda: snapshot perks BEFORE they are cleared so they can be reclaimed.
 		if(ConfigManager.getMainConfig().tombstoneEnabled && game.perkManager.hasPerk(player, PerkType.TOMBSTONE_SODA))
 		{
