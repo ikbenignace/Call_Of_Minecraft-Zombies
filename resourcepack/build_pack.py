@@ -22,9 +22,15 @@ PACK_FORMAT = 64
 SUPPORTED_MIN = 34
 SUPPORTED_MAX = 999
 MC = "custom/item"
+# Drop real 3D gun models here as resourcepack/models3d/<slug>/model.json (+ .png textures) to
+# override a gun's fallback model. <slug>_pap/ overrides the Pack-a-Punch variant. See README.
+MODELS3D = os.path.join(os.path.dirname(os.path.abspath(__file__)), "models3d")
 
-# Sound folders to DROP (the bulk of the raw pack — not triggered by the plugin).
-DROP_SOUND_PREFIXES = ("custom/maps", "custom/players", "custom/egg", "ambient/cave")
+# Sound folders to DROP. These are ~280 MB of full easter-egg music tracks, character voice
+# lines and map-specific audio that NOTHING in the plugin triggers. Dropping them keeps every
+# gameplay sound (weapons, perks, power-ups, rounds, mystery box, global) at a fraction of the
+# size. Empty this tuple to ship literally every sound for future voice-line / EE wiring.
+DROP_SOUND_PREFIXES = ("custom/egg", "custom/players", "custom/maps")
 
 GUN = {
     "b23r":        (f"{MC}/3d_guns/cz75",          f"{MC}/3d_guns/cz75",            True),
@@ -40,10 +46,10 @@ GUN = {
     "an94":        (f"{MC}/2blops/galil",          f"{MC}/2blops/galil",            True),
     "m16":         (f"{MC}/2blops/m16",            f"{MC}/2blops/pap/skullcrusher", False),
     "fal":         (f"{MC}/3d_guns/fal",           f"{MC}/2blops/pap/epc_wn",       False),
-    "m8a1":        (f"{MC}/2blops/m16",            f"{MC}/2blops/m16",              True),
+    "m8a1":        (f"{MC}/3d_guns/famas",         f"{MC}/3d_guns/famas",           False),
     "m14":         (f"{MC}/2blops/m14",            f"{MC}/2blops/pap/mnesia",       False),
     "m27":         (f"{MC}/2blops/commando",       f"{MC}/2blops/commando",         True),
-    "mtar":        (f"{MC}/2blops/galil",          f"{MC}/2blops/galil",            True),
+    "mtar":        (f"{MC}/3d_guns/aug",           f"{MC}/3d_guns/aug",             False),
     "smr":         (f"{MC}/2blops/m14",            f"{MC}/2blops/m14",              True),
     "type25":      (f"{MC}/2blops/commando",       f"{MC}/2blops/commando",         True),
     "hamr":        (f"{MC}/2blops/hk21",           f"{MC}/2blops/hk21",             True),
@@ -156,26 +162,86 @@ def main():
     items_root = os.path.join(out, "assets", "comz", "items")
     roots, written, missing = set(), 0, []
 
-    def emit(key, model_path):
+    def write_def(key, model_ref):
         nonlocal written
+        p = os.path.join(items_root, *key.split("/")) + ".json"
+        os.makedirs(os.path.dirname(p), exist_ok=True)
+        json.dump({"model": {"type": "minecraft:model", "model": model_ref}}, open(p, "w"), indent=2)
+        written += 1
+
+    def emit(key, model_path):
         if not os.path.isfile(os.path.join(src_models, model_path + ".json")):
             missing.append((key, model_path))
         else:
             roots.add(model_path)
-        p = os.path.join(items_root, *key.split("/")) + ".json"
-        os.makedirs(os.path.dirname(p), exist_ok=True)
-        json.dump({"model": {"type": "minecraft:model", "model": "minecraft:" + model_path}}, open(p, "w"), indent=2)
-        written += 1
+        write_def(key, "minecraft:" + model_path)
+
+    def import_3d(name):
+        """Import a user-supplied 3D model from resourcepack/models3d/<name>/ into the comz
+        namespace. The dir holds one model JSON (model.json or *.json) plus its .png textures;
+        texture refs are rewritten to comz:gun/<name>/<tex> and the model lands at
+        assets/comz/models/gun/<name>.json. Returns True if imported, False if no override dir."""
+        d = os.path.join(MODELS3D, name)
+        if not os.path.isdir(d):
+            return False
+        mj = os.path.join(d, "model.json")
+        if not os.path.isfile(mj):
+            cands = [f for f in os.listdir(d) if f.endswith(".json")]
+            if not cands:
+                return False
+            mj = os.path.join(d, cands[0])
+        model = json.load(open(mj))
+        # Textures land under textures/custom/gun3d/<name>/ so the existing custom/ atlas source
+        # stitches them (no extra atlas needed); models reference them with the bare custom/ id.
+        tex_out = os.path.join(out_mc, "textures", "custom", "gun3d", name)
+        for k, v in list((model.get("textures") or {}).items()):
+            if not isinstance(v, str) or v.startswith("#"):
+                continue
+            base = os.path.basename(strip_ns(v))
+            src_png = os.path.join(d, base + ".png")
+            if not os.path.isfile(src_png):  # tolerate value already being a bare filename
+                src_png = os.path.join(d, base)
+            if os.path.isfile(src_png):
+                os.makedirs(tex_out, exist_ok=True)
+                shutil.copy2(src_png, os.path.join(tex_out, base + ".png"))
+            model["textures"][k] = f"custom/gun3d/{name}/{base}"
+        mdl_out = os.path.join(out, "assets", "comz", "models", "gun", name + ".json")
+        os.makedirs(os.path.dirname(mdl_out), exist_ok=True)
+        json.dump(model, open(mdl_out, "w"), indent=2)
+        return True
+
+    imported3d = []
+
+    def emit_gun(key, name, fallback_model):
+        if import_3d(name):
+            write_def(key, f"comz:gun/{name}")
+            imported3d.append(name)
+        else:
+            emit(key, fallback_model)
 
     for slug, (base, pap, _dl) in GUN.items():
-        emit(f"gun/{slug}", base); emit(f"gun/{slug}_pap", pap)
+        emit_gun(f"gun/{slug}", slug, base)
+        emit_gun(f"gun/{slug}_pap", slug + "_pap", pap)
     for slug, mp in POWERUP.items():
         emit(f"powerup/{slug}", mp)
     for slug, mp in MISC.items():
         emit(f"misc/{slug}", mp)
 
+    # Throwables: monkey bomb has a model; grenade has only a texture (custom/item/lethal/m67),
+    # so we generate a simple comz item model for it. Both replace the vanilla slime/magma look.
+    emit("throwable/monkey_bomb", f"{MC}/wonder/monkey_bomb")
+    grenade_model_dir = os.path.join(out, "assets", "comz", "models", "item")
+    os.makedirs(grenade_model_dir, exist_ok=True)
+    json.dump({"parent": "item/generated", "textures": {"layer0": "minecraft:custom/item/lethal/m67"}},
+              open(os.path.join(grenade_model_dir, "grenade.json"), "w"), indent=2)
+    p = os.path.join(items_root, "throwable", "grenade.json")
+    os.makedirs(os.path.dirname(p), exist_ok=True)
+    json.dump({"model": {"type": "minecraft:model", "model": "comz:item/grenade"}}, open(p, "w"), indent=2)
+    written += 1
+
     # 2) model closure + textures, copy only those
     models, textures = resolve_models(src_models, roots)
+    textures.add("custom/item/lethal/m67")  # grenade model texture (not reachable via a source model)
     for m in models:
         copy_rel(src_models, os.path.join(out_mc, "models"), m + ".json")
     tex_copied = 0
@@ -234,8 +300,10 @@ def main():
     print(f"textures:    {tex_copied} copied")
     print(f"perk icons:  {perk_icons_copied} mob_effect overrides copied")
     print(f"sounds:      {oggs_copied} oggs copied (dropped folders: {', '.join(DROP_SOUND_PREFIXES)})")
-    needs = [s for s, (_b, _p, dl) in GUN.items() if dl]
-    print(f"fallback guns (need real BO2 models later): {len(needs)} -> {', '.join(needs)}")
+    if imported3d:
+        print(f"3D overrides imported from models3d/: {len(imported3d)} -> {', '.join(sorted(imported3d))}")
+    needs = [s for s, (_b, _p, dl) in GUN.items() if dl and s not in imported3d]
+    print(f"fallback guns (drop a model in models3d/<slug>/ to replace): {len(needs)} -> {', '.join(needs)}")
 
 
 if __name__ == "__main__":

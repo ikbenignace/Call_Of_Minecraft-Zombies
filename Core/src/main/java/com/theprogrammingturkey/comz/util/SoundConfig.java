@@ -40,7 +40,21 @@ public final class SoundConfig
 	public static String get(String dottedPath, String def)
 	{
 		String v = raw(dottedPath);
-		return v == null ? def : v;
+		if(v == null)
+			return def;
+		// A pack-only event (the pack's custom.* events, or any non-minecraft namespace) is silent
+		// without the pack installed — fall back to the vanilla default so audio is never lost.
+		if(isPackOnly(v) && !PackModels.isPackEnabled())
+			return def;
+		return v;
+	}
+
+	private static boolean isPackOnly(String v)
+	{
+		if(v.startsWith("custom."))
+			return true;
+		int c = v.indexOf(':');
+		return c >= 0 && !v.substring(0, c).equalsIgnoreCase("minecraft");
 	}
 
 	/**
@@ -51,6 +65,10 @@ public final class SoundConfig
 	 */
 	public static String gun(String gunName, boolean packAPunched, String which, String def)
 	{
+		// Per-gun overrides point at custom-pack weapon events; only use them when the pack is on,
+		// so servers without it keep the vanilla guns.json sound instead of going silent.
+		if(!PackModels.isPackEnabled())
+			return def;
 		JsonObject guns = childObject(root, "guns");
 		if(guns != null)
 		{

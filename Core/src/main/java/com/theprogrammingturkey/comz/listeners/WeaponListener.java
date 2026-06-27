@@ -340,7 +340,9 @@ public class WeaponListener implements Listener
 			ItemStack handStack = player.getInventory().getItemInMainHand();
 			if(handStack.getType().equals(Material.SLIME_BALL))
 			{
-				final Item item = player.getWorld().dropItemNaturally(player.getEyeLocation(), new ItemStack(Material.SLIME_BALL));
+				ItemStack grenadeStack = new ItemStack(Material.SLIME_BALL);
+				com.theprogrammingturkey.comz.util.PackModels.apply(grenadeStack, "throwable/grenade");
+				final Item item = player.getWorld().dropItemNaturally(player.getEyeLocation(), grenadeStack);
 				handStack.setAmount(handStack.getAmount() - 1);
 				item.setVelocity(player.getLocation().getDirection().multiply(1));
 				item.setPickupDelay(1000);
@@ -367,7 +369,9 @@ public class WeaponListener implements Listener
 			}
 			else if(handStack.getType().equals(Material.MAGMA_CREAM))
 			{
-				final Item item = player.getWorld().dropItemNaturally(player.getEyeLocation(), new ItemStack(Material.MAGMA_CREAM));
+				ItemStack monkeyStack = new ItemStack(Material.MAGMA_CREAM);
+				com.theprogrammingturkey.comz.util.PackModels.apply(monkeyStack, "throwable/monkey_bomb");
+				final Item item = player.getWorld().dropItemNaturally(player.getEyeLocation(), monkeyStack);
 				handStack.setAmount(handStack.getAmount() - 1);
 				item.setVelocity(player.getLocation().getDirection().multiply(1));
 				item.setPickupDelay(1000);
