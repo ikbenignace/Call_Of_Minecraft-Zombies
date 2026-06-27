@@ -7,6 +7,8 @@ import com.theprogrammingturkey.comz.config.ConfigManager;
 import com.theprogrammingturkey.comz.game.Game;
 import com.theprogrammingturkey.comz.game.GameManager;
 import com.theprogrammingturkey.comz.util.SoundUtil;
+import net.md_5.bungee.api.ChatMessageType;
+import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.ChatColor;
 import org.bukkit.Sound;
 import org.bukkit.SoundCategory;
@@ -311,5 +313,33 @@ public class GunInstance extends WeaponInstance
 		}
 		stack.setItemMeta(data);
 		player.getInventory().setItem(slot, stack);
+
+		// Visual HUD: mirror the gun's ammo / reload state into the action bar for its owner.
+		sendAmmoHud();
+	}
+
+	/**
+	 * Sends the holding player an action-bar ammo HUD showing the gun name and
+	 * clip/total ammo, or "RELOADING" while a reload is in progress. Gated behind the
+	 * {@code visualsHud} config flag; only the player owning this gun sees it.
+	 */
+	private void sendAmmoHud()
+	{
+		// Respect the master HUD toggle so the action bar can be disabled in config.
+		if(!ConfigManager.getMainConfig().visualsHud)
+			return;
+
+		// Color-code the readout: PaP guns blue, reloading red, normal guns green.
+		String hud;
+		if(isReloading)
+			hud = ChatColor.RED + gun.getName() + " " + ChatColor.GRAY + "RELOADING";
+		else
+		{
+			ChatColor color = (gun instanceof PackAPunchGun) ? ChatColor.BLUE : ChatColor.GREEN;
+			hud = color + gun.getName() + " " + ChatColor.WHITE + clipAmmo + ChatColor.GRAY + "/" + ChatColor.WHITE + totalAmmo;
+		}
+
+		// Matches the codebase's existing action-bar pattern (see PowerUpDropListener / AutoStart).
+		player.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(hud));
 	}
 }

@@ -97,6 +97,24 @@ public enum PerkType
 			COMZombies.scheduleTask(10, () -> com.theprogrammingturkey.comz.util.SoundUtil.play(world, player.getLocation(), drink, org.bukkit.SoundCategory.MASTER, 1, 1));
 		}
 		COMZombies.scheduleTask(20, () -> world.playEffect(player.getLocation(), Effect.POTION_BREAK, 1));
+		// BO2 perk-buy feedback: rewarding jingle + colored particle puff (gated, self-contained helper).
+		perkBuyFeedback(player, world);
+	}
+
+	/**
+	 * Rewarding audio/visual flourish played when a perk is granted. Gated by the
+	 * {@code visualsPerkFeedback} config flag so servers can disable cosmetic noise.
+	 * Kept as a standalone helper so it stays isolated from the core perk-application path.
+	 */
+	private void perkBuyFeedback(final Player player, final World world)
+	{
+		if(!com.theprogrammingturkey.comz.config.ConfigManager.getMainConfig().visualsPerkFeedback)
+			return;
+		// Level-up chord then a chime, for a satisfying "got the perk" cue.
+		com.theprogrammingturkey.comz.util.SoundUtil.play(world, player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP.name(), org.bukkit.SoundCategory.MASTER, 1, 1);
+		COMZombies.scheduleTask(4, () -> com.theprogrammingturkey.comz.util.SoundUtil.play(world, player.getLocation(), Sound.BLOCK_NOTE_BLOCK_CHIME.name(), org.bukkit.SoundCategory.MASTER, 1, 1.4f));
+		// Brief golden burst at the player's feet.
+		com.theprogrammingturkey.comz.util.ParticleFX.burst(world, player.getLocation(), org.bukkit.Color.YELLOW, 16);
 	}
 
 	public static void noPower(Player player)

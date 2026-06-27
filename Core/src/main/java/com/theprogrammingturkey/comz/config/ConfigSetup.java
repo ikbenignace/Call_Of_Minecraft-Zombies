@@ -372,6 +372,23 @@ public class ConfigSetup
 	/** When forced, remove a player from the game if they decline / fail to download the pack. */
 	public boolean resourcePackKickOnDecline;
 
+	// ---- Visual feedback layer (BO2 immersion) --------------------------------
+
+	/** Ammo / reload readout in the action bar. */
+	public boolean visualsHud;
+	/** Round-change ambient cues (stinger + brief darkness). */
+	public boolean visualsRoundAmbience;
+	/** Zombie-hit feedback particles (blood / headshot sparkle) + floating damage numbers. */
+	public boolean visualsHitFeedback;
+	/** Boss health bar + stinger on boss rounds. */
+	public boolean visualsBossBar;
+	/** Vertical locator beam on the Mystery Box. */
+	public boolean visualsBoxBeam;
+	/** Visual flourish (burst + jingle) when buying / receiving a perk. */
+	public boolean visualsPerkFeedback;
+	/** Visual flourish (title + sound) when Pack-a-Punching a gun. */
+	public boolean visualsPapFeedback;
+
 	/**
 	 * Main method to assign values to every field.
 	 */
@@ -466,6 +483,15 @@ public class ConfigSetup
 		resourcePackForce = plugin.getConfig().getBoolean("config.resourcePack.force", true);
 		resourcePackPrompt = plugin.getConfig().getString("config.resourcePack.prompt", "Install the Call of Minecraft: Zombies pack for custom guns, perks & sounds");
 		resourcePackKickOnDecline = plugin.getConfig().getBoolean("config.resourcePack.kickOnDecline", false);
+
+		// ---- Visual feedback layer toggles (all default true) ----
+		visualsHud = plugin.getConfig().getBoolean("config.visuals.hud", true);
+		visualsRoundAmbience = plugin.getConfig().getBoolean("config.visuals.roundAmbience", true);
+		visualsHitFeedback = plugin.getConfig().getBoolean("config.visuals.hitFeedback", true);
+		visualsBossBar = plugin.getConfig().getBoolean("config.visuals.bossBar", true);
+		visualsBoxBeam = plugin.getConfig().getBoolean("config.visuals.boxBeam", true);
+		visualsPerkFeedback = plugin.getConfig().getBoolean("config.visuals.perkFeedback", true);
+		visualsPapFeedback = plugin.getConfig().getBoolean("config.visuals.papFeedback", true);
 
 		Leaderboard.loadLeaderboard();
 		PlayerDataManager.load();

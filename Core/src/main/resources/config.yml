@@ -184,3 +184,19 @@ config:
     kickOnDecline: false
     #All sound mappings (event sounds, per-power-up, per-gun shoot/reload) live in the separate
     #sounds.json config so they can be tuned in one place. See that file.
+  visuals:
+    #BO2-fidelity visual feedback layer. Each toggle independently enables/disables one cue; all default true.
+    #Ammo / reload readout in the action bar.
+    hud: true
+    #Ambient cues on round change (round-start stinger + brief darkness).
+    roundAmbience: true
+    #Hit feedback particles (blood / headshot sparkle) and damage pop-up text on zombie hits.
+    hitFeedback: true
+    #Boss health bar + stinger on boss rounds.
+    bossBar: true
+    #Vertical locator beam on the Mystery Box.
+    boxBeam: true
+    #Visual flourish (particle burst + jingle) when buying / receiving a perk.
+    perkFeedback: true
+    #Visual flourish (title + sound) when Pack-a-Punching a gun.
+    papFeedback: true

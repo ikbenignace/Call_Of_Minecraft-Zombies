@@ -11,6 +11,8 @@ import com.theprogrammingturkey.comz.game.managers.PlayerWeaponManager;
 import com.theprogrammingturkey.comz.game.weapons.GunInstance;
 import com.theprogrammingturkey.comz.game.weapons.WeaponType;
 import com.theprogrammingturkey.comz.util.BlockUtils;
+import com.theprogrammingturkey.comz.util.DisplayEntityUtil;
+import com.theprogrammingturkey.comz.util.ParticleFX;
 import com.theprogrammingturkey.comz.util.RayTrace;
 import com.theprogrammingturkey.comz.util.SoundUtil;
 import org.bukkit.Bukkit;
@@ -185,6 +187,19 @@ public class WeaponListener implements Listener
 											damage *= (float) ConfigManager.getMainConfig().deadshotHeadshotMultiplier;
 										for(int i = 0; i < 20; i++)
 											event.getPlayer().getWorld().spawnParticle(Particle.ENCHANTED_HIT, entToDamage.getLocation().getX(), entToDamage.getLocation().getY() + eyeHeight, entToDamage.getLocation().getZ(), 0, COMZombies.rand.nextDouble(2d) - 1d, COMZombies.rand.nextDouble(2d) - 1d, COMZombies.rand.nextDouble(2d) - 1d, 1);
+									}
+
+									// BO2-fidelity hit feedback: blood at every hit, plus a crit sparkle and a
+									// floating damage number on headshots. Purely cosmetic — no damage math touched.
+									if(ConfigManager.getMainConfig().visualsHitFeedback)
+									{
+										World fxWorld = event.getPlayer().getWorld();
+										ParticleFX.blood(fxWorld, toDamageIntesect.intersection.toLocation(fxWorld));
+										if(headshot)
+										{
+											ParticleFX.headshot(fxWorld, entToDamage.getLocation().add(0, eyeHeight, 0));
+											DisplayEntityUtil.floatingText(fxWorld, mob.getEyeLocation(), org.bukkit.ChatColor.RED + "❖ " + (int) damage, 16);
+										}
 									}
 
 									game.damageMob(mob, player, damage, headshot, false);

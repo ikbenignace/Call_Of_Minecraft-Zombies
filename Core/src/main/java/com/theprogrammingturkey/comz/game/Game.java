@@ -548,6 +548,16 @@ public class Game
 			for(Player pl : getPlayersAndSpectators())
 			{
 				pl.sendTitle(ChatColor.RED + "Round " + waveNumber, "", 10, 60, 10);
+
+				// Round-start ambience: dramatic stinger + brief eerie darkness for buildup (additive to the title above).
+				if(ConfigManager.getMainConfig().visualsRoundAmbience)
+				{
+					// Low-pitched vanilla stinger for a dramatic round-start cue (per-player, matching the title sends above).
+					com.theprogrammingturkey.comz.util.SoundUtil.play(pl, pl.getLocation(), Sound.ENTITY_WITHER_SPAWN.name(), org.bukkit.SoundCategory.MASTER, 0.7f, 0.6f);
+					// Short DARKNESS effect (~40 ticks) to sell the eerie buildup; weather is intentionally left untouched.
+					pl.addPotionEffect(new org.bukkit.potion.PotionEffect(PotionEffectType.DARKNESS, 40, 0, false, false, false));
+				}
+
 				switch(spawnType)
 				{
 					case REGULAR:

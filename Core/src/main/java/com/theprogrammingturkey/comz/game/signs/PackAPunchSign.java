@@ -100,11 +100,32 @@ public class PackAPunchSign implements IGameSign
 			player.getWorld().playSound(player.getLocation(), Sound.BLOCK_ANVIL_USE, 1, 1);
 			gun.setPackOfPunch();
 			PointManager.INSTANCE.takePoints(player, cost);
+			// BO2 PaP success feedback: title + jingle + particle burst (gated, self-contained helper).
+			packAPunchFeedback(player, location);
 		}
 		else
 		{
 			CommandUtil.sendMessageToPlayer(player, ChatColor.RED + "You do not have enough points to Pack-A-Punch your " + gun.getType().getName() + "!");
 		}
+	}
+
+	/**
+	 * Celebratory audio/visual flourish played when a gun is freshly Pack-a-Punched.
+	 * Gated by the {@code visualsPapFeedback} config flag so cosmetics can be disabled.
+	 * Kept as a standalone helper to keep the success path readable and self-contained.
+	 */
+	private void packAPunchFeedback(Player player, Location location)
+	{
+		if(!ConfigManager.getMainConfig().visualsPapFeedback)
+			return;
+		// Big "UPGRADED!" splash so the player knows the upgrade landed.
+		player.sendTitle(ChatColor.GOLD + "" + ChatColor.BOLD + "UPGRADED!", ChatColor.GRAY + player.getInventory().getItemInMainHand().getType().name(), 5, 40, 10);
+		// Anvil clang into a level-up chord for the classic "powered up" cue.
+		org.bukkit.World world = player.getWorld();
+		com.theprogrammingturkey.comz.util.SoundUtil.play(world, location, Sound.BLOCK_ANVIL_USE.name(), org.bukkit.SoundCategory.MASTER, 1, 1);
+		com.theprogrammingturkey.comz.COMZombies.scheduleTask(6, () -> com.theprogrammingturkey.comz.util.SoundUtil.play(world, location, Sound.ENTITY_PLAYER_LEVELUP.name(), org.bukkit.SoundCategory.MASTER, 1, 1));
+		// Purple burst at the PaP sign — matches the Pack-a-Punch colour scheme.
+		com.theprogrammingturkey.comz.util.ParticleFX.burst(world, location, org.bukkit.Color.PURPLE, 24);
 	}
 
 	@Override
