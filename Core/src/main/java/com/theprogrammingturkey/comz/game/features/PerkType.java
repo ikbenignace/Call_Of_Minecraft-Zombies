@@ -27,19 +27,23 @@ public enum PerkType
 	SPEED_COLA(PotionEffectType.LUCK, 0),
 	QUICK_REVIVE(PotionEffectType.UNLUCK, 0),
 	DOUBLE_TAP(PotionEffectType.DOLPHINS_GRACE, 0),
-	STAMIN_UP(PotionEffectType.SPEED, 1),
+	STAMIN_UP(PotionEffectType.TRIAL_OMEN, 0),
 	PHD_FLOPPER(PotionEffectType.FIRE_RESISTANCE, 0),
 	DEADSHOT_DAIQ(PotionEffectType.SATURATION, 0),
 	MULE_KICK(PotionEffectType.BAD_OMEN, 0),
 	ELECTRIC_C(PotionEffectType.CONDUIT_POWER, 0),
 	VULTURE_AID(PotionEffectType.WATER_BREATHING, 0),
-	TOMBSTONE_SODA(PotionEffectType.SLOW_FALLING, 0),
-	WHOS_WHO(PotionEffectType.HASTE, 0),
+	TOMBSTONE_SODA(PotionEffectType.WIND_CHARGED, 0),
+	WHOS_WHO(PotionEffectType.RAID_OMEN, 0),
 	DER_WUNDERFIZZ(null, 0);
 
-	/** Vanilla effect this perk shows as in the HUD (reskinned by the pack), or null (the machine). */
+	/**
+	 * Icon effects are chosen for ZERO visible/gameplay impact in a land arena (no FOV/screen/movement
+	 * change): water/village/trial-only effects, on-death-only omens, or invisible buffs. STAMIN_UP's
+	 * actual move boost is applied separately via walk-speed (SPEED would widen FOV), see PerkManager.
+	 */
 	private final PotionEffectType iconEffect;
-	/** Amplifier for the applied effect (STAMIN_UP grants real Speed II; the rest are icon-only). */
+	/** Amplifier for the applied effect (all icon-only now; STAMIN_UP speed handled via walk-speed). */
 	private final int amplifier;
 
 	PerkType(PotionEffectType iconEffect, int amplifier)

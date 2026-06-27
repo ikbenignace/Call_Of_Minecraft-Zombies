@@ -18,12 +18,18 @@ public class PerkManager
 {
 	private final Map<Player, List<PerkType>> playersPerks = new HashMap<>();
 
+	/** Default vanilla walk speed; STAMIN_UP raises it (without the SPEED effect's FOV widening). */
+	private static final float DEFAULT_WALK_SPEED = 0.2f;
+	private static final float STAMIN_UP_WALK_SPEED = 0.28f; // ~Speed II feel, no FOV change
+
 	/** Applies a perk's reskinned vanilla effect: infinite, hidden particles, HUD icon shown. */
 	public void applyPerkEffect(Player player, PerkType perk)
 	{
-		if(perk.getIconEffect() == null)
-			return;
-		player.addPotionEffect(new PotionEffect(perk.getIconEffect(), PotionEffect.INFINITE_DURATION, perk.getAmplifier(), false, false, true));
+		if(perk.getIconEffect() != null)
+			player.addPotionEffect(new PotionEffect(perk.getIconEffect(), PotionEffect.INFINITE_DURATION, perk.getAmplifier(), false, false, true));
+		// STAMIN_UP: real move boost via walk-speed (SPEED potion would widen FOV).
+		if(perk == PerkType.STAMIN_UP)
+			player.setWalkSpeed(STAMIN_UP_WALK_SPEED);
 	}
 
 	/** Strips the perk's vanilla effect from the player (icon disappears). */
@@ -31,6 +37,8 @@ public class PerkManager
 	{
 		if(perk.getIconEffect() != null)
 			player.removePotionEffect(perk.getIconEffect());
+		if(perk == PerkType.STAMIN_UP)
+			player.setWalkSpeed(DEFAULT_WALK_SPEED);
 	}
 
 	/** Re-syncs every owned perk's effect — used after revive / re-entry. */

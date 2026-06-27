@@ -21,14 +21,14 @@ PERKS = [
     ("Speed Cola",       "luck",                "SC",  (63, 165, 53)),
     ("Quick Revive",     "unluck",              "QR",  (90, 160, 216)),
     ("Double Tap",       "dolphins_grace",      "DT",  (224, 176, 32)),
-    ("Stamin-Up",        "speed",               "SU",  (168, 200, 60)),
+    ("Stamin-Up",        "trial_omen",          "SU",  (168, 200, 60)),
     ("PhD Flopper",      "fire_resistance",     "PH",  (224, 122, 30)),
     ("Deadshot Daiquiri","saturation",          "DS",  (46, 95, 160)),
     ("Mule Kick",        "bad_omen",            "MK",  (156, 107, 60)),
     ("Electric Cherry",  "conduit_power",       "EC",  (208, 48, 72)),
     ("Vulture Aid",      "water_breathing",     "VA",  (47, 160, 160)),
-    ("Tombstone Soda",   "slow_falling",        "TS",  (122, 63, 165)),
-    ("Who's Who",        "haste",               "WW",  (70, 200, 210)),
+    ("Tombstone Soda",   "wind_charged",        "TS",  (122, 63, 165)),
+    ("Who's Who",        "raid_omen",           "WW",  (70, 200, 210)),
 ]
 
 

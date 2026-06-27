@@ -22,14 +22,14 @@ MAP = {
     "specialty_fastreload_zombies": "luck",                 # Speed Cola
     "specialty_quickrevive_zombies": "unluck",              # Quick Revive
     "specialty_doubletap_zombies": "dolphins_grace",        # Double Tap
-    "specialty_marathon_zombies": "speed",                  # Stamin-Up
+    "specialty_marathon_zombies": "trial_omen",             # Stamin-Up (move boost via walk-speed)
     "specialty_divetonuke_zombies": "fire_resistance",      # PhD Flopper
     "specialty_ads_zombies": "saturation",                  # Deadshot Daiquiri (ADS)
     "specialty_mulekick_zombies": "bad_omen",               # Mule Kick
     "minimap_icon_electric_cherry": "conduit_power",        # Electric Cherry
     "specialty_vulture_zombies": "water_breathing",         # Vulture Aid
-    "specialty_tombstone_zombies": "slow_falling",          # Tombstone Soda
-    "minimap_icon_chugabud": "haste",                       # Who's Who (Chugabud)
+    "specialty_tombstone_zombies": "wind_charged",          # Tombstone Soda
+    "minimap_icon_chugabud": "raid_omen",                   # Who's Who (Chugabud)
 }
 
 
