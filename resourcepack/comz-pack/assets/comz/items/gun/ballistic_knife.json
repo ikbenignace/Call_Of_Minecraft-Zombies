@@ -1,6 +1,6 @@
 {
   "model": {
     "type": "minecraft:model",
-    "model": "minecraft:custom/item/ballistic_knife"
+    "model": "minecraft:custom/item/3d_guns/bal_knife"
   }
 }

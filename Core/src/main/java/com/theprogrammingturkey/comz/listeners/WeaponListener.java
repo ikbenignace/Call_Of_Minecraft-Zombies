@@ -82,6 +82,11 @@ public class WeaponListener implements Listener
 	@EventHandler(priority = EventPriority.HIGHEST)
 	public void onPlayerInteractEvent(PlayerInteractEvent event)
 	{
+		// PlayerInteractEvent fires once per hand; only act on the main hand or the gun shoots/updates
+		// (and its ammo HUD) twice per click — the cause of duplicate reload/ammo action-bar messages.
+		if(event.getHand() != EquipmentSlot.HAND)
+			return;
+
 		if(event.getAction().equals(Action.RIGHT_CLICK_BLOCK) && BlockUtils.isSign(event.getClickedBlock()) && !BlockUtils.isBarrierRepairSign(event.getClickedBlock()))
 			return;
 
@@ -337,6 +342,9 @@ public class WeaponListener implements Listener
 	@EventHandler
 	public void onGunReload(PlayerInteractEvent e)
 	{
+		// Main hand only — otherwise the off-hand event fires reload + updateWeapon a second time.
+		if(e.getHand() != EquipmentSlot.HAND)
+			return;
 		if(e.getAction().equals(Action.LEFT_CLICK_AIR) || e.getAction().equals(Action.LEFT_CLICK_BLOCK))
 		{
 			Player player = e.getPlayer();
