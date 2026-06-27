@@ -2,7 +2,21 @@
   "_comment": "COM:Z sound registry. Each value is EITHER a Bukkit Sound enum name (e.g. BLOCK_ANVIL_USE) OR a namespaced resource-pack event (e.g. comz:weapon.python.shoot). Blank/missing keys keep the vanilla default. After installing the custom pack, point values at comz:* events to use its audio. Per-gun overrides live under 'guns' (keyed by the gun's in-game name); '_default'/'_defaultPaP' apply to any gun without a specific entry, and themselves fall back to the 'sound'/'reload_sound' set in guns.json.",
   "perk": {
     "buy": "custom.global.perk_drink",
-    "noPower": "custom.global.deny"
+    "noPower": "custom.global.deny",
+    "drink": {
+      "JUGGERNOG": "custom.global.buyjuggernog",
+      "SPEED_COLA": "custom.global.buyspeed",
+      "QUICK_REVIVE": "custom.global.buyrevive",
+      "DOUBLE_TAP": "custom.global.buydoubletap",
+      "STAMIN_UP": "custom.global.buystam",
+      "PHD_FLOPPER": "custom.global.buyphd",
+      "DEADSHOT_DAIQ": "custom.global.buydeadshot",
+      "MULE_KICK": "custom.global.buymule",
+      "ELECTRIC_C": "custom.global.perk_drink",
+      "VULTURE_AID": "custom.global.perk_drink",
+      "TOMBSTONE_SODA": "custom.global.perk_drink",
+      "WHOS_WHO": "custom.global.perk_drink"
+    }
   },
   "box": {
     "open": "custom.mysterybox.theme",

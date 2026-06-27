@@ -394,8 +394,8 @@ public class ConfigSetup
 		roundSoundVolume = (float) plugin.getConfig().getDouble("config.gameSettings.roundSoundVolume");
 
 		arenaStartTime = plugin.getConfig().getInt("config.gameSettings.arenaStartTime");
-		// We only have a max of 4 inventory slots for perks
-		maxPerks = Math.min(plugin.getConfig().getInt("config.perks.maxPerks", 4), 4);
+		// Perks are HUD potion-effect icons now (not inventory slots); cap at the 12 real perks.
+		maxPerks = Math.min(plugin.getConfig().getInt("config.perks.maxPerks", 12), 12);
 		KillMoney = plugin.getConfig().getInt("config.Economy.MoneyPerKill");
 		//PistolMaterial = plugin.getConfig().getInt("config.Guns.PistolMaterial");
 		zombieDamage = plugin.getConfig().getDouble("config.gameSettings.zombieDamage", 10);

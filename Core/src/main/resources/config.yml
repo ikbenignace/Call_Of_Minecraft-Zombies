@@ -1,6 +1,7 @@
 config:
   perks:
-    maxPerks: 4
+    # Perks show as HUD potion-effect icons (not inventory slots); max is the 12 real perks.
+    maxPerks: 12
     #Juggernog health multiplier (2.5 -> 250 equivalent of COD)
     juggernogHealth: 2.5
     #Deadshot Daiquiri extra headshot damage multiplier, applied on top of the base 1.5x headshot bonus.

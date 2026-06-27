@@ -1065,22 +1065,6 @@ public class Game
 				lore.add("Holds 1 Gun");
 				lore.add("Requires MuleKick to work!");
 				break;
-			case 31:
-				data.setDisplayName("Perk Slot 1");
-				lore.add("Holds 1 Perk");
-				break;
-			case 32:
-				data.setDisplayName("Perk Slot 2");
-				lore.add("Holds 1 Perk");
-				break;
-			case 33:
-				data.setDisplayName("Perk Slot 3");
-				lore.add("Holds 1 Perk");
-				break;
-			case 34:
-				data.setDisplayName("Perk Slot 4");
-				lore.add("Holds 1 Perk");
-				break;
 			case 35:
 				data.setDisplayName("Grenade Slot");
 				lore.add("");
@@ -1110,10 +1094,7 @@ public class Game
 		player.getInventory().setItem(28, setItemMeta(28, ib));
 		player.getInventory().setItem(29, setItemMeta(29, ib));
 		player.getInventory().setItem(30, setItemMeta(30, ib));
-		player.getInventory().setItem(31, setItemMeta(31, ib));
-		player.getInventory().setItem(32, setItemMeta(32, ib));
-		player.getInventory().setItem(33, setItemMeta(33, ib));
-		player.getInventory().setItem(34, setItemMeta(34, ib));
+		// Slots 31-34 were "Perk Slot" placeholders; perks are HUD potion icons now, so leave them free.
 		player.getInventory().setItem(35, setItemMeta(35, ib));
 		player.updateInventory();
 	}
