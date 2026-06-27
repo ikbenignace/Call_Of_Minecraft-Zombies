@@ -3,6 +3,22 @@
 Custom gun/perk/power-up models + sounds for Call of Minecraft: Zombies, built from the
 BOZ "Alpha V3.2.0.1" pack and modernized for the 1.21.4+ / 26.2 item-model system.
 
+## Prebuilt pack (no source packs needed)
+
+The ready-to-host pack is committed at **`resourcepack/comz-pack.zip`** so any dev can use it
+without the original source packs. Host that zip and set in `config.yml`:
+
+```yaml
+config:
+  resourcePack:
+    enabled: true
+    url: "https://.../comz-pack.zip"
+    sha1: "c7dadd94348ee2e2ef7a7a05479ce6c1cc942b26"
+    force: true
+```
+
+Rebuilding from source (below) is only needed to add 3D models or change which sounds ship.
+
 ## How it hooks into the plugin
 
 - **Models** — the plugin sets the `minecraft:item_model` component on items via

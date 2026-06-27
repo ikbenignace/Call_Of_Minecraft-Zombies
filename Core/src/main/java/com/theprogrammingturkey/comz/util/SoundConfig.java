@@ -2,8 +2,15 @@ package com.theprogrammingturkey.comz.util;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import com.theprogrammingturkey.comz.COMZombies;
 import com.theprogrammingturkey.comz.config.COMZConfig;
 import com.theprogrammingturkey.comz.config.ConfigManager;
+
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.nio.charset.StandardCharsets;
+import java.util.Map;
 
 /**
  * Central registry for every COM:Z sound, backed by the dedicated {@code sounds.json} config.
@@ -24,11 +31,59 @@ public final class SoundConfig
 	{
 	}
 
-	/** (Re)load and cache the parsed sounds.json. Safe to call repeatedly. */
+	/**
+	 * (Re)load and cache the parsed sounds.json. Any default keys the bundled sounds.json has but
+	 * the on-disk file is missing (e.g. new events added in a plugin update) are merged in and the
+	 * file is rewritten — existing user values are never overwritten. This prevents a stale config
+	 * from a previous version silently dropping new/changed sound mappings. Safe to call repeatedly.
+	 */
 	public static void load()
 	{
 		JsonElement e = ConfigManager.getConfig(COMZConfig.SOUNDS).getJson();
-		root = (e != null && e.isJsonObject()) ? e.getAsJsonObject() : new JsonObject();
+		JsonObject onDisk = (e != null && e.isJsonObject()) ? e.getAsJsonObject() : new JsonObject();
+
+		JsonObject defaults = bundledDefaults();
+		if(defaults != null && mergeMissing(onDisk, defaults))
+			ConfigManager.getConfig(COMZConfig.SOUNDS).saveConfig(onDisk);
+
+		root = onDisk;
+	}
+
+	/** Parse the sounds.json shipped inside the jar (the authoritative default mapping). */
+	private static JsonObject bundledDefaults()
+	{
+		try(Reader r = new InputStreamReader(COMZombies.getPlugin().getResource("sounds.json"), StandardCharsets.UTF_8))
+		{
+			JsonElement el = new JsonParser().parse(r);
+			return el.isJsonObject() ? el.getAsJsonObject() : null;
+		} catch(Exception ex)
+		{
+			return null;
+		}
+	}
+
+	/**
+	 * Recursively add keys present in {@code defaults} but missing in {@code target}. Existing
+	 * values in {@code target} win. Returns true if anything was added.
+	 */
+	private static boolean mergeMissing(JsonObject target, JsonObject defaults)
+	{
+		boolean changed = false;
+		for(Map.Entry<String, JsonElement> en : defaults.entrySet())
+		{
+			String k = en.getKey();
+			JsonElement dv = en.getValue();
+			if(!target.has(k))
+			{
+				target.add(k, dv);
+				changed = true;
+			}
+			else if(target.get(k).isJsonObject() && dv.isJsonObject())
+			{
+				changed |= mergeMissing(target.getAsJsonObject(k), dv.getAsJsonObject());
+			}
+		}
+		return changed;
 	}
 
 	/**
