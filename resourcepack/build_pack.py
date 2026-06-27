@@ -26,9 +26,11 @@ MC = "custom/item"
 # override a gun's fallback model. <slug>_pap/ overrides the Pack-a-Punch variant. See README.
 MODELS3D = os.path.join(os.path.dirname(os.path.abspath(__file__)), "models3d")
 
-# Sound folders to DROP. Empty = ship EVERY sound the source pack provides (maps, player
-# voice lines, easter-egg tracks, ...) so all of them are available to wire via sounds.json.
-DROP_SOUND_PREFIXES = ()
+# Sound folders to DROP. These are ~280 MB of full easter-egg music tracks, character voice
+# lines and map-specific audio that NOTHING in the plugin triggers. Dropping them keeps every
+# gameplay sound (weapons, perks, power-ups, rounds, mystery box, global) at a fraction of the
+# size. Empty this tuple to ship literally every sound for future voice-line / EE wiring.
+DROP_SOUND_PREFIXES = ("custom/egg", "custom/players", "custom/maps")
 
 GUN = {
     "b23r":        (f"{MC}/3d_guns/cz75",          f"{MC}/3d_guns/cz75",            True),
