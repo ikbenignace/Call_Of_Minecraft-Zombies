@@ -8,6 +8,7 @@ import com.theprogrammingturkey.comz.game.Game.GameStatus;
 import com.theprogrammingturkey.comz.game.GameManager;
 import com.theprogrammingturkey.comz.game.features.PerkType;
 import com.theprogrammingturkey.comz.game.managers.PlayerWeaponManager;
+import com.theprogrammingturkey.comz.integration.WeaponBackends;
 import com.theprogrammingturkey.comz.game.weapons.GunInstance;
 import com.theprogrammingturkey.comz.game.weapons.WeaponType;
 import com.theprogrammingturkey.comz.util.BlockUtils;
@@ -109,6 +110,10 @@ public class WeaponListener implements Listener
 				if(gunManager.isHeldItemGun())
 				{
 					GunInstance gun = gunManager.getGun(player.getInventory().getHeldItemSlot());
+					// WeaponMechanics owns firing/ammo for WM-backed guns; skip the native hitscan so the
+					// shot isn't fired twice. The WMDamageListener applies COM:Z damage/economy on WM hits.
+					if(WeaponBackends.forGun(gun.getType()).ownsFiring())
+						return;
 					if(gun.isReloading())
 					{
 						player.getLocation().getWorld().playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1, 1);
@@ -360,6 +365,9 @@ public class WeaponListener implements Listener
 					if(gunManager.isHeldItemGun())
 					{
 						GunInstance gun = gunManager.getGun(player.getInventory().getHeldItemSlot());
+						// WeaponMechanics owns reload for WM-backed guns (left-click is its own input).
+						if(WeaponBackends.forGun(gun.getType()).ownsFiring())
+							return;
 						gun.reload();
 						gun.updateWeapon();
 					}

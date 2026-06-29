@@ -1,0 +1,93 @@
+# Call of Minecraft: Zombies — WeaponMechanics weapon definitions.
+#
+# This file is bundled in the COM:Z jar and copied into <WeaponMechanics>/weapons/ on first launch
+# (see WMConfigInstaller). It is loaded ONLY when WeaponMechanics is installed; COM:Z works fine
+# without it (native hitscan weapons).
+#
+# Mapping: guns.json "wm_weapon" values map to the weapon titles below
+#   B23R -> comz_b23r        B34R (Pack-a-Punch) -> comz_b23r_pap
+#
+# IMPORTANT: actual hit damage, points, headshots and round scaling are NOT taken from the
+# Base_Damage here — COM:Z cancels WeaponMechanics' damage and re-applies its own via
+# WMDamageListener using the guns.json damage. The Damage section below only needs to be present.
+#
+# Phase 1 scope: one gun end-to-end (B23R) to prove the WM pipeline. The full gun roster and the
+# COM:Z resource-pack 3D model wiring are added in later phases.
+
+comz_b23r:
+  Info:
+    Weapon_Item:
+      Type: "DIAMOND_HOE"
+      Name: "<red>B23R"
+      Unbreakable: true
+      Hide_Flags: true
+      Deny_Use_In_Crafting: true
+    Weapon_Info_Display:
+      Action_Bar:
+        Message: "<red>B23R<firearm_state> <gray>«<gold><ammo_left><gray>»<gold><reload>"
+    Cancel:
+      Drop_Item: true
+      Arm_Swing_Animation: true
+      Break_Blocks: true
+  Projectile: "pistol_projectile"
+  Shoot:
+    Trigger:
+      Main_Hand: "RIGHT_CLICK"
+      Off_Hand: "RIGHT_CLICK"
+    Projectile_Speed: 80
+    Delay_Between_Shots: 4
+    Burst:
+      Shots_Per_Burst: 3
+      Ticks_Between_Each_Shot: 1
+    Spread:
+      Base_Spread: 4
+    Mechanics:
+      - "Sound{sound=block.lava.pop, volume=2, noise=0.1}"
+  Reload:
+    Trigger:
+      Main_Hand: "SWAP_HANDS"
+      Off_Hand: "SWAP_HANDS"
+    Magazine_Size: 15
+    Reload_Duration: 36
+  Damage:
+    Base_Damage: 3
+
+comz_b23r_pap:
+  Info:
+    Weapon_Item:
+      Type: "DIAMOND_HOE"
+      Name: "<blue>B34R"
+      Lore:
+        - "<light_purple>PACK-A-PUNCHED"
+      Unbreakable: true
+      Hide_Flags: true
+      Deny_Use_In_Crafting: true
+    Weapon_Info_Display:
+      Action_Bar:
+        Message: "<blue>B34R<firearm_state> <gray>«<gold><ammo_left><gray>»<gold><reload>"
+    Cancel:
+      Drop_Item: true
+      Arm_Swing_Animation: true
+      Break_Blocks: true
+  Projectile: "pistol_projectile"
+  Shoot:
+    Trigger:
+      Main_Hand: "RIGHT_CLICK"
+      Off_Hand: "RIGHT_CLICK"
+    Projectile_Speed: 90
+    Delay_Between_Shots: 4
+    Burst:
+      Shots_Per_Burst: 3
+      Ticks_Between_Each_Shot: 1
+    Spread:
+      Base_Spread: 3
+    Mechanics:
+      - "Sound{sound=entity.ghast.shoot, volume=2, noise=0.1}"
+  Reload:
+    Trigger:
+      Main_Hand: "SWAP_HANDS"
+      Off_Hand: "SWAP_HANDS"
+    Magazine_Size: 20
+    Reload_Duration: 36
+  Damage:
+    Base_Damage: 15

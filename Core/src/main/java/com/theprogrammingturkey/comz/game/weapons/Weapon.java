@@ -21,6 +21,13 @@ public class Weapon
 	public int modelData;
 	/** Custom resource-pack item model key (e.g. {@code comz:gun/python} or {@code gun/python}); null if unset. */
 	public String itemModel;
+	/**
+	 * Optional WeaponMechanics weapon title (e.g. {@code comz_b23r}). Set in guns.json via the
+	 * {@code wm_weapon} key. When WeaponMechanics is installed + enabled and this is non-null and
+	 * resolvable, the gun is realized as a WM weapon (3D model + ballistic projectiles) instead of
+	 * the native hitscan item. Null => this weapon is always native (the only path without WM).
+	 */
+	public String wmWeapon;
 
 	public Weapon(String name, WeaponType weaponType)
 	{
@@ -35,6 +42,7 @@ public class Weapon
 		this.material = Compat.material(CustomConfig.getString(json, "material", ""));
 		this.modelData = CustomConfig.getInt(json, "model_data", -1);
 		this.itemModel = CustomConfig.getString(json, "item_model", null);
+		this.wmWeapon = CustomConfig.getString(json, "wm_weapon", null);
 	}
 
 	public WeaponType getWeaponType()

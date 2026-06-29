@@ -390,6 +390,13 @@ public class ConfigSetup
 	public boolean visualsPapFeedback;
 
 	/**
+	 * WeaponMechanics integration mode. {@code auto} (default) = use WM for mapped guns iff the
+	 * plugin is installed + enabled; {@code off} = always native even if WM is present; {@code force}
+	 * = behave like auto but warn loudly if WM is absent. Read by {@link com.theprogrammingturkey.comz.integration.WeaponBackends}.
+	 */
+	public String wmIntegrationMode;
+
+	/**
 	 * Main method to assign values to every field.
 	 */
 	public void setup()
@@ -492,6 +499,8 @@ public class ConfigSetup
 		visualsBoxBeam = plugin.getConfig().getBoolean("config.visuals.boxBeam", true);
 		visualsPerkFeedback = plugin.getConfig().getBoolean("config.visuals.perkFeedback", true);
 		visualsPapFeedback = plugin.getConfig().getBoolean("config.visuals.papFeedback", true);
+
+		wmIntegrationMode = plugin.getConfig().getString("config.integration.weaponMechanics", "auto");
 
 		Leaderboard.loadLeaderboard();
 		PlayerDataManager.load();

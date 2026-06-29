@@ -6,6 +6,8 @@ import com.theprogrammingturkey.comz.COMZombies;
 import com.theprogrammingturkey.comz.config.ConfigManager;
 import com.theprogrammingturkey.comz.game.Game;
 import com.theprogrammingturkey.comz.game.GameManager;
+import com.theprogrammingturkey.comz.integration.WeaponBackend;
+import com.theprogrammingturkey.comz.integration.WeaponBackends;
 import com.theprogrammingturkey.comz.util.SoundUtil;
 import org.bukkit.ChatColor;
 import org.bukkit.Sound;
@@ -288,6 +290,19 @@ public class GunInstance extends WeaponInstance
 			return;
 		if(gun == null)
 			return;
+
+		WeaponBackend backend = WeaponBackends.forGun(gun);
+		if(backend.ownsFiring())
+		{
+			// WeaponMechanics owns this gun's item, ammo readout and reload. Place the WM weapon item
+			// as-is and do NOT overwrite it with the native ammo HUD name/lore — that would duplicate
+			// WM's own display (the same duplicate-HUD class of bug fixed for the native path).
+			ItemStack wmStack = backend.buildItem(gun, player);
+			if(wmStack != null)
+				player.getInventory().setItem(slot, wmStack);
+			return;
+		}
+
 		ItemStack stack = gun.getStack();
 		ItemMeta data = stack.getItemMeta();
 		if(data == null)

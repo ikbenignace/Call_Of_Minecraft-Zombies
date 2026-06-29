@@ -7,6 +7,7 @@ import com.theprogrammingturkey.comz.economy.PointManager;
 import com.theprogrammingturkey.comz.game.GameManager;
 import com.theprogrammingturkey.comz.game.actions.BaseAction;
 import com.theprogrammingturkey.comz.game.managers.WeaponManager;
+import com.theprogrammingturkey.comz.integration.WeaponBackends;
 import com.theprogrammingturkey.comz.kits.KitManager;
 import com.theprogrammingturkey.comz.listeners.*;
 import com.theprogrammingturkey.comz.support.NMSUtil_Modern;
@@ -21,6 +22,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -73,6 +75,8 @@ public class COMZombies extends JavaPlugin
 
 		vault = new Vault();
 
+		setupWeaponMechanics();
+
 		if(Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null)
 		{
 			new PlaceholderHook().register();
@@ -112,6 +116,52 @@ public class COMZombies extends JavaPlugin
 		// To support a server too old for those Bukkit APIs, implement INMSUtil in a dedicated
 		// NMS module and dispatch to it here based on `version` (the seam is intentionally kept).
 		nmsUtil = new NMSUtil_Modern();
+	}
+
+	/**
+	 * Optional WeaponMechanics integration. Native weapons are the default and the only path when WM
+	 * is absent; this only activates the WM backend (3D models + ballistics) when WM is installed and
+	 * {@code config.integration.weaponMechanics} permits it. All WeaponMechanics-typed classes live in
+	 * {@code com.theprogrammingturkey.comz.integration.wm} and are referenced only inside the
+	 * {@code present} branch below, so the JVM never links them when WM is not installed.
+	 */
+	private void setupWeaponMechanics()
+	{
+		String mode = ConfigManager.getMainConfig().wmIntegrationMode;
+		if(mode == null)
+			mode = "auto";
+
+		if(mode.equalsIgnoreCase("off"))
+		{
+			WeaponBackends.init(false);
+			return;
+		}
+
+		boolean present = Bukkit.getPluginManager().isPluginEnabled("WeaponMechanics");
+		if(!present)
+		{
+			if(mode.equalsIgnoreCase("force"))
+				log.log(Level.WARNING, CONSOLE_PREFIX + "config.integration.weaponMechanics=force but WeaponMechanics is not installed; using native weapons.");
+			WeaponBackends.init(false);
+			return;
+		}
+
+		try
+		{
+			// First launch: copy the bundled weapon config into WM and reload WM so it is loaded without
+			// a restart (WM enables before COM:Z, so it hasn't seen the file yet on the install run).
+			if(com.theprogrammingturkey.comz.integration.wm.WMConfigInstaller.install())
+				com.theprogrammingturkey.comz.integration.wm.WMConfigInstaller.reloadWeaponMechanics();
+
+			WeaponBackends.init(true);
+			if(WeaponBackends.wmActive())
+				getServer().getPluginManager().registerEvents(new com.theprogrammingturkey.comz.integration.wm.WMDamageListener(), this);
+		}
+		catch(Throwable t)
+		{
+			log.log(Level.WARNING, CONSOLE_PREFIX + "WeaponMechanics integration failed to initialize; using native weapons.", t);
+			WeaponBackends.init(false);
+		}
 	}
 
 	/**

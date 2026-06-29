@@ -22,6 +22,26 @@ dependencies {
     // JSR-305 (javax.annotation.Nonnull) used to arrive transitively via spigot-api; 26.2 dropped it.
     compileOnly 'com.google.code.findbugs:jsr305:3.0.2'
 
+    // WeaponMechanics — OPTIONAL soft-dependency for realistic 3D models + ballistic projectiles.
+    // compileOnly => NOT shaded into comzombies-Universal.jar, so the plugin still builds and runs
+    // when WM is absent. All WM-typed code is isolated in com.theprogrammingturkey.comz.integration.wm
+    // and only loaded after runtime detection (see COMZombies.onEnable / WeaponBackends).
+    compileOnly 'com.cjcrafter:weaponmechanics:4.1.0'
+    // MechanicsCore — WM's shared base (me.deecaad.core.*). Needed at compile time to resolve the
+    // WeaponMechanics plugin's superclass on the API call chain. Also compileOnly (provided by WM).
+    compileOnly 'com.cjcrafter:mechanicscore:4.1.0'
+
+}
+
+// WeaponMechanics 4.x ships Java 21 bytecode, but we target Java 17 (options.release = 17), so
+// Gradle's variant matching would reject it on the compile classpath. WM is compileOnly — never
+// shaded or run by us — so we only need its class files visible to javac. Raise the ACCEPTED jvm
+// version on the compile classpath to 21 (a consumer needing 21 still accepts the Java-17 spigot-api
+// and friends). The emitted bytecode is unaffected; options.release = 17 still governs our output.
+configurations.compileClasspath {
+    attributes {
+        attribute(org.gradle.api.attributes.java.TargetJvmVersion.TARGET_JVM_VERSION_ATTRIBUTE, 21)
+    }
 }
 
 jar {

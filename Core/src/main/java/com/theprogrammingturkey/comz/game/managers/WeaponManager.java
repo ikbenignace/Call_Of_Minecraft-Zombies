@@ -84,6 +84,24 @@ public class WeaponManager
 		return weapons.stream().filter(weapon -> weapon.getName().equalsIgnoreCase(name)).findFirst().orElse(null);
 	}
 
+	/**
+	 * Reverse lookup used by the WeaponMechanics damage bridge: given a WM weapon title (the value of
+	 * a gun's {@code wm_weapon} in guns.json), return the matching COM:Z gun, or null if none maps to
+	 * it. Lets {@code WMDamageListener} resolve which COM:Z gun fired from a WeaponDamageEntityEvent.
+	 *
+	 * @param wmTitle the WeaponMechanics weapon title (case-insensitive)
+	 * @return the COM:Z {@link BaseGun} whose {@code wm_weapon} equals {@code wmTitle}, or null
+	 */
+	public static BaseGun getGunByWmWeapon(String wmTitle)
+	{
+		if(wmTitle == null)
+			return null;
+		return weapons.stream()
+				.filter(weapon -> weapon instanceof BaseGun && wmTitle.equalsIgnoreCase(weapon.wmWeapon))
+				.map(weapon -> (BaseGun) weapon)
+				.findFirst().orElse(null);
+	}
+
 	public static Weapon getRandomWeapon(boolean includePackaPunch, PlayerWeaponManager playerWeaponManager)
 	{
 		List<Weapon> weaponsToChoose = weapons.stream().filter(weapon ->
