@@ -120,13 +120,24 @@ def render(model_path, out_path, canvas, pack_root):
             faces.append((depth, fname, fdata, corners3d))
     faces.sort(key=lambda x: x[0])  # far -> near
 
+    # Flat (2D sprite) model: no elements (e.g. parent builtin/generated + layer0). Render the
+    # texture centred so these guns still show on a contact sheet instead of crashing.
+    if not faces:
+        out = Image.new("RGBA", (canvas, canvas), (28, 30, 34, 255))
+        tex = textures.get("layer0") or textures.get("0") or next(iter(textures.values()), None)
+        if tex is not None:
+            s = int(canvas * 0.8)
+            scaled = tex.resize((s, s), Image.NEAREST)
+            out.alpha_composite(scaled, ((canvas - s) // 2, (canvas - s) // 2))
+        out.save(out_path)
+        print(f"wrote {out_path} ({canvas}x{canvas}, flat sprite)")
+        return
+
     # Fit projection to canvas with a margin.
     pad = canvas * 0.08
     pts = []
     for _, _, _, c3d in faces:
         pts += [project(p, 1.0, 0, 0) for p in c3d]
-    if not pts:
-        print("no faces to render", file=sys.stderr); sys.exit(1)
     minx = min(p[0] for p in pts); maxx = max(p[0] for p in pts)
     miny = min(p[1] for p in pts); maxy = max(p[1] for p in pts)
     span = max(maxx - minx, maxy - miny) or 1
