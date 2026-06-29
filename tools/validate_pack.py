@@ -101,12 +101,25 @@ def main():
         textures = resolve_model(pack, ref, problems)
         check_textures(pack, textures, os.path.relpath(idf, pack), problems, a.verbose)
 
-    # also validate every model file parses (catches unreferenced-but-broken files)
+    # also validate every model file parses AND has Minecraft-valid geometry. Vanilla REJECTS a
+    # model whole (renders purple/black) if any element coord is outside [-16, 32] or from > to.
     for mf in glob.glob(f"{pack}/assets/*/models/**/*.json", recursive=True):
         try:
-            json.load(open(mf))
+            md = json.load(open(mf))
         except Exception as e:
             problems.append(f"MODEL BAD JSON: {mf} :: {e}")
+            continue
+        for e in md.get("elements", []):
+            fr, to = e.get("from"), e.get("to")
+            if not fr or not to:
+                problems.append(f"ELEMENT missing from/to: {os.path.relpath(mf, pack)}")
+                break
+            if any(fr[a] > to[a] for a in range(3)):
+                problems.append(f"ELEMENT from>to (inverted, MC rejects model): {os.path.relpath(mf, pack)}")
+                break
+            if any(c < -16 or c > 32 for c in fr + to):
+                problems.append(f"ELEMENT coord outside [-16,32] (MC rejects model -> purple): {os.path.relpath(mf, pack)}")
+                break
 
     if problems:
         print(f"\n{len(problems)} PROBLEM(S) — these render purple/black in-game:")

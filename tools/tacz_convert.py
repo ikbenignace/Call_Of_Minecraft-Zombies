@@ -117,15 +117,20 @@ def convert(geo_path, out_path, texref, order):
     if before != len(elements):
         print(f"  trimmed {before - len(elements)} outlier cubes")
 
-    # recentre: shift so model min is reasonable, centre X at 8, drop near y origin
+    # Fit into Minecraft's valid element range. Vanilla REJECTS the whole model (renders purple) if
+    # any coord is outside [-16, 32]. Scale uniformly so the largest span fits in ~46 and centre every
+    # axis at 8 -> all coords land in [-15, 31]. Display scale (below) compensates for the shrink.
+    ax = [[min(e[k][a] for e in elements for k in ("from", "to")),
+           max(e[k][a] for e in elements for k in ("from", "to"))] for a in range(3)]
+    span = max(hi - lo for lo, hi in ax) or 1
+    sc = min(1.0, 46.0 / span)
+    mids = [(lo + hi) / 2 for lo, hi in ax]
+    for e in elements:
+        for k in ("from", "to"):
+            e[k] = [round((e[k][a] - mids[a]) * sc + 8, 3) for a in range(3)]
     xs = [e[k][0] for e in elements for k in ("from", "to")]
     ys = [e[k][1] for e in elements for k in ("from", "to")]
     zs = [e[k][2] for e in elements for k in ("from", "to")]
-    cx = (min(xs) + max(xs)) / 2
-    dx, dy, dz = 8 - cx, -min(ys) + 4, -min(zs)
-    for e in elements:
-        for k in ("from", "to"):
-            e[k] = [round(e[k][0] + dx, 3), round(e[k][1] + dy, 3), round(e[k][2] + dz, 3)]
 
     # display: scale so a ~length-L gun sits in hand like the pack's guns (cz75 ~22 long -> 0.3)
     maxdim = max(max(xs) - min(xs), max(ys) - min(ys), max(zs) - min(zs)) or 22
