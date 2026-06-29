@@ -613,6 +613,8 @@ public class Game
 		{
 			PlayerWeaponManager manager = game.getPlayersWeapons(player);
 			manager.addWeapon(gun.getNewInstance(player, 1));
+			// BO2: start holding the M1911 (slot 1) — there's no longer a knife in slot 0 to hold.
+			player.getInventory().setHeldItemSlot(1);
 		}
 		else if(gun == null)
 		{
@@ -1119,20 +1121,13 @@ public class Game
 	public void assignPlayerInventory(Player player)
 	{
 		player.getInventory().clear();
-		ItemStack knife = getUnbreakableItem(Material.IRON_SWORD);
-		ItemMeta kMeta = knife.getItemMeta();
-		if(kMeta != null)
-			kMeta.setDisplayName(ChatColor.RED + "Knife");
-		knife.setItemMeta(kMeta);
-		// Give the starting knife the ballistic-knife model instead of a plain iron sword (pack only;
-		// no-op without the resource pack, so the item still works as a vanilla sword).
-		com.theprogrammingturkey.comz.util.PackModels.applyFull(knife, "gun/ballistic_knife");
+		// BO2: no starting knife item — you begin with just the M1911 (added in slot 1 at game start)
+		// and melee with whatever you hold (see EntityListener melee handler). Slot 0 is left empty.
 		ItemStack ib = new ItemStack(Material.GREEN_STAINED_GLASS_PANE, 1);
 		player.getInventory().setHelmet(getUnbreakableItem(Material.LEATHER_HELMET));
 		player.getInventory().setChestplate(getUnbreakableItem(Material.LEATHER_CHESTPLATE));
 		player.getInventory().setLeggings(getUnbreakableItem(Material.LEATHER_LEGGINGS));
 		player.getInventory().setBoots(getUnbreakableItem(Material.LEATHER_BOOTS));
-		player.getInventory().setItem(0, knife);
 		//player.getInventory().setItem(8, new ItemStack(Material.MAGMA_CREAM, 4));
 		player.getInventory().setItem(27, setItemMeta(27, ib));
 		player.getInventory().setItem(28, setItemMeta(28, ib));

@@ -158,15 +158,15 @@ public class EntityListener implements Listener
 				}
 
 				Player player = (Player) e.getDamager();
-				if(player.getInventory().getItemInMainHand().getType().equals(Material.IRON_SWORD))
+				// BO2: there is no knife ITEM — you melee with whatever you're holding (your gun/fist)
+				// and it deals the knife's damage. So any in-game player melee on a zombie knifes,
+				// regardless of held item (was previously gated to a held IRON_SWORD).
+				if(game.getPlayersInGame().contains(player))
 				{
-					if(game.getPlayersInGame().contains(player))
-					{
-						Mob mob = (Mob) entity;
-						double dist = mob.getLocation().distance(player.getLocation());
-						if(dist <= ConfigManager.getMainConfig().meleeRange)
-							game.damageMob(mob, player, knifeDamage(ConfigManager.getMainConfig().knifeOneShotThroughRound), false, true);
-					}
+					Mob mob = (Mob) entity;
+					double dist = mob.getLocation().distance(player.getLocation());
+					if(dist <= ConfigManager.getMainConfig().meleeRange)
+						game.damageMob(mob, player, knifeDamage(ConfigManager.getMainConfig().knifeOneShotThroughRound), false, true);
 				}
 			}
 			e.setCancelled(true);
