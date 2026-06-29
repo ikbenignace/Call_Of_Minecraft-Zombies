@@ -1,6 +1,6 @@
 {
   "model": {
     "type": "minecraft:model",
-    "model": "minecraft:custom/item/2blops/olympia"
+    "model": "minecraft:custom/item/gen/olympia"
   }
 }

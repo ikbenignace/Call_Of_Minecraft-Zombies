@@ -1,6 +1,6 @@
 {
   "model": {
     "type": "minecraft:model",
-    "model": "minecraft:custom/item/wonder/thundergun"
+    "model": "minecraft:custom/item/gen/thundergun"
   }
 }
