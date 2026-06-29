@@ -17,3 +17,6 @@ Core/bin/*
 
 # Local build/test harness (not part of the plugin build)
 /verification/
+
+# built resource pack zips
+dist/
