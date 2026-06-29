@@ -7,13 +7,14 @@
 # Wunderwaffe) are intentionally NOT mapped — their custom effects require the native path.
 #
 # Hit damage, points, headshots and round scaling are applied by COM:Z (WMDamageListener),
-# NOT by the Base_Damage below. TODO(model): wire COM:Z resource-pack 3D models once the WM
-# Weapon_Item model key is verified on a live server; for now the gun's material is used.
+# NOT by the Base_Damage below. Weapon_Item.Item_Model points at the COM:Z resource-pack 3D
+# gun model (same comz:gun/* key the native items use), so WM weapons look correct in-game.
 
 comz_b23r:
   Info:
     Weapon_Item:
       Type: "DIAMOND_HOE"
+      Item_Model: "comz:gun/b23r"
       Name: "<red>B23R"
       Unbreakable: true
       Hide_Flags: true
@@ -53,6 +54,7 @@ comz_b23r_pap:
   Info:
     Weapon_Item:
       Type: "DIAMOND_HOE"
+      Item_Model: "comz:gun/b23r_pap"
       Name: "<blue>B34R"
       Lore:
         - "<light_purple>PACK-A-PUNCHED"
@@ -94,6 +96,7 @@ comz_executioner:
   Info:
     Weapon_Item:
       Type: "STONE_HOE"
+      Item_Model: "comz:gun/executioner"
       Name: "<red>Executioner"
       Unbreakable: true
       Hide_Flags: true
@@ -133,6 +136,7 @@ comz_executioner_pap:
   Info:
     Weapon_Item:
       Type: "STONE_HOE"
+      Item_Model: "comz:gun/executioner_pap"
       Name: "<blue>Voice of Justice"
       Lore:
         - "<light_purple>PACK-A-PUNCHED"
@@ -174,6 +178,7 @@ comz_five_seven:
   Info:
     Weapon_Item:
       Type: "IRON_HOE"
+      Item_Model: "comz:gun/five_seven"
       Name: "<red>Five-Seven"
       Unbreakable: true
       Hide_Flags: true
@@ -213,6 +218,7 @@ comz_five_seven_pap:
   Info:
     Weapon_Item:
       Type: "IRON_HOE"
+      Item_Model: "comz:gun/five_seven_pap"
       Name: "<blue>Ultra"
       Lore:
         - "<light_purple>PACK-A-PUNCHED"
@@ -254,6 +260,7 @@ comz_kap_40:
   Info:
     Weapon_Item:
       Type: "GOLDEN_HOE"
+      Item_Model: "comz:gun/kap40"
       Name: "<red>Kap-40"
       Unbreakable: true
       Hide_Flags: true
@@ -293,6 +300,7 @@ comz_kap_40_pap:
   Info:
     Weapon_Item:
       Type: "GOLDEN_HOE"
+      Item_Model: "comz:gun/kap40_pap"
       Name: "<blue>Karmic Atom Perforator-4000"
       Lore:
         - "<light_purple>PACK-A-PUNCHED"
@@ -334,6 +342,7 @@ comz_m1911:
   Info:
     Weapon_Item:
       Type: "WOODEN_HOE"
+      Item_Model: "comz:gun/m1911"
       Name: "<red>M1911"
       Unbreakable: true
       Hide_Flags: true
@@ -373,6 +382,7 @@ comz_m1911_pap:
   Info:
     Weapon_Item:
       Type: "WOODEN_HOE"
+      Item_Model: "comz:gun/m1911_pap"
       Name: "<blue>C-3000 b1at-ch35"
       Lore:
         - "<light_purple>PACK-A-PUNCHED"
@@ -414,6 +424,7 @@ comz_python:
   Info:
     Weapon_Item:
       Type: "NETHERITE_HOE"
+      Item_Model: "comz:gun/python"
       Name: "<red>Python"
       Unbreakable: true
       Hide_Flags: true
@@ -453,6 +464,7 @@ comz_python_pap:
   Info:
     Weapon_Item:
       Type: "NETHERITE_HOE"
+      Item_Model: "comz:gun/python_pap"
       Name: "<blue>Cobra"
       Lore:
         - "<light_purple>PACK-A-PUNCHED"
@@ -494,6 +506,7 @@ comz_m1216:
   Info:
     Weapon_Item:
       Type: "WOODEN_SWORD"
+      Item_Model: "comz:gun/m1216"
       Name: "<red>M1216"
       Unbreakable: true
       Hide_Flags: true
@@ -534,6 +547,7 @@ comz_m1216_pap:
   Info:
     Weapon_Item:
       Type: "WOODEN_SWORD"
+      Item_Model: "comz:gun/m1216_pap"
       Name: "<blue>Mesmerizer"
       Lore:
         - "<light_purple>PACK-A-PUNCHED"
@@ -576,6 +590,7 @@ comz_olympia:
   Info:
     Weapon_Item:
       Type: "STONE_SWORD"
+      Item_Model: "comz:gun/olympia"
       Name: "<red>Olympia"
       Unbreakable: true
       Hide_Flags: true
@@ -616,6 +631,7 @@ comz_olympia_pap:
   Info:
     Weapon_Item:
       Type: "STONE_SWORD"
+      Item_Model: "comz:gun/olympia_pap"
       Name: "<blue>Hades"
       Lore:
         - "<light_purple>PACK-A-PUNCHED"
@@ -658,6 +674,7 @@ comz_r870_mcs:
   Info:
     Weapon_Item:
       Type: "IRON_SWORD"
+      Item_Model: "comz:gun/r870"
       Name: "<red>R870 MCS"
       Unbreakable: true
       Hide_Flags: true
@@ -698,6 +715,7 @@ comz_r870_mcs_pap:
   Info:
     Weapon_Item:
       Type: "IRON_SWORD"
+      Item_Model: "comz:gun/r870_pap"
       Name: "<blue>Refitted-870 Mechanical Cranium Sequencer"
       Lore:
         - "<light_purple>PACK-A-PUNCHED"
@@ -740,6 +758,7 @@ comz_s12:
   Info:
     Weapon_Item:
       Type: "GOLDEN_SWORD"
+      Item_Model: "comz:gun/s12"
       Name: "<red>S12"
       Unbreakable: true
       Hide_Flags: true
@@ -780,6 +799,7 @@ comz_s12_pap:
   Info:
     Weapon_Item:
       Type: "GOLDEN_SWORD"
+      Item_Model: "comz:gun/s12_pap"
       Name: "<blue>Synthetic Dozen"
       Lore:
         - "<light_purple>PACK-A-PUNCHED"
@@ -822,6 +842,7 @@ comz_an_94:
   Info:
     Weapon_Item:
       Type: "WOODEN_PICKAXE"
+      Item_Model: "comz:gun/an94"
       Name: "<red>AN-94"
       Unbreakable: true
       Hide_Flags: true
@@ -861,6 +882,7 @@ comz_an_94_pap:
   Info:
     Weapon_Item:
       Type: "WOODEN_PICKAXE"
+      Item_Model: "comz:gun/an94_pap"
       Name: "<blue>Actuated Neutralizer 94000"
       Lore:
         - "<light_purple>PACK-A-PUNCHED"
@@ -902,6 +924,7 @@ comz_colt_m16a1:
   Info:
     Weapon_Item:
       Type: "STONE_PICKAXE"
+      Item_Model: "comz:gun/m16"
       Name: "<red>Colt M16A1"
       Unbreakable: true
       Hide_Flags: true
@@ -941,6 +964,7 @@ comz_colt_m16a1_pap:
   Info:
     Weapon_Item:
       Type: "STONE_PICKAXE"
+      Item_Model: "comz:gun/m16_pap"
       Name: "<blue>Skullcrusher"
       Lore:
         - "<light_purple>PACK-A-PUNCHED"
@@ -982,6 +1006,7 @@ comz_fal:
   Info:
     Weapon_Item:
       Type: "IRON_PICKAXE"
+      Item_Model: "comz:gun/fal"
       Name: "<red>FAL"
       Unbreakable: true
       Hide_Flags: true
@@ -1021,6 +1046,7 @@ comz_fal_pap:
   Info:
     Weapon_Item:
       Type: "IRON_PICKAXE"
+      Item_Model: "comz:gun/fal_pap"
       Name: "<blue>EPC WN"
       Lore:
         - "<light_purple>PACK-A-PUNCHED"
@@ -1062,6 +1088,7 @@ comz_m8a1:
   Info:
     Weapon_Item:
       Type: "GOLDEN_PICKAXE"
+      Item_Model: "comz:gun/m8a1"
       Name: "<red>M8A1"
       Unbreakable: true
       Hide_Flags: true
@@ -1101,6 +1128,7 @@ comz_m8a1_pap:
   Info:
     Weapon_Item:
       Type: "GOLDEN_PICKAXE"
+      Item_Model: "comz:gun/m8a1_pap"
       Name: "<blue>Micro Aerator"
       Lore:
         - "<light_purple>PACK-A-PUNCHED"
@@ -1142,6 +1170,7 @@ comz_m14:
   Info:
     Weapon_Item:
       Type: "DIAMOND_PICKAXE"
+      Item_Model: "comz:gun/m14"
       Name: "<red>M14"
       Unbreakable: true
       Hide_Flags: true
@@ -1181,6 +1210,7 @@ comz_m14_pap:
   Info:
     Weapon_Item:
       Type: "DIAMOND_PICKAXE"
+      Item_Model: "comz:gun/m14_pap"
       Name: "<blue>Mnesia"
       Lore:
         - "<light_purple>PACK-A-PUNCHED"
@@ -1222,6 +1252,7 @@ comz_m27:
   Info:
     Weapon_Item:
       Type: "NETHERITE_PICKAXE"
+      Item_Model: "comz:gun/m27"
       Name: "<red>M27"
       Unbreakable: true
       Hide_Flags: true
@@ -1261,6 +1292,7 @@ comz_m27_pap:
   Info:
     Weapon_Item:
       Type: "NETHERITE_PICKAXE"
+      Item_Model: "comz:gun/m27_pap"
       Name: "<blue>Mystifier"
       Lore:
         - "<light_purple>PACK-A-PUNCHED"
@@ -1302,6 +1334,7 @@ comz_mtar:
   Info:
     Weapon_Item:
       Type: "LEATHER_HORSE_ARMOR"
+      Item_Model: "comz:gun/mtar"
       Name: "<red>MTAR"
       Unbreakable: true
       Hide_Flags: true
@@ -1341,6 +1374,7 @@ comz_mtar_pap:
   Info:
     Weapon_Item:
       Type: "LEATHER_HORSE_ARMOR"
+      Item_Model: "comz:gun/mtar_pap"
       Name: "<blue>Malevolent Taxonomic Anodized Redeemer"
       Lore:
         - "<light_purple>PACK-A-PUNCHED"
@@ -1382,6 +1416,7 @@ comz_smr:
   Info:
     Weapon_Item:
       Type: "IRON_HORSE_ARMOR"
+      Item_Model: "comz:gun/smr"
       Name: "<red>SMR"
       Unbreakable: true
       Hide_Flags: true
@@ -1421,6 +1456,7 @@ comz_smr_pap:
   Info:
     Weapon_Item:
       Type: "IRON_HORSE_ARMOR"
+      Item_Model: "comz:gun/smr_pap"
       Name: "<blue>SM1L3R"
       Lore:
         - "<light_purple>PACK-A-PUNCHED"
@@ -1462,6 +1498,7 @@ comz_type_25:
   Info:
     Weapon_Item:
       Type: "GOLDEN_HORSE_ARMOR"
+      Item_Model: "comz:gun/type25"
       Name: "<red>Type 25"
       Unbreakable: true
       Hide_Flags: true
@@ -1501,6 +1538,7 @@ comz_type_25_pap:
   Info:
     Weapon_Item:
       Type: "GOLDEN_HORSE_ARMOR"
+      Item_Model: "comz:gun/type25_pap"
       Name: "<blue>Strain 25"
       Lore:
         - "<light_purple>PACK-A-PUNCHED"
@@ -1542,6 +1580,7 @@ comz_hamr:
   Info:
     Weapon_Item:
       Type: "WOODEN_SHOVEL"
+      Item_Model: "comz:gun/hamr"
       Name: "<red>HAMR"
       Unbreakable: true
       Hide_Flags: true
@@ -1581,6 +1620,7 @@ comz_hamr_pap:
   Info:
     Weapon_Item:
       Type: "WOODEN_SHOVEL"
+      Item_Model: "comz:gun/hamr_pap"
       Name: "<blue>SLDG-HAMR"
       Lore:
         - "<light_purple>PACK-A-PUNCHED"
@@ -1622,6 +1662,7 @@ comz_lsat:
   Info:
     Weapon_Item:
       Type: "STONE_SHOVEL"
+      Item_Model: "comz:gun/lsat"
       Name: "<red>LSAT"
       Unbreakable: true
       Hide_Flags: true
@@ -1661,6 +1702,7 @@ comz_lsat_pap:
   Info:
     Weapon_Item:
       Type: "STONE_SHOVEL"
+      Item_Model: "comz:gun/lsat_pap"
       Name: "<blue>FSIRT"
       Lore:
         - "<light_purple>PACK-A-PUNCHED"
@@ -1702,6 +1744,7 @@ comz_rpd:
   Info:
     Weapon_Item:
       Type: "GOLDEN_SHOVEL"
+      Item_Model: "comz:gun/rpd"
       Name: "<red>RPD"
       Unbreakable: true
       Hide_Flags: true
@@ -1741,6 +1784,7 @@ comz_rpd_pap:
   Info:
     Weapon_Item:
       Type: "GOLDEN_SHOVEL"
+      Item_Model: "comz:gun/rpd_pap"
       Name: "<blue>Relativistic Punishment Device"
       Lore:
         - "<light_purple>PACK-A-PUNCHED"
@@ -1782,6 +1826,7 @@ comz_mk_48:
   Info:
     Weapon_Item:
       Type: "IRON_SHOVEL"
+      Item_Model: "comz:gun/mk48"
       Name: "<red>Mk 48"
       Unbreakable: true
       Hide_Flags: true
@@ -1821,6 +1866,7 @@ comz_mk_48_pap:
   Info:
     Weapon_Item:
       Type: "IRON_SHOVEL"
+      Item_Model: "comz:gun/mk48_pap"
       Name: "<blue>Mauler 48000"
       Lore:
         - "<light_purple>PACK-A-PUNCHED"
@@ -1862,6 +1908,7 @@ comz_chicom_cqb:
   Info:
     Weapon_Item:
       Type: "WOODEN_AXE"
+      Item_Model: "comz:gun/chicom"
       Name: "<red>Chicom CQB"
       Unbreakable: true
       Hide_Flags: true
@@ -1901,6 +1948,7 @@ comz_chicom_cqb_pap:
   Info:
     Weapon_Item:
       Type: "WOODEN_AXE"
+      Item_Model: "comz:gun/chicom_pap"
       Name: "<blue>Chicom Cataclysmic Quadruple Burst"
       Lore:
         - "<light_purple>PACK-A-PUNCHED"
@@ -1942,6 +1990,7 @@ comz_mp5:
   Info:
     Weapon_Item:
       Type: "STONE_AXE"
+      Item_Model: "comz:gun/mp5"
       Name: "<red>MP5"
       Unbreakable: true
       Hide_Flags: true
@@ -1981,6 +2030,7 @@ comz_mp5_pap:
   Info:
     Weapon_Item:
       Type: "STONE_AXE"
+      Item_Model: "comz:gun/mp5_pap"
       Name: "<blue>MP115 Kollider"
       Lore:
         - "<light_purple>PACK-A-PUNCHED"
@@ -2022,6 +2072,7 @@ comz_pdw_57:
   Info:
     Weapon_Item:
       Type: "IRON_AXE"
+      Item_Model: "comz:gun/pdw57"
       Name: "<red>PDW-57"
       Unbreakable: true
       Hide_Flags: true
@@ -2061,6 +2112,7 @@ comz_pdw_57_pap:
   Info:
     Weapon_Item:
       Type: "IRON_AXE"
+      Item_Model: "comz:gun/pdw57_pap"
       Name: "<blue>Predictive Death Wish 57000"
       Lore:
         - "<light_purple>PACK-A-PUNCHED"
@@ -2102,6 +2154,7 @@ comz_msmc:
   Info:
     Weapon_Item:
       Type: "DIAMOND_AXE"
+      Item_Model: "comz:gun/msmc"
       Name: "<red>MSMC"
       Unbreakable: true
       Hide_Flags: true
@@ -2141,6 +2194,7 @@ comz_msmc_pap:
   Info:
     Weapon_Item:
       Type: "DIAMOND_AXE"
+      Item_Model: "comz:gun/msmc_pap"
       Name: "<blue>Tika-Tovo"
       Lore:
         - "<light_purple>PACK-A-PUNCHED"
@@ -2182,6 +2236,7 @@ comz_skorpion_evo:
   Info:
     Weapon_Item:
       Type: "GOLDEN_AXE"
+      Item_Model: "comz:gun/skorpion"
       Name: "<red>Skorpion EVO"
       Unbreakable: true
       Hide_Flags: true
@@ -2221,6 +2276,7 @@ comz_skorpion_evo_pap:
   Info:
     Weapon_Item:
       Type: "GOLDEN_AXE"
+      Item_Model: "comz:gun/skorpion_pap"
       Name: "<blue>Scorpio Evolution"
       Lore:
         - "<light_purple>PACK-A-PUNCHED"
@@ -2262,6 +2318,7 @@ comz_vector_k10:
   Info:
     Weapon_Item:
       Type: "NETHERITE_AXE"
+      Item_Model: "comz:gun/vector"
       Name: "<red>Vector K10"
       Unbreakable: true
       Hide_Flags: true
@@ -2301,6 +2358,7 @@ comz_vector_k10_pap:
   Info:
     Weapon_Item:
       Type: "NETHERITE_AXE"
+      Item_Model: "comz:gun/vector_pap"
       Name: "<blue>Vector Kannon-10000"
       Lore:
         - "<light_purple>PACK-A-PUNCHED"
@@ -2342,6 +2400,7 @@ comz_peacekeeper:
   Info:
     Weapon_Item:
       Type: "LEATHER_HORSE_ARMOR"
+      Item_Model: "comz:gun/peacekeeper"
       Name: "<red>Peacekeeper"
       Unbreakable: true
       Hide_Flags: true
@@ -2381,6 +2440,7 @@ comz_peacekeeper_pap:
   Info:
     Weapon_Item:
       Type: "LEATHER_HORSE_ARMOR"
+      Item_Model: "comz:gun/peacekeeper_pap"
       Name: "<blue>Peacekeeper MK2"
       Lore:
         - "<light_purple>PACK-A-PUNCHED"
@@ -2422,6 +2482,7 @@ comz_barret_50kcal:
   Info:
     Weapon_Item:
       Type: "BLAZE_ROD"
+      Item_Model: "comz:gun/barret"
       Name: "<red>Barret 50KCAL"
       Unbreakable: true
       Hide_Flags: true
@@ -2466,6 +2527,7 @@ comz_barret_50kcal_pap:
   Info:
     Weapon_Item:
       Type: "BLAZE_ROD"
+      Item_Model: "comz:gun/barret_pap"
       Name: "<blue>Macro Annihilator"
       Lore:
         - "<light_purple>PACK-A-PUNCHED"
@@ -2512,6 +2574,7 @@ comz_dsr_50:
   Info:
     Weapon_Item:
       Type: "STICK"
+      Item_Model: "comz:gun/dsr50"
       Name: "<red>DSR 50"
       Unbreakable: true
       Hide_Flags: true
@@ -2556,6 +2619,7 @@ comz_dsr_50_pap:
   Info:
     Weapon_Item:
       Type: "STICK"
+      Item_Model: "comz:gun/dsr50_pap"
       Name: "<blue>Dead Specimen Reactor 5000"
       Lore:
         - "<light_purple>PACK-A-PUNCHED"
@@ -2602,6 +2666,7 @@ comz_svu_as:
   Info:
     Weapon_Item:
       Type: "BONE"
+      Item_Model: "comz:gun/svu"
       Name: "<red>SVU-AS"
       Unbreakable: true
       Hide_Flags: true
@@ -2646,6 +2711,7 @@ comz_svu_as_pap:
   Info:
     Weapon_Item:
       Type: "BONE"
+      Item_Model: "comz:gun/svu_pap"
       Name: "<blue>Shadowy Veil Utilizer"
       Lore:
         - "<light_purple>PACK-A-PUNCHED"
