@@ -56,8 +56,10 @@
           "reload_time": 2.7,
           "max_distance": 15.0,
           "particle_color": "AA00AA",
-          "multi_hit": true
-        }
+          "multi_hit": true,
+          "wm_weapon": "comz_executioner_pap"
+        },
+        "wm_weapon": "comz_executioner"
       },
       {
         "name": "Five-Seven",
@@ -84,8 +86,10 @@
           "reload_time": 1.9,
           "max_distance": 15.0,
           "particle_color": "AA00AA",
-          "multi_hit": true
-        }
+          "multi_hit": true,
+          "wm_weapon": "comz_five_seven_pap"
+        },
+        "wm_weapon": "comz_five_seven"
       },
       {
         "name": "Kap-40",
@@ -112,8 +116,10 @@
           "reload_time": 2.0,
           "max_distance": 15.0,
           "particle_color": "AA00AA",
-          "multi_hit": true
-        }
+          "multi_hit": true,
+          "wm_weapon": "comz_kap_40_pap"
+        },
+        "wm_weapon": "comz_kap_40"
       },
       {
         "name": "M1911",
@@ -140,8 +146,10 @@
           "reload_time": 1.6,
           "max_distance": 15.0,
           "particle_color": "AA00AA",
-          "multi_hit": true
-        }
+          "multi_hit": true,
+          "wm_weapon": "comz_m1911_pap"
+        },
+        "wm_weapon": "comz_m1911"
       },
       {
         "name": "Python",
@@ -168,8 +176,10 @@
           "reload_time": 2.5,
           "max_distance": 15.0,
           "particle_color": "AA00AA",
-          "multi_hit": true
-        }
+          "multi_hit": true,
+          "wm_weapon": "comz_python_pap"
+        },
+        "wm_weapon": "comz_python"
       }
     ]
   },
@@ -200,8 +210,10 @@
           "reload_time": 3.6,
           "max_distance": 7.0,
           "particle_color": "AA00AA",
-          "multi_hit": true
-        }
+          "multi_hit": true,
+          "wm_weapon": "comz_m1216_pap"
+        },
+        "wm_weapon": "comz_m1216"
       },
       {
         "name": "Olympia",
@@ -228,8 +240,10 @@
           "reload_time": 3.0,
           "max_distance": 7.0,
           "particle_color": "AA00AA",
-          "multi_hit": true
-        }
+          "multi_hit": true,
+          "wm_weapon": "comz_olympia_pap"
+        },
+        "wm_weapon": "comz_olympia"
       },
       {
         "name": "R870 MCS",
@@ -256,8 +270,10 @@
           "reload_time": 4.0,
           "max_distance": 7.0,
           "particle_color": "AA00AA",
-          "multi_hit": true
-        }
+          "multi_hit": true,
+          "wm_weapon": "comz_r870_mcs_pap"
+        },
+        "wm_weapon": "comz_r870_mcs"
       },
       {
         "name": "S12",
@@ -284,8 +300,10 @@
           "reload_time": 3.2,
           "max_distance": 7.0,
           "particle_color": "AA00AA",
-          "multi_hit": true
-        }
+          "multi_hit": true,
+          "wm_weapon": "comz_s12_pap"
+        },
+        "wm_weapon": "comz_s12"
       }
     ]
   },
@@ -316,8 +334,10 @@
           "reload_time": 2.9,
           "max_distance": 25.0,
           "particle_color": "AA00AA",
-          "multi_hit": true
-        }
+          "multi_hit": true,
+          "wm_weapon": "comz_an_94_pap"
+        },
+        "wm_weapon": "comz_an_94"
       },
       {
         "name": "Colt M16A1",
@@ -344,8 +364,10 @@
           "reload_time": 2.6,
           "max_distance": 25.0,
           "particle_color": "AA00AA",
-          "multi_hit": true
-        }
+          "multi_hit": true,
+          "wm_weapon": "comz_colt_m16a1_pap"
+        },
+        "wm_weapon": "comz_colt_m16a1"
       },
       {
         "name": "FAL",
@@ -372,8 +394,10 @@
           "reload_time": 2.5,
           "max_distance": 25.0,
           "particle_color": "AA00AA",
-          "multi_hit": true
-        }
+          "multi_hit": true,
+          "wm_weapon": "comz_fal_pap"
+        },
+        "wm_weapon": "comz_fal"
       },
       {
         "name": "M8A1",
@@ -400,8 +424,10 @@
           "reload_time": 2.7,
           "max_distance": 25.0,
           "particle_color": "AA00AA",
-          "multi_hit": true
-        }
+          "multi_hit": true,
+          "wm_weapon": "comz_m8a1_pap"
+        },
+        "wm_weapon": "comz_m8a1"
       },
       {
         "name": "M14",
@@ -428,8 +454,10 @@
           "reload_time": 2.3,
           "max_distance": 25.0,
           "particle_color": "AA00AA",
-          "multi_hit": true
-        }
+          "multi_hit": true,
+          "wm_weapon": "comz_m14_pap"
+        },
+        "wm_weapon": "comz_m14"
       },
       {
         "name": "M27",
@@ -456,8 +484,10 @@
           "reload_time": 2.5,
           "max_distance": 25.0,
           "particle_color": "AA00AA",
-          "multi_hit": true
-        }
+          "multi_hit": true,
+          "wm_weapon": "comz_m27_pap"
+        },
+        "wm_weapon": "comz_m27"
       },
       {
         "name": "MTAR",
@@ -484,8 +514,10 @@
           "reload_time": 2.4,
           "max_distance": 25.0,
           "particle_color": "AA00AA",
-          "multi_hit": true
-        }
+          "multi_hit": true,
+          "wm_weapon": "comz_mtar_pap"
+        },
+        "wm_weapon": "comz_mtar"
       },
       {
         "name": "SMR",
@@ -512,8 +544,10 @@
           "reload_time": 2.6,
           "max_distance": 25.0,
           "particle_color": "AA00AA",
-          "multi_hit": true
-        }
+          "multi_hit": true,
+          "wm_weapon": "comz_smr_pap"
+        },
+        "wm_weapon": "comz_smr"
       },
       {
         "name": "Type 25",
@@ -540,8 +574,10 @@
           "reload_time": 2.5,
           "max_distance": 25.0,
           "particle_color": "AA00AA",
-          "multi_hit": true
-        }
+          "multi_hit": true,
+          "wm_weapon": "comz_type_25_pap"
+        },
+        "wm_weapon": "comz_type_25"
       }
     ]
   },
@@ -572,8 +608,10 @@
           "reload_time": 5.0,
           "max_distance": 35.0,
           "particle_color": "AA00AA",
-          "multi_hit": true
-        }
+          "multi_hit": true,
+          "wm_weapon": "comz_hamr_pap"
+        },
+        "wm_weapon": "comz_hamr"
       },
       {
         "name": "LSAT",
@@ -600,8 +638,10 @@
           "reload_time": 6.0,
           "max_distance": 35.0,
           "particle_color": "AA00AA",
-          "multi_hit": true
-        }
+          "multi_hit": true,
+          "wm_weapon": "comz_lsat_pap"
+        },
+        "wm_weapon": "comz_lsat"
       },
       {
         "name": "RPD",
@@ -628,8 +668,10 @@
           "reload_time": 5.5,
           "max_distance": 35.0,
           "particle_color": "AA00AA",
-          "multi_hit": true
-        }
+          "multi_hit": true,
+          "wm_weapon": "comz_rpd_pap"
+        },
+        "wm_weapon": "comz_rpd"
       },
       {
         "name": "Mk 48",
@@ -656,8 +698,10 @@
           "reload_time": 5.8,
           "max_distance": 35.0,
           "particle_color": "AA00AA",
-          "multi_hit": true
-        }
+          "multi_hit": true,
+          "wm_weapon": "comz_mk_48_pap"
+        },
+        "wm_weapon": "comz_mk_48"
       }
     ]
   },
@@ -688,8 +732,10 @@
           "reload_time": 2.4,
           "max_distance": 40.0,
           "particle_color": "AA00AA",
-          "multi_hit": true
-        }
+          "multi_hit": true,
+          "wm_weapon": "comz_chicom_cqb_pap"
+        },
+        "wm_weapon": "comz_chicom_cqb"
       },
       {
         "name": "MP5",
@@ -716,8 +762,10 @@
           "reload_time": 2.6,
           "max_distance": 40.0,
           "particle_color": "AA00AA",
-          "multi_hit": true
-        }
+          "multi_hit": true,
+          "wm_weapon": "comz_mp5_pap"
+        },
+        "wm_weapon": "comz_mp5"
       },
       {
         "name": "PDW-57",
@@ -744,8 +792,10 @@
           "reload_time": 2.8,
           "max_distance": 40.0,
           "particle_color": "AA00AA",
-          "multi_hit": true
-        }
+          "multi_hit": true,
+          "wm_weapon": "comz_pdw_57_pap"
+        },
+        "wm_weapon": "comz_pdw_57"
       },
       {
         "name": "MSMC",
@@ -772,8 +822,10 @@
           "reload_time": 2.5,
           "max_distance": 40.0,
           "particle_color": "AA00AA",
-          "multi_hit": true
-        }
+          "multi_hit": true,
+          "wm_weapon": "comz_msmc_pap"
+        },
+        "wm_weapon": "comz_msmc"
       },
       {
         "name": "Skorpion EVO",
@@ -800,8 +852,10 @@
           "reload_time": 2.1,
           "max_distance": 40.0,
           "particle_color": "AA00AA",
-          "multi_hit": true
-        }
+          "multi_hit": true,
+          "wm_weapon": "comz_skorpion_evo_pap"
+        },
+        "wm_weapon": "comz_skorpion_evo"
       },
       {
         "name": "Vector K10",
@@ -828,8 +882,10 @@
           "reload_time": 3.2,
           "max_distance": 40.0,
           "particle_color": "AA00AA",
-          "multi_hit": true
-        }
+          "multi_hit": true,
+          "wm_weapon": "comz_vector_k10_pap"
+        },
+        "wm_weapon": "comz_vector_k10"
       },
       {
         "name": "Peacekeeper",
@@ -856,8 +912,10 @@
           "reload_time": 2.7,
           "max_distance": 40.0,
           "particle_color": "AA00AA",
-          "multi_hit": true
-        }
+          "multi_hit": true,
+          "wm_weapon": "comz_peacekeeper_pap"
+        },
+        "wm_weapon": "comz_peacekeeper"
       }
     ]
   },
@@ -888,8 +946,10 @@
           "reload_time": 3.5,
           "max_distance": 100.0,
           "particle_color": "AA00AA",
-          "multi_hit": true
-        }
+          "multi_hit": true,
+          "wm_weapon": "comz_barret_50kcal_pap"
+        },
+        "wm_weapon": "comz_barret_50kcal"
       },
       {
         "name": "DSR 50",
@@ -916,8 +976,10 @@
           "reload_time": 3.7,
           "max_distance": 100.0,
           "particle_color": "AA00AA",
-          "multi_hit": true
-        }
+          "multi_hit": true,
+          "wm_weapon": "comz_dsr_50_pap"
+        },
+        "wm_weapon": "comz_dsr_50"
       },
       {
         "name": "SVU-AS",
@@ -944,8 +1006,10 @@
           "reload_time": 3.0,
           "max_distance": 100.0,
           "particle_color": "AA00AA",
-          "multi_hit": true
-        }
+          "multi_hit": true,
+          "wm_weapon": "comz_svu_as_pap"
+        },
+        "wm_weapon": "comz_svu_as"
       }
     ]
   },
