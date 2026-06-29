@@ -166,7 +166,14 @@ public class EntityListener implements Listener
 					Mob mob = (Mob) entity;
 					double dist = mob.getLocation().distance(player.getLocation());
 					if(dist <= ConfigManager.getMainConfig().meleeRange)
+					{
 						game.damageMob(mob, player, knifeDamage(ConfigManager.getMainConfig().knifeOneShotThroughRound), false, true);
+						// BO2-fidelity: a knife-slash beat on a connecting melee — sweep arc + slash sound.
+						// Pack-independent (vanilla particle/sound); the player's own arm swing supplies the motion.
+						org.bukkit.Location hit = mob.getLocation().add(0, 1, 0);
+						mob.getWorld().spawnParticle(org.bukkit.Particle.SWEEP_ATTACK, hit, 1, 0, 0, 0, 0);
+						mob.getWorld().playSound(hit, org.bukkit.Sound.ENTITY_PLAYER_ATTACK_SWEEP, 0.8F, 1.2F);
+					}
 				}
 			}
 			e.setCancelled(true);
