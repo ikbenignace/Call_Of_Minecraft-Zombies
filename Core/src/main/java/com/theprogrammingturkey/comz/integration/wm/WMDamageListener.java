@@ -9,6 +9,8 @@ import com.theprogrammingturkey.comz.game.managers.WeaponManager;
 import com.theprogrammingturkey.comz.game.weapons.BaseGun;
 import me.deecaad.weaponmechanics.weapon.damage.DamagePoint;
 import me.deecaad.weaponmechanics.weapon.weaponevents.WeaponDamageEntityEvent;
+import me.deecaad.weaponmechanics.weapon.weaponevents.WeaponReloadCompleteEvent;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Mob;
 import org.bukkit.entity.Player;
@@ -66,5 +68,41 @@ public class WMDamageListener implements Listener
 		}
 
 		game.damageMob(mob, shooter, damage, headshot, false);
+	}
+
+	/**
+	 * Tier 2 — Electric Cherry under WeaponMechanics. The native Electric Cherry fires inside
+	 * {@code GunInstance.reload}, which is skipped for WM guns (WM owns reload), so honor the perk here
+	 * on WM's reload-complete event: strike + damage nearby arena zombies. Uses a fixed radius rather
+	 * than the native clip-fill scaling (WM owns ammo state, so COM:Z has no clip count for this gun).
+	 */
+	@EventHandler(ignoreCancelled = true)
+	public void onReloadComplete(WeaponReloadCompleteEvent event)
+	{
+		if(!(event.getShooter() instanceof Player))
+			return;
+		Player player = (Player) event.getShooter();
+
+		if(!GameManager.INSTANCE.isPlayerInGame(player))
+			return;
+		// Only our WM-backed guns participate.
+		if(WeaponManager.getGunByWmWeapon(event.getWeaponTitle()) == null)
+			return;
+
+		Game game = GameManager.INSTANCE.getGame(player);
+		if(game.getStatus() != GameStatus.INGAME)
+			return;
+		if(!game.perkManager.getPlayersPerks(player).contains(PerkType.ELECTRIC_C))
+			return;
+
+		double range = 8;
+		for(Entity ent : player.getNearbyEntities(range, range, range))
+		{
+			if(ent instanceof Mob && game.spawnManager.getEntities().contains(ent))
+			{
+				player.getWorld().strikeLightningEffect(ent.getLocation());
+				game.damageMob((Mob) ent, player, 10);
+			}
+		}
 	}
 }

@@ -38,6 +38,10 @@ public final class WeaponBackends
 			{
 				wm = new com.theprogrammingturkey.comz.integration.wm.WMWeaponBackend();
 				COMZombies.log.log(Level.INFO, COMZombies.CONSOLE_PREFIX + "WeaponMechanics hook enabled — mapped guns will use WM models + ballistics.");
+				// WM owns ammo/reload/fire timing from its own config, so the timing perks Speed Cola
+				// (reload) and Double Tap (fire rate) do NOT affect WM-backed guns. Deadshot, Electric
+				// Cherry and Mule Kick still apply (they ride the COM:Z damage/economy bridge, not timing).
+				COMZombies.log.log(Level.INFO, COMZombies.CONSOLE_PREFIX + "Note: Speed Cola and Double Tap do not affect WeaponMechanics weapon timing.");
 			}
 			catch(Throwable t)
 			{
