@@ -122,7 +122,9 @@ class Model:
     def save_texture(self, path):
         if not self._cells:
             self._pack()
-        img = Image.new("RGBA", (self.size, self.size), (0, 0, 0, 0))
+        # RGB (not RGBA): MC 26.2 only bounds-checks UVs for translucent (alpha) textures during
+        # bake; an RGBA item texture with any out-of-range UV fails the whole model. RGB is safe.
+        img = Image.new("RGB", (self.size, self.size), (24, 24, 28))
         px = img.load()
         for cell in self._cells:
             base = cell.color
@@ -143,7 +145,7 @@ class Model:
                         # subtle deterministic dither for a non-flat metal look
                         d = ((i * 7 + j * 13) % 5) - 2
                         c = _shade(base, 1.0 + d * 0.03)
-                    px[cell.x + i, cell.y + j] = (c[0], c[1], c[2], 255)
+                    px[cell.x + i, cell.y + j] = (c[0], c[1], c[2])
         os.makedirs(os.path.dirname(path), exist_ok=True)
         img.save(path)
         print(f"texture -> {path} ({self.size}x{self.size}, {len(self._cells)} cells)")
