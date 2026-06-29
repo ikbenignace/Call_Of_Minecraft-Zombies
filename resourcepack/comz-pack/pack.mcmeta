@@ -1,10 +1,8 @@
 {
   "pack": {
     "pack_format": 64,
-    "supported_formats": {
-      "min_inclusive": 34,
-      "max_inclusive": 999
-    },
-    "description": "\u00a7cCall of Minecraft: \u00a76Zombies \u00a77custom pack"
+    "min_format": 34,
+    "max_format": 99,
+    "description": "§cCall of Minecraft: §6Zombies §7custom pack"
   }
 }

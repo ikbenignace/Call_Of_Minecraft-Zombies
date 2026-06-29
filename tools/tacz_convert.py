@@ -45,6 +45,36 @@ def apply(M, pivot, p):
     return [r[i] + pivot[i] for i in range(3)]
 
 
+VANILLA_ANGLES = [-45.0, -22.5, 0.0, 22.5, 45.0]
+
+
+def net_rot_matrix(bone_name, by, cube_rot, order):
+    """Compose the net ROTATION matrix (no translation) of cube_rot under its bone chain."""
+    M = rot_matrix(*cube_rot, order=order) if cube_rot else [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
+    name = bone_name
+    while name and name in by:
+        b = by[name]
+        r = b.get("rotation")
+        if r and any(r):
+            M = matmul(rot_matrix(*r, order=order), M)
+        name = b.get("parent")
+    return M
+
+
+def match_single_axis(M):
+    """If M is (close to) a rotation about one axis by a vanilla angle, return (angle, axis) else None."""
+    best = None
+    for axis in ("x", "y", "z"):
+        for ang in VANILLA_ANGLES:
+            R = rot_matrix(*( {"x": (ang, 0, 0), "y": (0, ang, 0), "z": (0, 0, ang)}[axis] ))
+            err = sum(abs(M[i][j] - R[i][j]) for i in range(3) for j in range(3))
+            if err < 0.02 and (best is None or err < best[2]):
+                best = (ang, axis, err)
+    if best and best[0] == 0.0:
+        return (0.0, "x")  # identity -> no effective rotation
+    return (best[0], best[1]) if best else None
+
+
 def transform_point_chain(bone_name, by, p, order):
     """Apply the full bone chain to point p: rotate around each bone's pivot from this bone up to
     root (child rotation first, then parents). Pivots are in shared model space, so nested rotations
@@ -79,21 +109,8 @@ def convert(geo_path, out_path, texref, order):
             o = c["origin"]
             s = c["size"]
             crot = c.get("rotation")
-            cpiv = c.get("pivot", [0,0,0])
-            # 8 local corners
-            corners = []
-            for i in (0, 1):
-                for j in (0, 1):
-                    for k in (0, 1):
-                        p = [o[0] + i * s[0], o[1] + j * s[1], o[2] + k * s[2]]
-                        if crot and any(crot):
-                            p = apply(rot_matrix(*crot, order=order), cpiv, p)
-                        p = transform_point_chain(b["name"], by, p, order)
-                        corners.append(p)
-            frm = [min(cc[a] for cc in corners) for a in range(3)]
-            to = [max(cc[a] for cc in corners) for a in range(3)]
-            if all(abs(to[a] - frm[a]) < 1e-4 for a in range(3)):
-                continue
+            cpiv = c.get("pivot", [0, 0, 0])
+
             faces = {}
             for f in FACES:
                 uvd = c.get("uv", {})
@@ -103,7 +120,41 @@ def convert(geo_path, out_path, texref, order):
                     faces[f] = {"uv": [u, v, u + uw, v + uh], "texture": "#0"}
                 else:
                     faces[f] = {"uv": [0, 0, 1, 1], "texture": "#0"}
-            elements.append({"from": frm, "to": to, "faces": faces})
+
+            # Net rotation of this cube (bone chain + own rotation). If it's a single-axis vanilla
+            # angle we can keep the box SHAPE + that rotation exactly (preserves angled grips/mags
+            # instead of fattening them into a slab). Otherwise fall back to AABB of the 8 corners.
+            M = net_rot_matrix(b["name"], by, crot, order)
+            single = match_single_axis(M)
+            # transformed centre (full chain incl. pivots/translations)
+            cen_local = [o[a] + s[a] / 2 for a in range(3)]
+            if crot and any(crot):
+                cen_local = apply(rot_matrix(*crot, order=order), cpiv, cen_local)
+            cen = transform_point_chain(b["name"], by, cen_local, order)
+
+            if single is not None and single[0] != 0.0:
+                ang, axis = single
+                frm = [round(cen[a] - s[a] / 2, 4) for a in range(3)]
+                to = [round(cen[a] + s[a] / 2, 4) for a in range(3)]
+                el = {"from": frm, "to": to,
+                      "rotation": {"angle": ang, "axis": axis, "origin": [round(x, 4) for x in cen]},
+                      "faces": faces}
+            else:
+                # axis-aligned (identity net rotation) OR compound -> AABB of corners
+                corners = []
+                for i in (0, 1):
+                    for j in (0, 1):
+                        for k in (0, 1):
+                            p = [o[0] + i * s[0], o[1] + j * s[1], o[2] + k * s[2]]
+                            if crot and any(crot):
+                                p = apply(rot_matrix(*crot, order=order), cpiv, p)
+                            corners.append(transform_point_chain(b["name"], by, p, order))
+                frm = [round(min(cc[a] for cc in corners), 4) for a in range(3)]
+                to = [round(max(cc[a] for cc in corners), 4) for a in range(3)]
+                el = {"from": frm, "to": to, "faces": faces}
+            if all(abs(el["to"][a] - el["from"][a]) < 1e-4 for a in range(3)):
+                continue
+            elements.append(el)
 
     # trim outlier cubes (attachment/view anchors that sit far from the gun body). Use the median
     # cube centre + a generous per-axis window so the gun stays intact but stray cubes are dropped.
@@ -125,9 +176,13 @@ def convert(geo_path, out_path, texref, order):
     span = max(hi - lo for lo, hi in ax) or 1
     sc = min(1.0, 46.0 / span)
     mids = [(lo + hi) / 2 for lo, hi in ax]
+    def remap(p):
+        return [round((p[a] - mids[a]) * sc + 8, 3) for a in range(3)]
     for e in elements:
         for k in ("from", "to"):
-            e[k] = [round((e[k][a] - mids[a]) * sc + 8, 3) for a in range(3)]
+            e[k] = remap(e[k])
+        if "rotation" in e:  # rotation origin lives in the same space -> remap it too
+            e["rotation"]["origin"] = remap(e["rotation"]["origin"])
     xs = [e[k][0] for e in elements for k in ("from", "to")]
     ys = [e[k][1] for e in elements for k in ("from", "to")]
     zs = [e[k][2] for e in elements for k in ("from", "to")]
