@@ -120,6 +120,23 @@ def main():
             if any(c < -16 or c > 32 for c in fr + to):
                 problems.append(f"ELEMENT coord outside [-16,32] (MC rejects model -> purple): {os.path.relpath(mf, pack)}")
                 break
+        # UV must stay within texture_size, else MC's bake fails ("Cannot compute translucency out
+        # of bounds ... in WxH image") -> missing model. texture_size defaults to 16 when absent.
+        ts = md.get("texture_size", [16, 16])
+        tw, th = ts[0], ts[1]
+        ooburst = None
+        for e in md.get("elements", []):
+            for fn, fd in e.get("faces", {}).items():
+                uv = fd.get("uv")
+                if not uv or len(uv) != 4:
+                    continue
+                if max(uv[0], uv[2]) > tw or max(uv[1], uv[3]) > th or min(uv) < 0:
+                    ooburst = uv
+                    break
+            if ooburst:
+                break
+        if ooburst:
+            problems.append(f"FACE uv {ooburst} out of texture_size {tw}x{th} (bake fails -> purple): {os.path.relpath(mf, pack)}")
 
     if problems:
         print(f"\n{len(problems)} PROBLEM(S) — these render purple/black in-game:")
