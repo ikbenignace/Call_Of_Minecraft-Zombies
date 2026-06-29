@@ -1,6 +1,6 @@
 {
   "model": {
     "type": "minecraft:model",
-    "model": "minecraft:custom/item/gen/rpd"
+    "model": "minecraft:custom/item/3d_guns/rpd"
   }
 }
