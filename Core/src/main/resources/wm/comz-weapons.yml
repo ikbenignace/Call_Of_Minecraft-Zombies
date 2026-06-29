@@ -34,12 +34,18 @@ comz_b23r:
     Delay_Between_Shots: 3
     Spread:
       Base_Spread: 4
+    Mechanics:
+      - "Sound{sound=block.lava.pop, volume=2, noise=0.1}"
   Reload:
     Trigger:
       Main_Hand: "SWAP_HANDS"
       Off_Hand: "SWAP_HANDS"
     Magazine_Size: 15
     Reload_Duration: 36
+    Start_Mechanics:
+      - "Sound{sound=block.piston.contract, volume=1, noise=0.1}"
+    Finish_Mechanics:
+      - "Sound{sound=block.piston.extend, volume=1, noise=0.1}"
   Damage:
     Base_Damage: 3
 
@@ -69,12 +75,18 @@ comz_b23r_pap:
     Delay_Between_Shots: 3
     Spread:
       Base_Spread: 4
+    Mechanics:
+      - "Sound{sound=entity.ghast.shoot, volume=2, noise=0.1}"
   Reload:
     Trigger:
       Main_Hand: "SWAP_HANDS"
       Off_Hand: "SWAP_HANDS"
     Magazine_Size: 20
     Reload_Duration: 36
+    Start_Mechanics:
+      - "Sound{sound=block.piston.contract, volume=1, noise=0.1}"
+    Finish_Mechanics:
+      - "Sound{sound=block.piston.extend, volume=1, noise=0.1}"
   Damage:
     Base_Damage: 15
 
@@ -102,12 +114,18 @@ comz_executioner:
     Delay_Between_Shots: 8
     Spread:
       Base_Spread: 4
+    Mechanics:
+      - "Sound{sound=block.lava.pop, volume=2, noise=0.1}"
   Reload:
     Trigger:
       Main_Hand: "SWAP_HANDS"
       Off_Hand: "SWAP_HANDS"
     Magazine_Size: 5
     Reload_Duration: 60
+    Start_Mechanics:
+      - "Sound{sound=block.piston.contract, volume=1, noise=0.1}"
+    Finish_Mechanics:
+      - "Sound{sound=block.piston.extend, volume=1, noise=0.1}"
   Damage:
     Base_Damage: 23
 
@@ -137,12 +155,18 @@ comz_executioner_pap:
     Delay_Between_Shots: 8
     Spread:
       Base_Spread: 4
+    Mechanics:
+      - "Sound{sound=entity.ghast.shoot, volume=2, noise=0.1}"
   Reload:
     Trigger:
       Main_Hand: "SWAP_HANDS"
       Off_Hand: "SWAP_HANDS"
     Magazine_Size: 5
     Reload_Duration: 54
+    Start_Mechanics:
+      - "Sound{sound=block.piston.contract, volume=1, noise=0.1}"
+    Finish_Mechanics:
+      - "Sound{sound=block.piston.extend, volume=1, noise=0.1}"
   Damage:
     Base_Damage: 40
 
@@ -170,12 +194,18 @@ comz_five_seven:
     Delay_Between_Shots: 3
     Spread:
       Base_Spread: 4
+    Mechanics:
+      - "Sound{sound=block.lava.pop, volume=2, noise=0.1}"
   Reload:
     Trigger:
       Main_Hand: "SWAP_HANDS"
       Off_Hand: "SWAP_HANDS"
     Magazine_Size: 20
     Reload_Duration: 38
+    Start_Mechanics:
+      - "Sound{sound=block.piston.contract, volume=1, noise=0.1}"
+    Finish_Mechanics:
+      - "Sound{sound=block.piston.extend, volume=1, noise=0.1}"
   Damage:
     Base_Damage: 3
 
@@ -205,12 +235,18 @@ comz_five_seven_pap:
     Delay_Between_Shots: 3
     Spread:
       Base_Spread: 4
+    Mechanics:
+      - "Sound{sound=entity.ghast.shoot, volume=2, noise=0.1}"
   Reload:
     Trigger:
       Main_Hand: "SWAP_HANDS"
       Off_Hand: "SWAP_HANDS"
     Magazine_Size: 20
     Reload_Duration: 38
+    Start_Mechanics:
+      - "Sound{sound=block.piston.contract, volume=1, noise=0.1}"
+    Finish_Mechanics:
+      - "Sound{sound=block.piston.extend, volume=1, noise=0.1}"
   Damage:
     Base_Damage: 15
 
@@ -238,12 +274,18 @@ comz_kap_40:
     Delay_Between_Shots: 3
     Spread:
       Base_Spread: 4
+    Mechanics:
+      - "Sound{sound=block.lava.pop, volume=2, noise=0.1}"
   Reload:
     Trigger:
       Main_Hand: "SWAP_HANDS"
       Off_Hand: "SWAP_HANDS"
     Magazine_Size: 12
     Reload_Duration: 40
+    Start_Mechanics:
+      - "Sound{sound=block.piston.contract, volume=1, noise=0.1}"
+    Finish_Mechanics:
+      - "Sound{sound=block.piston.extend, volume=1, noise=0.1}"
   Damage:
     Base_Damage: 3
 
@@ -273,12 +315,18 @@ comz_kap_40_pap:
     Delay_Between_Shots: 3
     Spread:
       Base_Spread: 4
+    Mechanics:
+      - "Sound{sound=entity.ghast.shoot, volume=2, noise=0.1}"
   Reload:
     Trigger:
       Main_Hand: "SWAP_HANDS"
       Off_Hand: "SWAP_HANDS"
     Magazine_Size: 15
     Reload_Duration: 40
+    Start_Mechanics:
+      - "Sound{sound=block.piston.contract, volume=1, noise=0.1}"
+    Finish_Mechanics:
+      - "Sound{sound=block.piston.extend, volume=1, noise=0.1}"
   Damage:
     Base_Damage: 12
 
@@ -306,12 +354,18 @@ comz_m1911:
     Delay_Between_Shots: 4
     Spread:
       Base_Spread: 4
+    Mechanics:
+      - "Sound{sound=block.lava.pop, volume=2, noise=0.1}"
   Reload:
     Trigger:
       Main_Hand: "SWAP_HANDS"
       Off_Hand: "SWAP_HANDS"
     Magazine_Size: 8
     Reload_Duration: 32
+    Start_Mechanics:
+      - "Sound{sound=block.piston.contract, volume=1, noise=0.1}"
+    Finish_Mechanics:
+      - "Sound{sound=block.piston.extend, volume=1, noise=0.1}"
   Damage:
     Base_Damage: 2
 
@@ -341,12 +395,18 @@ comz_m1911_pap:
     Delay_Between_Shots: 4
     Spread:
       Base_Spread: 4
+    Mechanics:
+      - "Sound{sound=entity.ghast.shoot, volume=2, noise=0.1}"
   Reload:
     Trigger:
       Main_Hand: "SWAP_HANDS"
       Off_Hand: "SWAP_HANDS"
     Magazine_Size: 6
     Reload_Duration: 32
+    Start_Mechanics:
+      - "Sound{sound=block.piston.contract, volume=1, noise=0.1}"
+    Finish_Mechanics:
+      - "Sound{sound=block.piston.extend, volume=1, noise=0.1}"
   Damage:
     Base_Damage: 30
 
@@ -374,12 +434,18 @@ comz_python:
     Delay_Between_Shots: 4
     Spread:
       Base_Spread: 4
+    Mechanics:
+      - "Sound{sound=block.lava.pop, volume=2, noise=0.1}"
   Reload:
     Trigger:
       Main_Hand: "SWAP_HANDS"
       Off_Hand: "SWAP_HANDS"
     Magazine_Size: 6
     Reload_Duration: 50
+    Start_Mechanics:
+      - "Sound{sound=block.piston.contract, volume=1, noise=0.1}"
+    Finish_Mechanics:
+      - "Sound{sound=block.piston.extend, volume=1, noise=0.1}"
   Damage:
     Base_Damage: 30
 
@@ -409,12 +475,18 @@ comz_python_pap:
     Delay_Between_Shots: 4
     Spread:
       Base_Spread: 4
+    Mechanics:
+      - "Sound{sound=entity.ghast.shoot, volume=2, noise=0.1}"
   Reload:
     Trigger:
       Main_Hand: "SWAP_HANDS"
       Off_Hand: "SWAP_HANDS"
     Magazine_Size: 12
     Reload_Duration: 50
+    Start_Mechanics:
+      - "Sound{sound=block.piston.contract, volume=1, noise=0.1}"
+    Finish_Mechanics:
+      - "Sound{sound=block.piston.extend, volume=1, noise=0.1}"
   Damage:
     Base_Damage: 50
 
@@ -443,12 +515,18 @@ comz_m1216:
     Delay_Between_Shots: 8
     Spread:
       Base_Spread: 4
+    Mechanics:
+      - "Sound{sound=block.lava.pop, volume=2, noise=0.1}"
   Reload:
     Trigger:
       Main_Hand: "SWAP_HANDS"
       Off_Hand: "SWAP_HANDS"
     Magazine_Size: 16
     Reload_Duration: 72
+    Start_Mechanics:
+      - "Sound{sound=block.piston.contract, volume=1, noise=0.1}"
+    Finish_Mechanics:
+      - "Sound{sound=block.piston.extend, volume=1, noise=0.1}"
   Damage:
     Base_Damage: 30
 
@@ -479,12 +557,18 @@ comz_m1216_pap:
     Delay_Between_Shots: 8
     Spread:
       Base_Spread: 4
+    Mechanics:
+      - "Sound{sound=entity.ghast.shoot, volume=2, noise=0.1}"
   Reload:
     Trigger:
       Main_Hand: "SWAP_HANDS"
       Off_Hand: "SWAP_HANDS"
     Magazine_Size: 24
     Reload_Duration: 72
+    Start_Mechanics:
+      - "Sound{sound=block.piston.contract, volume=1, noise=0.1}"
+    Finish_Mechanics:
+      - "Sound{sound=block.piston.extend, volume=1, noise=0.1}"
   Damage:
     Base_Damage: 40
 
@@ -513,12 +597,18 @@ comz_olympia:
     Delay_Between_Shots: 12
     Spread:
       Base_Spread: 4
+    Mechanics:
+      - "Sound{sound=block.lava.pop, volume=2, noise=0.1}"
   Reload:
     Trigger:
       Main_Hand: "SWAP_HANDS"
       Off_Hand: "SWAP_HANDS"
     Magazine_Size: 2
     Reload_Duration: 60
+    Start_Mechanics:
+      - "Sound{sound=block.piston.contract, volume=1, noise=0.1}"
+    Finish_Mechanics:
+      - "Sound{sound=block.piston.extend, volume=1, noise=0.1}"
   Damage:
     Base_Damage: 20
 
@@ -549,12 +639,18 @@ comz_olympia_pap:
     Delay_Between_Shots: 12
     Spread:
       Base_Spread: 4
+    Mechanics:
+      - "Sound{sound=entity.ghast.shoot, volume=2, noise=0.1}"
   Reload:
     Trigger:
       Main_Hand: "SWAP_HANDS"
       Off_Hand: "SWAP_HANDS"
     Magazine_Size: 2
     Reload_Duration: 60
+    Start_Mechanics:
+      - "Sound{sound=block.piston.contract, volume=1, noise=0.1}"
+    Finish_Mechanics:
+      - "Sound{sound=block.piston.extend, volume=1, noise=0.1}"
   Damage:
     Base_Damage: 30
 
@@ -583,12 +679,18 @@ comz_r870_mcs:
     Delay_Between_Shots: 11
     Spread:
       Base_Spread: 4
+    Mechanics:
+      - "Sound{sound=block.lava.pop, volume=2, noise=0.1}"
   Reload:
     Trigger:
       Main_Hand: "SWAP_HANDS"
       Off_Hand: "SWAP_HANDS"
     Magazine_Size: 6
     Reload_Duration: 90
+    Start_Mechanics:
+      - "Sound{sound=block.piston.contract, volume=1, noise=0.1}"
+    Finish_Mechanics:
+      - "Sound{sound=block.piston.extend, volume=1, noise=0.1}"
   Damage:
     Base_Damage: 22
 
@@ -619,12 +721,18 @@ comz_r870_mcs_pap:
     Delay_Between_Shots: 11
     Spread:
       Base_Spread: 4
+    Mechanics:
+      - "Sound{sound=entity.ghast.shoot, volume=2, noise=0.1}"
   Reload:
     Trigger:
       Main_Hand: "SWAP_HANDS"
       Off_Hand: "SWAP_HANDS"
     Magazine_Size: 10
     Reload_Duration: 80
+    Start_Mechanics:
+      - "Sound{sound=block.piston.contract, volume=1, noise=0.1}"
+    Finish_Mechanics:
+      - "Sound{sound=block.piston.extend, volume=1, noise=0.1}"
   Damage:
     Base_Damage: 30
 
@@ -653,12 +761,18 @@ comz_s12:
     Delay_Between_Shots: 8
     Spread:
       Base_Spread: 4
+    Mechanics:
+      - "Sound{sound=block.lava.pop, volume=2, noise=0.1}"
   Reload:
     Trigger:
       Main_Hand: "SWAP_HANDS"
       Off_Hand: "SWAP_HANDS"
     Magazine_Size: 10
     Reload_Duration: 64
+    Start_Mechanics:
+      - "Sound{sound=block.piston.contract, volume=1, noise=0.1}"
+    Finish_Mechanics:
+      - "Sound{sound=block.piston.extend, volume=1, noise=0.1}"
   Damage:
     Base_Damage: 24
 
@@ -689,12 +803,18 @@ comz_s12_pap:
     Delay_Between_Shots: 8
     Spread:
       Base_Spread: 4
+    Mechanics:
+      - "Sound{sound=entity.ghast.shoot, volume=2, noise=0.1}"
   Reload:
     Trigger:
       Main_Hand: "SWAP_HANDS"
       Off_Hand: "SWAP_HANDS"
     Magazine_Size: 10
     Reload_Duration: 64
+    Start_Mechanics:
+      - "Sound{sound=block.piston.contract, volume=1, noise=0.1}"
+    Finish_Mechanics:
+      - "Sound{sound=block.piston.extend, volume=1, noise=0.1}"
   Damage:
     Base_Damage: 30
 
@@ -722,12 +842,18 @@ comz_an_94:
     Fully_Automatic_Shots_Per_Second: 10
     Spread:
       Base_Spread: 4
+    Mechanics:
+      - "Sound{sound=block.lava.pop, volume=2, noise=0.1}"
   Reload:
     Trigger:
       Main_Hand: "SWAP_HANDS"
       Off_Hand: "SWAP_HANDS"
     Magazine_Size: 30
     Reload_Duration: 58
+    Start_Mechanics:
+      - "Sound{sound=block.piston.contract, volume=1, noise=0.1}"
+    Finish_Mechanics:
+      - "Sound{sound=block.piston.extend, volume=1, noise=0.1}"
   Damage:
     Base_Damage: 5
 
@@ -757,12 +883,18 @@ comz_an_94_pap:
     Fully_Automatic_Shots_Per_Second: 10
     Spread:
       Base_Spread: 4
+    Mechanics:
+      - "Sound{sound=entity.ghast.shoot, volume=2, noise=0.1}"
   Reload:
     Trigger:
       Main_Hand: "SWAP_HANDS"
       Off_Hand: "SWAP_HANDS"
     Magazine_Size: 50
     Reload_Duration: 58
+    Start_Mechanics:
+      - "Sound{sound=block.piston.contract, volume=1, noise=0.1}"
+    Finish_Mechanics:
+      - "Sound{sound=block.piston.extend, volume=1, noise=0.1}"
   Damage:
     Base_Damage: 10
 
@@ -790,12 +922,18 @@ comz_colt_m16a1:
     Fully_Automatic_Shots_Per_Second: 10
     Spread:
       Base_Spread: 4
+    Mechanics:
+      - "Sound{sound=block.lava.pop, volume=2, noise=0.1}"
   Reload:
     Trigger:
       Main_Hand: "SWAP_HANDS"
       Off_Hand: "SWAP_HANDS"
     Magazine_Size: 30
     Reload_Duration: 52
+    Start_Mechanics:
+      - "Sound{sound=block.piston.contract, volume=1, noise=0.1}"
+    Finish_Mechanics:
+      - "Sound{sound=block.piston.extend, volume=1, noise=0.1}"
   Damage:
     Base_Damage: 4
 
@@ -825,12 +963,18 @@ comz_colt_m16a1_pap:
     Fully_Automatic_Shots_Per_Second: 10
     Spread:
       Base_Spread: 4
+    Mechanics:
+      - "Sound{sound=entity.ghast.shoot, volume=2, noise=0.1}"
   Reload:
     Trigger:
       Main_Hand: "SWAP_HANDS"
       Off_Hand: "SWAP_HANDS"
     Magazine_Size: 30
     Reload_Duration: 52
+    Start_Mechanics:
+      - "Sound{sound=block.piston.contract, volume=1, noise=0.1}"
+    Finish_Mechanics:
+      - "Sound{sound=block.piston.extend, volume=1, noise=0.1}"
   Damage:
     Base_Damage: 13
 
@@ -858,12 +1002,18 @@ comz_fal:
     Delay_Between_Shots: 3
     Spread:
       Base_Spread: 4
+    Mechanics:
+      - "Sound{sound=block.lava.pop, volume=2, noise=0.1}"
   Reload:
     Trigger:
       Main_Hand: "SWAP_HANDS"
       Off_Hand: "SWAP_HANDS"
     Magazine_Size: 20
     Reload_Duration: 50
+    Start_Mechanics:
+      - "Sound{sound=block.piston.contract, volume=1, noise=0.1}"
+    Finish_Mechanics:
+      - "Sound{sound=block.piston.extend, volume=1, noise=0.1}"
   Damage:
     Base_Damage: 7
 
@@ -893,12 +1043,18 @@ comz_fal_pap:
     Fully_Automatic_Shots_Per_Second: 10
     Spread:
       Base_Spread: 4
+    Mechanics:
+      - "Sound{sound=entity.ghast.shoot, volume=2, noise=0.1}"
   Reload:
     Trigger:
       Main_Hand: "SWAP_HANDS"
       Off_Hand: "SWAP_HANDS"
     Magazine_Size: 30
     Reload_Duration: 50
+    Start_Mechanics:
+      - "Sound{sound=block.piston.contract, volume=1, noise=0.1}"
+    Finish_Mechanics:
+      - "Sound{sound=block.piston.extend, volume=1, noise=0.1}"
   Damage:
     Base_Damage: 15
 
@@ -926,12 +1082,18 @@ comz_m8a1:
     Fully_Automatic_Shots_Per_Second: 10
     Spread:
       Base_Spread: 4
+    Mechanics:
+      - "Sound{sound=block.lava.pop, volume=2, noise=0.1}"
   Reload:
     Trigger:
       Main_Hand: "SWAP_HANDS"
       Off_Hand: "SWAP_HANDS"
     Magazine_Size: 32
     Reload_Duration: 54
+    Start_Mechanics:
+      - "Sound{sound=block.piston.contract, volume=1, noise=0.1}"
+    Finish_Mechanics:
+      - "Sound{sound=block.piston.extend, volume=1, noise=0.1}"
   Damage:
     Base_Damage: 3
 
@@ -961,12 +1123,18 @@ comz_m8a1_pap:
     Fully_Automatic_Shots_Per_Second: 10
     Spread:
       Base_Spread: 4
+    Mechanics:
+      - "Sound{sound=entity.ghast.shoot, volume=2, noise=0.1}"
   Reload:
     Trigger:
       Main_Hand: "SWAP_HANDS"
       Off_Hand: "SWAP_HANDS"
     Magazine_Size: 42
     Reload_Duration: 54
+    Start_Mechanics:
+      - "Sound{sound=block.piston.contract, volume=1, noise=0.1}"
+    Finish_Mechanics:
+      - "Sound{sound=block.piston.extend, volume=1, noise=0.1}"
   Damage:
     Base_Damage: 7
 
@@ -994,12 +1162,18 @@ comz_m14:
     Delay_Between_Shots: 3
     Spread:
       Base_Spread: 4
+    Mechanics:
+      - "Sound{sound=block.lava.pop, volume=2, noise=0.1}"
   Reload:
     Trigger:
       Main_Hand: "SWAP_HANDS"
       Off_Hand: "SWAP_HANDS"
     Magazine_Size: 8
     Reload_Duration: 46
+    Start_Mechanics:
+      - "Sound{sound=block.piston.contract, volume=1, noise=0.1}"
+    Finish_Mechanics:
+      - "Sound{sound=block.piston.extend, volume=1, noise=0.1}"
   Damage:
     Base_Damage: 4
 
@@ -1029,12 +1203,18 @@ comz_m14_pap:
     Delay_Between_Shots: 3
     Spread:
       Base_Spread: 4
+    Mechanics:
+      - "Sound{sound=entity.ghast.shoot, volume=2, noise=0.1}"
   Reload:
     Trigger:
       Main_Hand: "SWAP_HANDS"
       Off_Hand: "SWAP_HANDS"
     Magazine_Size: 16
     Reload_Duration: 46
+    Start_Mechanics:
+      - "Sound{sound=block.piston.contract, volume=1, noise=0.1}"
+    Finish_Mechanics:
+      - "Sound{sound=block.piston.extend, volume=1, noise=0.1}"
   Damage:
     Base_Damage: 7
 
@@ -1062,12 +1242,18 @@ comz_m27:
     Fully_Automatic_Shots_Per_Second: 10
     Spread:
       Base_Spread: 4
+    Mechanics:
+      - "Sound{sound=block.lava.pop, volume=2, noise=0.1}"
   Reload:
     Trigger:
       Main_Hand: "SWAP_HANDS"
       Off_Hand: "SWAP_HANDS"
     Magazine_Size: 30
     Reload_Duration: 50
+    Start_Mechanics:
+      - "Sound{sound=block.piston.contract, volume=1, noise=0.1}"
+    Finish_Mechanics:
+      - "Sound{sound=block.piston.extend, volume=1, noise=0.1}"
   Damage:
     Base_Damage: 5
 
@@ -1097,12 +1283,18 @@ comz_m27_pap:
     Fully_Automatic_Shots_Per_Second: 10
     Spread:
       Base_Spread: 4
+    Mechanics:
+      - "Sound{sound=entity.ghast.shoot, volume=2, noise=0.1}"
   Reload:
     Trigger:
       Main_Hand: "SWAP_HANDS"
       Off_Hand: "SWAP_HANDS"
     Magazine_Size: 30
     Reload_Duration: 50
+    Start_Mechanics:
+      - "Sound{sound=block.piston.contract, volume=1, noise=0.1}"
+    Finish_Mechanics:
+      - "Sound{sound=block.piston.extend, volume=1, noise=0.1}"
   Damage:
     Base_Damage: 10
 
@@ -1130,12 +1322,18 @@ comz_mtar:
     Fully_Automatic_Shots_Per_Second: 10
     Spread:
       Base_Spread: 4
+    Mechanics:
+      - "Sound{sound=block.lava.pop, volume=2, noise=0.1}"
   Reload:
     Trigger:
       Main_Hand: "SWAP_HANDS"
       Off_Hand: "SWAP_HANDS"
     Magazine_Size: 30
     Reload_Duration: 48
+    Start_Mechanics:
+      - "Sound{sound=block.piston.contract, volume=1, noise=0.1}"
+    Finish_Mechanics:
+      - "Sound{sound=block.piston.extend, volume=1, noise=0.1}"
   Damage:
     Base_Damage: 5
 
@@ -1165,12 +1363,18 @@ comz_mtar_pap:
     Fully_Automatic_Shots_Per_Second: 10
     Spread:
       Base_Spread: 4
+    Mechanics:
+      - "Sound{sound=entity.ghast.shoot, volume=2, noise=0.1}"
   Reload:
     Trigger:
       Main_Hand: "SWAP_HANDS"
       Off_Hand: "SWAP_HANDS"
     Magazine_Size: 30
     Reload_Duration: 48
+    Start_Mechanics:
+      - "Sound{sound=block.piston.contract, volume=1, noise=0.1}"
+    Finish_Mechanics:
+      - "Sound{sound=block.piston.extend, volume=1, noise=0.1}"
   Damage:
     Base_Damage: 10
 
@@ -1198,12 +1402,18 @@ comz_smr:
     Delay_Between_Shots: 3
     Spread:
       Base_Spread: 4
+    Mechanics:
+      - "Sound{sound=block.lava.pop, volume=2, noise=0.1}"
   Reload:
     Trigger:
       Main_Hand: "SWAP_HANDS"
       Off_Hand: "SWAP_HANDS"
     Magazine_Size: 20
     Reload_Duration: 52
+    Start_Mechanics:
+      - "Sound{sound=block.piston.contract, volume=1, noise=0.1}"
+    Finish_Mechanics:
+      - "Sound{sound=block.piston.extend, volume=1, noise=0.1}"
   Damage:
     Base_Damage: 3
 
@@ -1233,12 +1443,18 @@ comz_smr_pap:
     Delay_Between_Shots: 3
     Spread:
       Base_Spread: 4
+    Mechanics:
+      - "Sound{sound=entity.ghast.shoot, volume=2, noise=0.1}"
   Reload:
     Trigger:
       Main_Hand: "SWAP_HANDS"
       Off_Hand: "SWAP_HANDS"
     Magazine_Size: 30
     Reload_Duration: 52
+    Start_Mechanics:
+      - "Sound{sound=block.piston.contract, volume=1, noise=0.1}"
+    Finish_Mechanics:
+      - "Sound{sound=block.piston.extend, volume=1, noise=0.1}"
   Damage:
     Base_Damage: 8
 
@@ -1266,12 +1482,18 @@ comz_type_25:
     Fully_Automatic_Shots_Per_Second: 10
     Spread:
       Base_Spread: 4
+    Mechanics:
+      - "Sound{sound=block.lava.pop, volume=2, noise=0.1}"
   Reload:
     Trigger:
       Main_Hand: "SWAP_HANDS"
       Off_Hand: "SWAP_HANDS"
     Magazine_Size: 30
     Reload_Duration: 50
+    Start_Mechanics:
+      - "Sound{sound=block.piston.contract, volume=1, noise=0.1}"
+    Finish_Mechanics:
+      - "Sound{sound=block.piston.extend, volume=1, noise=0.1}"
   Damage:
     Base_Damage: 4
 
@@ -1301,12 +1523,18 @@ comz_type_25_pap:
     Fully_Automatic_Shots_Per_Second: 10
     Spread:
       Base_Spread: 4
+    Mechanics:
+      - "Sound{sound=entity.ghast.shoot, volume=2, noise=0.1}"
   Reload:
     Trigger:
       Main_Hand: "SWAP_HANDS"
       Off_Hand: "SWAP_HANDS"
     Magazine_Size: 30
     Reload_Duration: 50
+    Start_Mechanics:
+      - "Sound{sound=block.piston.contract, volume=1, noise=0.1}"
+    Finish_Mechanics:
+      - "Sound{sound=block.piston.extend, volume=1, noise=0.1}"
   Damage:
     Base_Damage: 12
 
@@ -1334,12 +1562,18 @@ comz_hamr:
     Fully_Automatic_Shots_Per_Second: 10
     Spread:
       Base_Spread: 4
+    Mechanics:
+      - "Sound{sound=block.lava.pop, volume=2, noise=0.1}"
   Reload:
     Trigger:
       Main_Hand: "SWAP_HANDS"
       Off_Hand: "SWAP_HANDS"
     Magazine_Size: 135
     Reload_Duration: 100
+    Start_Mechanics:
+      - "Sound{sound=block.piston.contract, volume=1, noise=0.1}"
+    Finish_Mechanics:
+      - "Sound{sound=block.piston.extend, volume=1, noise=0.1}"
   Damage:
     Base_Damage: 10
 
@@ -1369,12 +1603,18 @@ comz_hamr_pap:
     Fully_Automatic_Shots_Per_Second: 10
     Spread:
       Base_Spread: 4
+    Mechanics:
+      - "Sound{sound=entity.ghast.shoot, volume=2, noise=0.1}"
   Reload:
     Trigger:
       Main_Hand: "SWAP_HANDS"
       Off_Hand: "SWAP_HANDS"
     Magazine_Size: 125
     Reload_Duration: 100
+    Start_Mechanics:
+      - "Sound{sound=block.piston.contract, volume=1, noise=0.1}"
+    Finish_Mechanics:
+      - "Sound{sound=block.piston.extend, volume=1, noise=0.1}"
   Damage:
     Base_Damage: 15
 
@@ -1402,12 +1642,18 @@ comz_lsat:
     Fully_Automatic_Shots_Per_Second: 10
     Spread:
       Base_Spread: 4
+    Mechanics:
+      - "Sound{sound=block.lava.pop, volume=2, noise=0.1}"
   Reload:
     Trigger:
       Main_Hand: "SWAP_HANDS"
       Off_Hand: "SWAP_HANDS"
     Magazine_Size: 100
     Reload_Duration: 120
+    Start_Mechanics:
+      - "Sound{sound=block.piston.contract, volume=1, noise=0.1}"
+    Finish_Mechanics:
+      - "Sound{sound=block.piston.extend, volume=1, noise=0.1}"
   Damage:
     Base_Damage: 12
 
@@ -1437,12 +1683,18 @@ comz_lsat_pap:
     Fully_Automatic_Shots_Per_Second: 10
     Spread:
       Base_Spread: 4
+    Mechanics:
+      - "Sound{sound=entity.ghast.shoot, volume=2, noise=0.1}"
   Reload:
     Trigger:
       Main_Hand: "SWAP_HANDS"
       Off_Hand: "SWAP_HANDS"
     Magazine_Size: 100
     Reload_Duration: 120
+    Start_Mechanics:
+      - "Sound{sound=block.piston.contract, volume=1, noise=0.1}"
+    Finish_Mechanics:
+      - "Sound{sound=block.piston.extend, volume=1, noise=0.1}"
   Damage:
     Base_Damage: 16
 
@@ -1470,12 +1722,18 @@ comz_rpd:
     Fully_Automatic_Shots_Per_Second: 10
     Spread:
       Base_Spread: 4
+    Mechanics:
+      - "Sound{sound=block.lava.pop, volume=2, noise=0.1}"
   Reload:
     Trigger:
       Main_Hand: "SWAP_HANDS"
       Off_Hand: "SWAP_HANDS"
     Magazine_Size: 100
     Reload_Duration: 110
+    Start_Mechanics:
+      - "Sound{sound=block.piston.contract, volume=1, noise=0.1}"
+    Finish_Mechanics:
+      - "Sound{sound=block.piston.extend, volume=1, noise=0.1}"
   Damage:
     Base_Damage: 10
 
@@ -1505,12 +1763,18 @@ comz_rpd_pap:
     Fully_Automatic_Shots_Per_Second: 10
     Spread:
       Base_Spread: 4
+    Mechanics:
+      - "Sound{sound=entity.ghast.shoot, volume=2, noise=0.1}"
   Reload:
     Trigger:
       Main_Hand: "SWAP_HANDS"
       Off_Hand: "SWAP_HANDS"
     Magazine_Size: 125
     Reload_Duration: 110
+    Start_Mechanics:
+      - "Sound{sound=block.piston.contract, volume=1, noise=0.1}"
+    Finish_Mechanics:
+      - "Sound{sound=block.piston.extend, volume=1, noise=0.1}"
   Damage:
     Base_Damage: 15
 
@@ -1538,12 +1802,18 @@ comz_mk_48:
     Fully_Automatic_Shots_Per_Second: 10
     Spread:
       Base_Spread: 4
+    Mechanics:
+      - "Sound{sound=block.lava.pop, volume=2, noise=0.1}"
   Reload:
     Trigger:
       Main_Hand: "SWAP_HANDS"
       Off_Hand: "SWAP_HANDS"
     Magazine_Size: 100
     Reload_Duration: 116
+    Start_Mechanics:
+      - "Sound{sound=block.piston.contract, volume=1, noise=0.1}"
+    Finish_Mechanics:
+      - "Sound{sound=block.piston.extend, volume=1, noise=0.1}"
   Damage:
     Base_Damage: 11
 
@@ -1573,12 +1843,18 @@ comz_mk_48_pap:
     Fully_Automatic_Shots_Per_Second: 10
     Spread:
       Base_Spread: 4
+    Mechanics:
+      - "Sound{sound=entity.ghast.shoot, volume=2, noise=0.1}"
   Reload:
     Trigger:
       Main_Hand: "SWAP_HANDS"
       Off_Hand: "SWAP_HANDS"
     Magazine_Size: 125
     Reload_Duration: 116
+    Start_Mechanics:
+      - "Sound{sound=block.piston.contract, volume=1, noise=0.1}"
+    Finish_Mechanics:
+      - "Sound{sound=block.piston.extend, volume=1, noise=0.1}"
   Damage:
     Base_Damage: 16
 
@@ -1606,12 +1882,18 @@ comz_chicom_cqb:
     Fully_Automatic_Shots_Per_Second: 10
     Spread:
       Base_Spread: 4
+    Mechanics:
+      - "Sound{sound=block.lava.pop, volume=2, noise=0.1}"
   Reload:
     Trigger:
       Main_Hand: "SWAP_HANDS"
       Off_Hand: "SWAP_HANDS"
     Magazine_Size: 40
     Reload_Duration: 48
+    Start_Mechanics:
+      - "Sound{sound=block.piston.contract, volume=1, noise=0.1}"
+    Finish_Mechanics:
+      - "Sound{sound=block.piston.extend, volume=1, noise=0.1}"
   Damage:
     Base_Damage: 2
 
@@ -1641,12 +1923,18 @@ comz_chicom_cqb_pap:
     Fully_Automatic_Shots_Per_Second: 10
     Spread:
       Base_Spread: 4
+    Mechanics:
+      - "Sound{sound=entity.ghast.shoot, volume=2, noise=0.1}"
   Reload:
     Trigger:
       Main_Hand: "SWAP_HANDS"
       Off_Hand: "SWAP_HANDS"
     Magazine_Size: 40
     Reload_Duration: 48
+    Start_Mechanics:
+      - "Sound{sound=block.piston.contract, volume=1, noise=0.1}"
+    Finish_Mechanics:
+      - "Sound{sound=block.piston.extend, volume=1, noise=0.1}"
   Damage:
     Base_Damage: 7
 
@@ -1674,12 +1962,18 @@ comz_mp5:
     Fully_Automatic_Shots_Per_Second: 10
     Spread:
       Base_Spread: 4
+    Mechanics:
+      - "Sound{sound=block.lava.pop, volume=2, noise=0.1}"
   Reload:
     Trigger:
       Main_Hand: "SWAP_HANDS"
       Off_Hand: "SWAP_HANDS"
     Magazine_Size: 30
     Reload_Duration: 52
+    Start_Mechanics:
+      - "Sound{sound=block.piston.contract, volume=1, noise=0.1}"
+    Finish_Mechanics:
+      - "Sound{sound=block.piston.extend, volume=1, noise=0.1}"
   Damage:
     Base_Damage: 3
 
@@ -1709,12 +2003,18 @@ comz_mp5_pap:
     Fully_Automatic_Shots_Per_Second: 10
     Spread:
       Base_Spread: 4
+    Mechanics:
+      - "Sound{sound=entity.ghast.shoot, volume=2, noise=0.1}"
   Reload:
     Trigger:
       Main_Hand: "SWAP_HANDS"
       Off_Hand: "SWAP_HANDS"
     Magazine_Size: 40
     Reload_Duration: 52
+    Start_Mechanics:
+      - "Sound{sound=block.piston.contract, volume=1, noise=0.1}"
+    Finish_Mechanics:
+      - "Sound{sound=block.piston.extend, volume=1, noise=0.1}"
   Damage:
     Base_Damage: 7
 
@@ -1742,12 +2042,18 @@ comz_pdw_57:
     Fully_Automatic_Shots_Per_Second: 10
     Spread:
       Base_Spread: 4
+    Mechanics:
+      - "Sound{sound=block.lava.pop, volume=2, noise=0.1}"
   Reload:
     Trigger:
       Main_Hand: "SWAP_HANDS"
       Off_Hand: "SWAP_HANDS"
     Magazine_Size: 50
     Reload_Duration: 56
+    Start_Mechanics:
+      - "Sound{sound=block.piston.contract, volume=1, noise=0.1}"
+    Finish_Mechanics:
+      - "Sound{sound=block.piston.extend, volume=1, noise=0.1}"
   Damage:
     Base_Damage: 2
 
@@ -1777,12 +2083,18 @@ comz_pdw_57_pap:
     Fully_Automatic_Shots_Per_Second: 10
     Spread:
       Base_Spread: 4
+    Mechanics:
+      - "Sound{sound=entity.ghast.shoot, volume=2, noise=0.1}"
   Reload:
     Trigger:
       Main_Hand: "SWAP_HANDS"
       Off_Hand: "SWAP_HANDS"
     Magazine_Size: 50
     Reload_Duration: 56
+    Start_Mechanics:
+      - "Sound{sound=block.piston.contract, volume=1, noise=0.1}"
+    Finish_Mechanics:
+      - "Sound{sound=block.piston.extend, volume=1, noise=0.1}"
   Damage:
     Base_Damage: 6
 
@@ -1810,12 +2122,18 @@ comz_msmc:
     Fully_Automatic_Shots_Per_Second: 10
     Spread:
       Base_Spread: 4
+    Mechanics:
+      - "Sound{sound=block.lava.pop, volume=2, noise=0.1}"
   Reload:
     Trigger:
       Main_Hand: "SWAP_HANDS"
       Off_Hand: "SWAP_HANDS"
     Magazine_Size: 30
     Reload_Duration: 50
+    Start_Mechanics:
+      - "Sound{sound=block.piston.contract, volume=1, noise=0.1}"
+    Finish_Mechanics:
+      - "Sound{sound=block.piston.extend, volume=1, noise=0.1}"
   Damage:
     Base_Damage: 3
 
@@ -1845,12 +2163,18 @@ comz_msmc_pap:
     Fully_Automatic_Shots_Per_Second: 10
     Spread:
       Base_Spread: 4
+    Mechanics:
+      - "Sound{sound=entity.ghast.shoot, volume=2, noise=0.1}"
   Reload:
     Trigger:
       Main_Hand: "SWAP_HANDS"
       Off_Hand: "SWAP_HANDS"
     Magazine_Size: 40
     Reload_Duration: 50
+    Start_Mechanics:
+      - "Sound{sound=block.piston.contract, volume=1, noise=0.1}"
+    Finish_Mechanics:
+      - "Sound{sound=block.piston.extend, volume=1, noise=0.1}"
   Damage:
     Base_Damage: 7
 
@@ -1878,12 +2202,18 @@ comz_skorpion_evo:
     Fully_Automatic_Shots_Per_Second: 10
     Spread:
       Base_Spread: 4
+    Mechanics:
+      - "Sound{sound=block.lava.pop, volume=2, noise=0.1}"
   Reload:
     Trigger:
       Main_Hand: "SWAP_HANDS"
       Off_Hand: "SWAP_HANDS"
     Magazine_Size: 30
     Reload_Duration: 42
+    Start_Mechanics:
+      - "Sound{sound=block.piston.contract, volume=1, noise=0.1}"
+    Finish_Mechanics:
+      - "Sound{sound=block.piston.extend, volume=1, noise=0.1}"
   Damage:
     Base_Damage: 2
 
@@ -1913,12 +2243,18 @@ comz_skorpion_evo_pap:
     Fully_Automatic_Shots_Per_Second: 10
     Spread:
       Base_Spread: 4
+    Mechanics:
+      - "Sound{sound=entity.ghast.shoot, volume=2, noise=0.1}"
   Reload:
     Trigger:
       Main_Hand: "SWAP_HANDS"
       Off_Hand: "SWAP_HANDS"
     Magazine_Size: 40
     Reload_Duration: 42
+    Start_Mechanics:
+      - "Sound{sound=block.piston.contract, volume=1, noise=0.1}"
+    Finish_Mechanics:
+      - "Sound{sound=block.piston.extend, volume=1, noise=0.1}"
   Damage:
     Base_Damage: 6
 
@@ -1946,12 +2282,18 @@ comz_vector_k10:
     Fully_Automatic_Shots_Per_Second: 10
     Spread:
       Base_Spread: 4
+    Mechanics:
+      - "Sound{sound=block.lava.pop, volume=2, noise=0.1}"
   Reload:
     Trigger:
       Main_Hand: "SWAP_HANDS"
       Off_Hand: "SWAP_HANDS"
     Magazine_Size: 40
     Reload_Duration: 64
+    Start_Mechanics:
+      - "Sound{sound=block.piston.contract, volume=1, noise=0.1}"
+    Finish_Mechanics:
+      - "Sound{sound=block.piston.extend, volume=1, noise=0.1}"
   Damage:
     Base_Damage: 2
 
@@ -1981,12 +2323,18 @@ comz_vector_k10_pap:
     Fully_Automatic_Shots_Per_Second: 10
     Spread:
       Base_Spread: 4
+    Mechanics:
+      - "Sound{sound=entity.ghast.shoot, volume=2, noise=0.1}"
   Reload:
     Trigger:
       Main_Hand: "SWAP_HANDS"
       Off_Hand: "SWAP_HANDS"
     Magazine_Size: 50
     Reload_Duration: 64
+    Start_Mechanics:
+      - "Sound{sound=block.piston.contract, volume=1, noise=0.1}"
+    Finish_Mechanics:
+      - "Sound{sound=block.piston.extend, volume=1, noise=0.1}"
   Damage:
     Base_Damage: 6
 
@@ -2014,12 +2362,18 @@ comz_peacekeeper:
     Fully_Automatic_Shots_Per_Second: 10
     Spread:
       Base_Spread: 4
+    Mechanics:
+      - "Sound{sound=block.lava.pop, volume=2, noise=0.1}"
   Reload:
     Trigger:
       Main_Hand: "SWAP_HANDS"
       Off_Hand: "SWAP_HANDS"
     Magazine_Size: 32
     Reload_Duration: 54
+    Start_Mechanics:
+      - "Sound{sound=block.piston.contract, volume=1, noise=0.1}"
+    Finish_Mechanics:
+      - "Sound{sound=block.piston.extend, volume=1, noise=0.1}"
   Damage:
     Base_Damage: 3
 
@@ -2049,12 +2403,18 @@ comz_peacekeeper_pap:
     Fully_Automatic_Shots_Per_Second: 10
     Spread:
       Base_Spread: 4
+    Mechanics:
+      - "Sound{sound=entity.ghast.shoot, volume=2, noise=0.1}"
   Reload:
     Trigger:
       Main_Hand: "SWAP_HANDS"
       Off_Hand: "SWAP_HANDS"
     Magazine_Size: 40
     Reload_Duration: 54
+    Start_Mechanics:
+      - "Sound{sound=block.piston.contract, volume=1, noise=0.1}"
+    Finish_Mechanics:
+      - "Sound{sound=block.piston.extend, volume=1, noise=0.1}"
   Damage:
     Base_Damage: 7
 
@@ -2082,12 +2442,18 @@ comz_barret_50kcal:
     Delay_Between_Shots: 11
     Spread:
       Base_Spread: 2
+    Mechanics:
+      - "Sound{sound=block.lava.pop, volume=2, noise=0.1}"
   Reload:
     Trigger:
       Main_Hand: "SWAP_HANDS"
       Off_Hand: "SWAP_HANDS"
     Magazine_Size: 5
     Reload_Duration: 70
+    Start_Mechanics:
+      - "Sound{sound=block.piston.contract, volume=1, noise=0.1}"
+    Finish_Mechanics:
+      - "Sound{sound=block.piston.extend, volume=1, noise=0.1}"
   Scope:
     Trigger:
       Main_Hand: "LEFT_CLICK"
@@ -2122,12 +2488,18 @@ comz_barret_50kcal_pap:
     Delay_Between_Shots: 10
     Spread:
       Base_Spread: 2
+    Mechanics:
+      - "Sound{sound=entity.ghast.shoot, volume=2, noise=0.1}"
   Reload:
     Trigger:
       Main_Hand: "SWAP_HANDS"
       Off_Hand: "SWAP_HANDS"
     Magazine_Size: 7
     Reload_Duration: 70
+    Start_Mechanics:
+      - "Sound{sound=block.piston.contract, volume=1, noise=0.1}"
+    Finish_Mechanics:
+      - "Sound{sound=block.piston.extend, volume=1, noise=0.1}"
   Scope:
     Trigger:
       Main_Hand: "LEFT_CLICK"
@@ -2160,12 +2532,18 @@ comz_dsr_50:
     Delay_Between_Shots: 16
     Spread:
       Base_Spread: 2
+    Mechanics:
+      - "Sound{sound=block.lava.pop, volume=2, noise=0.1}"
   Reload:
     Trigger:
       Main_Hand: "SWAP_HANDS"
       Off_Hand: "SWAP_HANDS"
     Magazine_Size: 4
     Reload_Duration: 74
+    Start_Mechanics:
+      - "Sound{sound=block.piston.contract, volume=1, noise=0.1}"
+    Finish_Mechanics:
+      - "Sound{sound=block.piston.extend, volume=1, noise=0.1}"
   Scope:
     Trigger:
       Main_Hand: "LEFT_CLICK"
@@ -2200,12 +2578,18 @@ comz_dsr_50_pap:
     Delay_Between_Shots: 16
     Spread:
       Base_Spread: 2
+    Mechanics:
+      - "Sound{sound=entity.ghast.shoot, volume=2, noise=0.1}"
   Reload:
     Trigger:
       Main_Hand: "SWAP_HANDS"
       Off_Hand: "SWAP_HANDS"
     Magazine_Size: 8
     Reload_Duration: 74
+    Start_Mechanics:
+      - "Sound{sound=block.piston.contract, volume=1, noise=0.1}"
+    Finish_Mechanics:
+      - "Sound{sound=block.piston.extend, volume=1, noise=0.1}"
   Scope:
     Trigger:
       Main_Hand: "LEFT_CLICK"
@@ -2238,12 +2622,18 @@ comz_svu_as:
     Delay_Between_Shots: 10
     Spread:
       Base_Spread: 2
+    Mechanics:
+      - "Sound{sound=block.lava.pop, volume=2, noise=0.1}"
   Reload:
     Trigger:
       Main_Hand: "SWAP_HANDS"
       Off_Hand: "SWAP_HANDS"
     Magazine_Size: 12
     Reload_Duration: 60
+    Start_Mechanics:
+      - "Sound{sound=block.piston.contract, volume=1, noise=0.1}"
+    Finish_Mechanics:
+      - "Sound{sound=block.piston.extend, volume=1, noise=0.1}"
   Scope:
     Trigger:
       Main_Hand: "LEFT_CLICK"
@@ -2278,12 +2668,18 @@ comz_svu_as_pap:
     Delay_Between_Shots: 10
     Spread:
       Base_Spread: 2
+    Mechanics:
+      - "Sound{sound=entity.ghast.shoot, volume=2, noise=0.1}"
   Reload:
     Trigger:
       Main_Hand: "SWAP_HANDS"
       Off_Hand: "SWAP_HANDS"
     Magazine_Size: 12
     Reload_Duration: 60
+    Start_Mechanics:
+      - "Sound{sound=block.piston.contract, volume=1, noise=0.1}"
+    Finish_Mechanics:
+      - "Sound{sound=block.piston.extend, volume=1, noise=0.1}"
   Scope:
     Trigger:
       Main_Hand: "LEFT_CLICK"
