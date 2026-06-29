@@ -20,3 +20,5 @@ Core/bin/*
 
 # built resource pack zips
 dist/
+
+.DS_Store
