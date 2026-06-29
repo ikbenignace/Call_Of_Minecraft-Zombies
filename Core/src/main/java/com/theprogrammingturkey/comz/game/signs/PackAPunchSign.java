@@ -126,6 +126,43 @@ public class PackAPunchSign implements IGameSign
 		com.theprogrammingturkey.comz.COMZombies.scheduleTask(6, () -> com.theprogrammingturkey.comz.util.SoundUtil.play(world, location, Sound.ENTITY_PLAYER_LEVELUP.name(), org.bukkit.SoundCategory.MASTER, 1, 1));
 		// Purple burst at the PaP sign — matches the Pack-a-Punch colour scheme.
 		com.theprogrammingturkey.comz.util.ParticleFX.burst(world, location, org.bukkit.Color.PURPLE, 24);
+		playInsertAnimation(player, location, world);
+	}
+
+	/**
+	 * BO2-fidelity: the gun is lowered into the Pack-a-Punch machine and lifted back out upgraded.
+	 * We reuse the player's actual held stack (it already carries the gun's 3D {@code item_model}) on an
+	 * {@link org.bukkit.entity.ItemDisplay}. Pack-gated — without the pack the stack would render as its
+	 * plain base material, so we skip the display entirely and keep the sound/title feedback only.
+	 */
+	private void playInsertAnimation(Player player, Location location, org.bukkit.World world)
+	{
+		if(!com.theprogrammingturkey.comz.util.PackModels.isPackEnabled())
+			return;
+		org.bukkit.inventory.ItemStack gunStack = player.getInventory().getItemInMainHand().clone();
+		if(gunStack.getType().isAir())
+			return;
+
+		Location at = location.clone().add(0.5, 1.2, 0.5);
+		final org.bukkit.entity.ItemDisplay gun = world.spawn(at, org.bukkit.entity.ItemDisplay.class, d ->
+		{
+			d.setItemStack(gunStack);
+			d.setBillboard(org.bukkit.entity.Display.Billboard.FIXED);
+			d.setTransformation(com.theprogrammingturkey.comz.util.ModelDisplay.transform(new org.joml.Vector3f(0f, 0f, 0f), 0.7f, 0f));
+			d.setInterpolationDelay(0);
+		});
+
+		// Lower into the machine, hold while "upgrading", then lift the upgraded gun back out and remove.
+		com.theprogrammingturkey.comz.util.ModelDisplay.animate(gun,
+				com.theprogrammingturkey.comz.util.ModelDisplay.transform(new org.joml.Vector3f(0f, -0.9f, 0f), 0.7f, 0f), 12);
+		com.theprogrammingturkey.comz.COMZombies.scheduleTask(28, () ->
+				com.theprogrammingturkey.comz.util.ModelDisplay.animate(gun,
+						com.theprogrammingturkey.comz.util.ModelDisplay.transform(new org.joml.Vector3f(0f, 0.2f, 0f), 0.7f, 180f), 12));
+		com.theprogrammingturkey.comz.COMZombies.scheduleTask(48, () ->
+		{
+			if(!gun.isDead())
+				gun.remove();
+		});
 	}
 
 	@Override

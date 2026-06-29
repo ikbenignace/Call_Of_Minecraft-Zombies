@@ -188,6 +188,12 @@ public class Game
 	public SignManager signManager;
 
 	/**
+	 * BO2-fidelity layer — spawns/removes the static 3D machine models (PaP, perks, box) that
+	 * stand next to their feature signs. No-op when the resource pack is disabled.
+	 */
+	public MachineModelManager machineModelManager;
+
+	/**
 	 * Scoreboard used to manage players points
 	 */
 	public GameScoreboard scoreboard;
@@ -227,6 +233,7 @@ public class Game
 		questManager = new QuestManager(this);
 		downedPlayerManager = new DownedPlayerManager();
 		signManager = new SignManager(this);
+		machineModelManager = new MachineModelManager(this);
 
 		scoreboard = new GameScoreboard(this);
 	}
@@ -486,6 +493,8 @@ public class Game
 		}
 		nextWave();
 		signManager.updateGame();
+		// BO2-fidelity: stand up the 3D machine models next to their signs (pack-gated, no-op otherwise).
+		machineModelManager.spawnAll();
 		KitManager.giveOutKits(this);
 	}
 
@@ -919,6 +928,7 @@ public class Game
 		}
 
 		boxManager.resetBoxes();
+		machineModelManager.removeAll();
 		perkManager.clearPerks();
 		// Full reset (not just clearDownedPlayers): also wipes per-session solo self-revive uses,
 		// tombstone snapshots and any lingering Who's Who ghost so a re-used Game object starts the

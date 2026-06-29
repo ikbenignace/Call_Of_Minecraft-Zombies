@@ -71,6 +71,7 @@ public class PerkMachineSign implements IGameSign
 		Bukkit.getPluginManager().callEvent(new PlayerPerkPurchaseEvent(player, perk));
 		CommandUtil.sendMessageToPlayer(player, ChatColor.RED + "" + ChatColor.BOLD + "You now have " + perk.toString().toLowerCase() + "!");
 		perk.initialEffect(player);
+		perk.playDrinkAnimation(player);
 		game.perkManager.applyPerkEffect(player, perk);
 
 		PointManager.INSTANCE.takePoints(player, cost);

@@ -46,6 +46,8 @@ public class RandomBox
 	private Weapon weapon;
 	private Item item;
 	private ArmorStand namePlate;
+	/** BO2-fidelity: animated 3D box lid (pack-only). Null when the pack is disabled. */
+	private org.bukkit.entity.ItemDisplay lidDisplay;
 
 
 	public RandomBox(Location loc, BlockFace facing, Game game, String boxId, int cost)
@@ -88,6 +90,8 @@ public class RandomBox
 
 		if(chestLocation != null)
 			COMZombies.nmsUtil.playChestAction(chestLocation, true);
+
+		openLid();
 
 		running = true;
 		weapon = WeaponManager.getRandomWeapon(false, boxGame.getPlayersWeapons(player));
@@ -177,6 +181,35 @@ public class RandomBox
 		boxes.put(this, taskID);
 	}
 
+	/**
+	 * BO2-fidelity: spawn a 3D box lid above the chest and slide/tilt it open. Pack-gated — does
+	 * nothing without the resource pack, so the vanilla chest open (playChestAction) remains the visual.
+	 */
+	private void openLid()
+	{
+		if(chestLocation == null || !com.theprogrammingturkey.comz.util.PackModels.isPackEnabled())
+			return;
+		Location lidLoc = chestLocation.clone().add(0.5, 1.0, 0.5);
+		lidDisplay = com.theprogrammingturkey.comz.util.ModelDisplay.spawnModel(lidLoc.getWorld(), lidLoc, "machine/box_lid", 1.0f, 0f);
+		if(lidDisplay == null)
+			return;
+		// Tilt the lid back ~100° around its rear hinge (X axis) and lift slightly — the "box pops open" beat.
+		org.bukkit.util.Transformation open = new org.bukkit.util.Transformation(
+				new org.joml.Vector3f(0f, 0.15f, 0f),
+				new org.joml.AxisAngle4f((float) Math.toRadians(-100f), 1f, 0f, 0f),
+				new org.joml.Vector3f(1f, 1f, 1f),
+				new org.joml.AxisAngle4f(0f, 0f, 1f, 0f));
+		com.theprogrammingturkey.comz.util.ModelDisplay.animate(lidDisplay, open, 8);
+	}
+
+	/** Remove the box lid display (if any). */
+	private void closeLid()
+	{
+		if(lidDisplay != null && !lidDisplay.isDead())
+			lidDisplay.remove();
+		lidDisplay = null;
+	}
+
 	public boolean canActivate()
 	{
 		return !this.running;
@@ -202,6 +235,7 @@ public class RandomBox
 			item.remove();
 		if(namePlate != null)
 			namePlate.remove();
+		closeLid();
 		if(chestLocation != null)
 			COMZombies.nmsUtil.playChestAction(chestLocation, false);
 		Integer id = RandomBox.boxes.remove(RandomBox.this);
