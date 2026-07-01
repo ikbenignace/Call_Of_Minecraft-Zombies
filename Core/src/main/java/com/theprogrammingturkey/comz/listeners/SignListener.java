@@ -91,6 +91,21 @@ public class SignListener implements Listener
 		GAME_SIGNS.put("easter egg", quest);
 	}
 
+	/**
+	 * Look up the {@link IGameSign} handler registered for a sign type keyword (the text that goes on
+	 * sign line index 1, e.g. {@code "perk machine"}). Returns {@code null} for an unknown keyword.
+	 * <p>
+	 * Exposed so the in-game build-mode tools can place a feature by re-dispatching the exact same
+	 * {@code onChange} logic an admin would trigger by hand-typing a sign — keeping a single source of
+	 * truth for sign formatting and feature registration (box/trap/buildable/etc).
+	 */
+	public static IGameSign getSignHandler(String keyword)
+	{
+		if(keyword == null)
+			return null;
+		return GAME_SIGNS.get(keyword.toLowerCase());
+	}
+
 	@EventHandler(priority = EventPriority.HIGHEST)
 	public void onBlockBreakEvent(BlockBreakEvent event)
 	{

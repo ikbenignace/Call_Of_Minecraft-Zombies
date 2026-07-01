@@ -116,6 +116,20 @@ public class WeaponManager
 		return weaponsToChoose.get(COMZombies.rand.nextInt(weaponsToChoose.size()));
 	}
 
+	/**
+	 * All buyable wall-buy guns: every {@link BasicGun} except the special power-up guns (Death Machine)
+	 * and Pack-a-Punch variants. Used by the in-game build-mode Weapon tool to cycle through placeable
+	 * wall guns. Order matches load order so the list is stable for cycling.
+	 */
+	public static List<BaseGun> getBuyableGuns()
+	{
+		return weapons.stream()
+				.filter(weapon -> weapon instanceof BasicGun)
+				.filter(weapon -> weapon.getWeaponType() != WeaponType.SPECIAL)
+				.map(weapon -> (BaseGun) weapon)
+				.collect(Collectors.toList());
+	}
+
 	public static void listGuns(Player player)
 	{
 		List<BaseGun> guns = weapons.stream().filter(weapon -> weapon instanceof BaseGun).map(weapon -> (BaseGun) weapon).collect(Collectors.toList());
