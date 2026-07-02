@@ -18,6 +18,7 @@ import com.theprogrammingturkey.comz.kits.KitManager;
 import com.theprogrammingturkey.comz.spawning.SpawnPoint;
 import com.theprogrammingturkey.comz.util.BlockUtils;
 import com.theprogrammingturkey.comz.util.CommandUtil;
+import com.theprogrammingturkey.comz.util.PackModels;
 import com.theprogrammingturkey.comz.util.Util;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -271,7 +272,11 @@ public class BuildModeListener implements Listener
 
 		Sign sign = (Sign) signBlock.getState();
 		session.removePreview(signBlock.getLocation());
-		session.addPreview(signBlock.getLocation(), MachineSigns.previewModel(sign));
+		// Only spawn a preview model if THIS player actually has the pack loaded; otherwise the custom
+		// item_model can't resolve client-side and renders as a purple/black missing-model cube. The real
+		// machine model still auto-derives from the sign at game start regardless.
+		if(playerHasPackLoaded(player))
+			session.addPreview(signBlock.getLocation(), MachineSigns.previewModel(sign));
 		manager.actionBar(player, ChatColor.GREEN + "Placed " + ChatColor.stripColor(sign.getLine(1)));
 	}
 
@@ -532,6 +537,15 @@ public class BuildModeListener implements Listener
 		Barrier barrier = new Barrier(game.barrierManager.getNextBarrierNumber(), game);
 		plugin.activeActions.put(player, new BarrierSetupAction(player, game, barrier));
 		msg(player, ChatColor.GOLD + "Barrier setup started — use a wooden sword to select barrier blocks. /zombies cancel to abort.");
+	}
+
+	/**
+	 * True only when the server pack is enabled AND this client has actually loaded it. Guards preview
+	 * model spawning so a builder without the pack never sees purple/black missing-model cubes.
+	 */
+	private boolean playerHasPackLoaded(Player player)
+	{
+		return PackModels.isPackEnabled() && ResourcePackListener.hasPackLoaded(player);
 	}
 
 	private void msg(Player player, String text)
