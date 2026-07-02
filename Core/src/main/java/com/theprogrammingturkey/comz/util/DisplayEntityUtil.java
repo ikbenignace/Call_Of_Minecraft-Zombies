@@ -41,4 +41,21 @@ public final class DisplayEntityUtil
 		});
 		return td;
 	}
+
+	/**
+	 * Spawns a persistent (non-expiring) center-billboarded floating text — used for machine price
+	 * holograms. The caller owns its lifetime and must {@code remove()} it. Null if the world is null.
+	 */
+	public static TextDisplay persistentText(World world, Location loc, String text)
+	{
+		if(world == null)
+			return null;
+		return world.spawn(loc, TextDisplay.class, display ->
+		{
+			display.setText(text);
+			display.setBillboard(Display.Billboard.CENTER);
+			display.setSeeThrough(false);
+			display.setDefaultBackground(false);
+		});
+	}
 }

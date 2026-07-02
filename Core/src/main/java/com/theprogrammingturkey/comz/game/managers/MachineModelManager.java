@@ -1,51 +1,61 @@
 package com.theprogrammingturkey.comz.game.managers;
 
 import com.theprogrammingturkey.comz.COMZombies;
+import com.theprogrammingturkey.comz.config.ConfigManager;
 import com.theprogrammingturkey.comz.game.Game;
 import com.theprogrammingturkey.comz.game.features.PerkType;
+import com.theprogrammingturkey.comz.game.signs.IGameSign;
+import com.theprogrammingturkey.comz.listeners.SignListener;
+import com.theprogrammingturkey.comz.util.DisplayEntityUtil;
 import com.theprogrammingturkey.comz.util.ModelDisplay;
 import com.theprogrammingturkey.comz.util.PackModels;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.BlockState;
 import org.bukkit.block.Sign;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.Directional;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.Interaction;
 import org.bukkit.entity.ItemDisplay;
+import org.bukkit.entity.Player;
+import org.bukkit.entity.TextDisplay;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 /**
- * BO2-fidelity layer: spawns static 3D machine models (Pack-a-Punch, per-perk Perk-a-Cola,
- * mystery box) next to their existing feature signs and tears them down on game end.
+ * BO2-fidelity machines. Each perk / Pack-a-Punch sign becomes a physical machine in front of the
+ * wall: a solid base block (always visible, even without the pack), a 3D {@link ItemDisplay} overlay
+ * that covers the block when the pack is guaranteed for all players, an invisible {@link Interaction}
+ * hitbox so the machine is right-clickable, and a floating price {@link TextDisplay}. Right-clicking
+ * the interaction forwards to the backing sign's buy logic — so the machine works even though the
+ * block now sits in front of (and hides) the sign.
  *
- * <p>Feature signs are not tracked in a central list — they are matched at interact time from sign
- * text (see {@code SignListener}). So at game start we scan the arena's loaded chunk tile-entities
- * (signs are tile entities, so this is cheap — no per-block volume scan) for the relevant sign types
- * and spawn one {@link ItemDisplay} per machine. Every display is remembered for removal.
- *
- * <p>The whole layer is gated behind {@link PackModels#isPackEnabled()}: pack off → nothing spawns
- * and the existing sign-only visuals remain (dual-path).
+ * <p>Spawned at game start by scanning the arena's loaded chunk tile-entities for feature signs, and
+ * fully torn down (entities + restored base blocks) on game end.
  */
 public class MachineModelManager
 {
 	private final Game game;
-	private final List<ItemDisplay> displays = new ArrayList<>();
+	private final List<MachineModel> machines = new ArrayList<>();
+	private final Map<UUID, MachineModel> byInteraction = new HashMap<>();
 
 	public MachineModelManager(Game game)
 	{
 		this.game = game;
 	}
 
-	/** Scan the arena for feature signs and spawn the matching machine models. No-op without a pack. */
+	/** Scan the arena for perk / Pack-a-Punch signs and build a physical machine for each. */
 	public void spawnAll()
 	{
 		removeAll();
-		if(!PackModels.isPackEnabled())
-			return;
 
 		World world = game.arena.getWorld();
 		if(world == null || !game.arena.areMinAndMaxSet())
@@ -59,7 +69,6 @@ public class MachineModelManager
 		int maxCZ = Math.max(min.getBlockZ(), max.getBlockZ()) >> 4;
 
 		for(int cx = minCX; cx <= maxCX; cx++)
-		{
 			for(int cz = minCZ; cz <= maxCZ; cz++)
 			{
 				if(!world.isChunkLoaded(cx, cz))
@@ -73,56 +82,113 @@ public class MachineModelManager
 					trySpawnForSign((Sign) state);
 				}
 			}
-		}
 	}
 
 	private void trySpawnForSign(Sign sign)
 	{
 		String type = ChatColor.stripColor(sign.getLine(1)).trim().toLowerCase();
 		String modelKey;
+		Material base;
+		String label;
 		if(type.equals("pack-a-punch"))
 		{
 			modelKey = "machine/pap";
+			base = Material.LODESTONE;
+			label = ChatColor.LIGHT_PURPLE + "Pack-a-Punch " + ChatColor.YELLOW + "$" + ChatColor.stripColor(sign.getLine(2));
 		}
-		// Mystery box visuals are owned by RandomBox (it knows the adjacent chest location + lid animation).
 		else if(type.equals("perk machine"))
 		{
 			PerkType perk = PerkType.getPerkType(ChatColor.stripColor(sign.getLine(2)));
 			if(perk == null)
 				return;
 			modelKey = perk.getMachineModelKey();
+			base = Material.BARREL;
+			label = ChatColor.AQUA + titleCase(perk.toString()) + ChatColor.YELLOW + " $" + ChatColor.stripColor(sign.getLine(3));
 		}
 		else
 		{
-			return;
+			return; // mystery box owns its own visuals (chest + lid) via RandomBox
 		}
 		if(modelKey == null)
 			return;
 
-		spawn(sign, modelKey);
+		spawn(sign, modelKey, base, label);
 	}
 
-	/**
-	 * Spawn a machine model in front of the wall sign, centred on the block the sign is attached to and
-	 * offset out along the sign's facing so it stands in the open rather than inside the wall.
-	 */
-	private void spawn(Sign sign, String modelKey)
+	/** Build the base block + overlay + interaction + hologram for one machine sign. */
+	private void spawn(Sign sign, String modelKey, Material base, String label)
 	{
 		Location signLoc = sign.getLocation();
+		World world = signLoc.getWorld();
 		BlockFace facing = BlockFace.NORTH;
 		BlockData data = sign.getBlockData();
 		if(data instanceof Directional)
 			facing = ((Directional) data).getFacing();
 
-		float yaw = yawFromFace(facing);
-		Location at = signLoc.clone().add(0.5 + facing.getModX() * 0.4, 0.0, 0.5 + facing.getModZ() * 0.4);
+		// The machine stands on the open block in front of the wall sign.
+		Location baseLoc = signLoc.clone().add(facing.getModX(), 0, facing.getModZ());
+		BlockData original = baseLoc.getBlock().getBlockData();
+		MachineModel machine = new MachineModel(baseLoc, original, signLoc);
 
-		ItemDisplay display = ModelDisplay.spawnModel(signLoc.getWorld(), at, modelKey, 1.0f, yaw);
-		if(display != null)
-			displays.add(display);
+		baseLoc.getBlock().setType(base, false);
+
+		float yaw = yawFromFace(facing);
+		Location centre = baseLoc.clone().add(0.5, 0.0, 0.5);
+
+		// 3D overlay only when the pack is enabled AND forced (so EVERY player has it — a single shared
+		// ItemDisplay would otherwise render as a purple cube for pack-less players). Scaled slightly
+		// >1 so it fully covers the base block.
+		if(PackModels.isPackEnabled() && ConfigManager.getMainConfig().resourcePackForce)
+		{
+			ItemDisplay model = ModelDisplay.spawnModel(world, centre, modelKey, 1.01f, yaw);
+			machine.model = model;
+		}
+
+		// Invisible clickable hitbox covering the block.
+		Interaction interaction = world.spawn(baseLoc.clone().add(0.5, 0.0, 0.5), Interaction.class, i ->
+		{
+			i.setInteractionWidth(1.0f);
+			i.setInteractionHeight(1.0f);
+			i.setResponsive(true);
+		});
+		machine.interaction = interaction;
+		byInteraction.put(interaction.getUniqueId(), machine);
+
+		// Floating price above the machine.
+		TextDisplay hologram = DisplayEntityUtil.persistentText(world, baseLoc.clone().add(0.5, 1.4, 0.5), label);
+		machine.hologram = hologram;
+
+		machines.add(machine);
 	}
 
-	/** Yaw (degrees) so a FIXED display faces outward along {@code face}. */
+	/**
+	 * Right-click on a machine interaction → run the backing sign's buy logic (INGAME only). Returns true
+	 * if the entity was one of our machines and was handled. Called by {@code MachineInteractListener}.
+	 */
+	public boolean handleInteract(Player player, Entity entity)
+	{
+		MachineModel machine = byInteraction.get(entity.getUniqueId());
+		if(machine == null)
+			return false;
+		if(game.getStatus() != Game.GameStatus.INGAME)
+			return true; // it's ours, but nothing to do outside a running game
+
+		BlockState state = machine.signLoc.getBlock().getState();
+		if(!(state instanceof Sign))
+			return true;
+		Sign sign = (Sign) state;
+		IGameSign handler = SignListener.getSignHandler(ChatColor.stripColor(sign.getLine(1)).toLowerCase());
+		if(handler != null)
+			handler.onInteract(game, player, machine.signLoc, sign.getLines());
+		return true;
+	}
+
+	private static String titleCase(String enumName)
+	{
+		String s = enumName.toLowerCase().replace('_', ' ');
+		return s.isEmpty() ? s : Character.toUpperCase(s.charAt(0)) + s.substring(1);
+	}
+
 	private static float yawFromFace(BlockFace face)
 	{
 		switch(face)
@@ -140,20 +206,12 @@ public class MachineModelManager
 		}
 	}
 
-	/** Remove all spawned machine displays. Safe to call repeatedly. */
+	/** Remove all machines: despawn entities and restore base blocks. Safe to call repeatedly. */
 	public void removeAll()
 	{
-		for(ItemDisplay display : displays)
-		{
-			try
-			{
-				if(display != null && !display.isDead())
-					display.remove();
-			} catch(Exception e)
-			{
-				COMZombies.log.warning("Failed to remove a machine model display: " + e.getMessage());
-			}
-		}
-		displays.clear();
+		for(MachineModel machine : machines)
+			machine.remove();
+		machines.clear();
+		byInteraction.clear();
 	}
 }
