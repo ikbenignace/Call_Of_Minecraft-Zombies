@@ -149,6 +149,9 @@ config:
   bank:
     #Tier 3 - percentage fee (0-100) taken off a Bank deposit; the remainder is banked. BO2-style levy. Bank balance persists across games per player UUID.
     depositFeePercent: 10
+  barrier:
+    #Points awarded per barrier repair level (global, not per-barrier). Capped at repairPointsPerLevel * 6 total per barrier.
+    repairPointsPerLevel: 10
   buildable:
     #Tier 4 - Zombie Shield: number of zombie hits the equipped shield absorbs (reduced/no damage) before it breaks and is consumed.
     zombieShieldHits: 5

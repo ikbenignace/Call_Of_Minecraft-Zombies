@@ -372,6 +372,18 @@ public class Game
 		GameManager.INSTANCE.saveAllGames();
 	}
 
+	/**
+	 * Enables the power system for this arena (so {@link #hasPower()} is true and perks/PaP/power-gated
+	 * doors gate on power). Called when a Power sign is placed. Power still starts OFF each game and is
+	 * switched on at runtime via the power sign ({@link #turnOnPower()}).
+	 */
+	public void enablePower(Player player)
+	{
+		powerSetup = true;
+		CommandUtil.sendMessageToPlayer(player, ChatColor.GREEN + "Power enabled for this arena!");
+		GameManager.INSTANCE.saveAllGames();
+	}
+
 	public void showSpawnLocations()
 	{
 		for(SpawnPoint point : spawnManager.getPoints())

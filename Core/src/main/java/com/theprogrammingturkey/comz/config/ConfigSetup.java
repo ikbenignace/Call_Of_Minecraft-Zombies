@@ -242,6 +242,11 @@ public class ConfigSetup
 	 * Tier 2 — Trap: radius (blocks) around the trap center within which zombies are killed.
 	 */
 	public double trapKillRadius;
+	/**
+	 * Points awarded to a player per barrier repair level (global, not per-barrier). Total earned per
+	 * barrier is capped at this * 6 (the six repair stages). BO2-style flat repair reward.
+	 */
+	public int barrierRepairPoints;
 
 	/**
 	 * Tier 4 — Quest: points granted to every player in the arena when the easter-egg
@@ -462,6 +467,7 @@ public class ConfigSetup
 		trapDurationSeconds = plugin.getConfig().getInt("config.trap.durationSeconds", 10);
 		trapCooldownSeconds = plugin.getConfig().getInt("config.trap.cooldownSeconds", 60);
 		trapKillRadius = plugin.getConfig().getDouble("config.trap.killRadius", 4.0);
+		barrierRepairPoints = plugin.getConfig().getInt("config.barrier.repairPointsPerLevel", 10);
 		questCompletionReward = plugin.getConfig().getInt("config.quest.completionReward", 5000);
 		thundergunKnockback = plugin.getConfig().getDouble("config.wonderWeapons.thundergunKnockback", 3.0);
 		wunderwaffeChainCount = plugin.getConfig().getInt("config.wonderWeapons.wunderwaffeChainCount", 5);

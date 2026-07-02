@@ -75,15 +75,32 @@ public class BuildModeListener implements Listener
 		if(tool == null)
 			return;
 
-		// The Door tool is its own mini-editor: clicks select/finalize a door rather than place/remove.
+		// Sneak + right-click an existing [Zombies] sign = edit its price/cost via a chat prompt (any tool).
+		// Checked before tool routing so it wins over e.g. door-finalize (which sneaks a non-sign block).
+		if(event.getAction() == Action.RIGHT_CLICK_BLOCK && player.isSneaking() && isComzSign(clicked))
+		{
+			startPriceEdit(player, session, clicked);
+			return;
+		}
+
+		// The Door/Barrier tools are their own mini-editors: clicks select/finalize rather than place/remove.
 		if(tool == BuildTool.DOOR)
 		{
 			doorInteract(player, session, clicked, event.getAction(), player.isSneaking());
 			return;
 		}
+		if(tool == BuildTool.BARRIER)
+		{
+			barrierInteract(player, session, clicked, event.getAction(), player.isSneaking());
+			return;
+		}
 
 		if(event.getAction() == Action.RIGHT_CLICK_BLOCK)
+		{
+			if(session.onPlaceCooldown()) // debounce rapid double right-clicks placing two things
+				return;
 			place(player, session, tool, clicked, event.getBlockFace());
+		}
 		else if(event.getAction() == Action.LEFT_CLICK_BLOCK)
 			remove(player, session, clicked);
 	}
@@ -179,9 +196,6 @@ public class BuildModeListener implements Listener
 			case SPAWN:
 				placeSpawn(player, session, game, clicked, face);
 				return;
-			case BARRIER:
-				startBarrierWizard(player, game);
-				return;
 			default:
 				placeSignTool(player, session, game, tool, clicked, face);
 		}
@@ -271,6 +285,12 @@ public class BuildModeListener implements Listener
 		}
 
 		Sign sign = (Sign) signBlock.getState();
+
+		// Mystery box needs an adjacent CHEST (RandomBox discovers its chest by scanning neighbours at
+		// start). Place one on the first free adjacent block so the tool drops a FULL box, not just a sign.
+		if(ChatColor.stripColor(sign.getLine(1)).equalsIgnoreCase("Mystery Box"))
+			placeAdjacentChest(signBlock, face);
+
 		session.removePreview(signBlock.getLocation());
 		// Only spawn a preview model if THIS player actually has the pack loaded; otherwise the custom
 		// item_model can't resolve client-side and renders as a purple/black missing-model cube. The real
@@ -420,25 +440,17 @@ public class BuildModeListener implements Listener
 			session.setDoorInProgress(door);
 		}
 
-		if(action == Action.LEFT_CLICK_BLOCK)
-		{
-			if(door.hasDoorLoc(clicked))
-			{
-				door.removeDoorBlock(clicked.getLocation());
-				doorFeedback(player, clicked, door, ChatColor.RED + "Block removed");
-			}
-			return;
-		}
-
-		// RIGHT_CLICK_BLOCK (not sneaking): toggle the block into/out of the door set.
+		// LEFT_CLICK or RIGHT_CLICK both toggle a block into/out of the door set (with a marker block).
 		if(door.hasDoorLoc(clicked))
 		{
 			door.removeDoorBlock(clicked.getLocation());
+			session.restoreMarker(clicked);
 			doorFeedback(player, clicked, door, ChatColor.RED + "Block removed");
 		}
-		else
+		else if(action == Action.RIGHT_CLICK_BLOCK)
 		{
-			door.addDoorBlock(clicked.getLocation());
+			door.addDoorBlock(clicked.getLocation()); // captures real BlockData before we mark it
+			session.addMarker(clicked, Material.LIME_STAINED_GLASS);
 			doorFeedback(player, clicked, door, ChatColor.GREEN + "Block added");
 		}
 	}
@@ -458,6 +470,7 @@ public class BuildModeListener implements Listener
 			return;
 		}
 
+		session.restoreAllMarkers(); // restore the real wall blocks (door stored their data on add)
 		int signs = placeDoorSigns(door);
 		door.setPrice(1000);
 		door.closeDoor();
@@ -476,10 +489,10 @@ public class BuildModeListener implements Listener
 	}
 
 	/**
-	 * Auto-place a Door opening sign on each side of the doorway. The wall the door fills runs along the
-	 * axis with the larger horizontal extent, so players pass through along the other axis — a sign goes
-	 * on the lowest free block on each of those two passage-side faces. {@link Door#closeDoor} fills in the
-	 * sign text. Returns how many signs were placed (0–2).
+	 * Auto-place a Door opening sign in the MIDDLE of each side of the doorway. The wall the door fills
+	 * runs along the axis with the larger horizontal extent, so players pass through along the other axis
+	 * — a sign goes on the centre-most free block of each of those two passage-side faces.
+	 * {@link Door#closeDoor} fills in the sign text. Returns how many signs were placed (0–2).
 	 */
 	private int placeDoorSigns(Door door)
 	{
@@ -501,7 +514,7 @@ public class BuildModeListener implements Listener
 		int placed = 0;
 		for(BlockFace face : faces)
 		{
-			Block spot = lowestFreeNeighbour(blocks, face);
+			Block spot = centreFreeNeighbour(blocks, face);
 			if(spot == null)
 				continue;
 			spot.setType(Material.OAK_WALL_SIGN, false);
@@ -517,26 +530,162 @@ public class BuildModeListener implements Listener
 		return placed;
 	}
 
-	/** Lowest air block adjacent to any door block on {@code face} (a reachable spot for the sign). */
-	private Block lowestFreeNeighbour(List<Block> blocks, BlockFace face)
+	/**
+	 * The air block adjacent (on {@code face}) to the door/window block nearest the selection's 3D centre
+	 * — i.e. a sign in the MIDDLE of the doorway rather than a corner. Null if no face neighbour is free.
+	 */
+	private Block centreFreeNeighbour(List<Block> blocks, BlockFace face)
 	{
+		double cx = 0, cy = 0, cz = 0;
+		for(Block b : blocks)
+		{
+			cx += b.getX();
+			cy += b.getY();
+			cz += b.getZ();
+		}
+		cx /= blocks.size();
+		cy /= blocks.size();
+		cz /= blocks.size();
+
 		Block best = null;
+		double bestDist = Double.MAX_VALUE;
 		for(Block b : blocks)
 		{
 			Block n = b.getRelative(face);
-			if(n.getType().isAir() && (best == null || n.getY() < best.getY()))
+			if(!n.getType().isAir())
+				continue;
+			double d = Math.pow(b.getX() - cx, 2) + Math.pow(b.getY() - cy, 2) + Math.pow(b.getZ() - cz, 2);
+			if(d < bestDist)
+			{
+				bestDist = d;
 				best = n;
+			}
 		}
 		return best;
 	}
 
-	private void startBarrierWizard(Player player, Game game)
+	/**
+	 * Tool-driven barrier editor (mirrors the door tool, stays in build mode). Right-click toggles a
+	 * barrier window block (marker), sneak-right-click finalizes: auto-places the repair sign at the
+	 * centre passage face, links the barrier's spawns to the active room, and registers it. Reward is
+	 * global config (no per-barrier prompt).
+	 */
+	private void barrierInteract(Player player, BuildSession session, Block clicked, Action action, boolean sneaking)
 	{
-		manager.exit(player);
-		COMZombies plugin = COMZombies.getPlugin();
-		Barrier barrier = new Barrier(game.barrierManager.getNextBarrierNumber(), game);
-		plugin.activeActions.put(player, new BarrierSetupAction(player, game, barrier));
-		msg(player, ChatColor.GOLD + "Barrier setup started — use a wooden sword to select barrier blocks. /zombies cancel to abort.");
+		Game game = session.getGame();
+
+		if(action == Action.RIGHT_CLICK_BLOCK && sneaking)
+		{
+			finalizeBarrier(player, session);
+			return;
+		}
+
+		Barrier barrier = session.getBarrierInProgress();
+		if(barrier == null)
+		{
+			barrier = new Barrier(game.barrierManager.getNextBarrierNumber(), game);
+			session.setBarrierInProgress(barrier);
+		}
+
+		if(barrier.hasBarrierLoc(clicked))
+		{
+			barrier.removeBarrierBlock(clicked.getLocation());
+			session.restoreMarker(clicked);
+			manager.actionBar(player, ChatColor.RED + "Block removed" + ChatColor.GRAY + " — " + barrier.getBlocks().size() + " block(s). Sneak-right to finish.");
+			return;
+		}
+
+		barrier.addBarrierBlock(clicked.getLocation()); // captures real BlockData before we mark it
+		session.addMarker(clicked, Material.ORANGE_STAINED_GLASS);
+		clicked.getWorld().spawnParticle(Particle.HAPPY_VILLAGER, clicked.getLocation().add(0.5, 0.5, 0.5), 6, 0.3, 0.3, 0.3, 0);
+		manager.actionBar(player, ChatColor.GREEN + "Block added" + ChatColor.GRAY + " — " + barrier.getBlocks().size() + " block(s). Sneak-right to finish.");
+	}
+
+	private void finalizeBarrier(Player player, BuildSession session)
+	{
+		Barrier barrier = session.getBarrierInProgress();
+		if(barrier == null || barrier.getBlocks().isEmpty())
+		{
+			msg(player, ChatColor.RED + "Select the barrier blocks first (right-click them), then sneak-right-click to finish.");
+			return;
+		}
+
+		// Repair sign at the centre passage face of the window.
+		boolean signOk = placeBarrierRepairSign(session, barrier);
+		// Link the barrier's spawns to the active room (the room the barrier's window feeds).
+		if(session.getActiveRoomDoor() != null)
+			for(SpawnPoint sp : session.getActiveRoomDoor().getSpawnsInRoomDoorLeadsTo())
+				if(sp != null && !barrier.hasSpawnPoint(sp))
+					barrier.addSpawnPoint(sp);
+
+		session.restoreAllMarkers(); // restore the window blocks (barrier stored their real data on add)
+		barrier.getGame().barrierManager.addBarrier(barrier);
+		session.setBarrierInProgress(null);
+
+		msg(player, ChatColor.GREEN + "" + ChatColor.BOLD + "Barrier created" + ChatColor.GREEN + " for " + session.roomLabel() + (signOk ? "" : ChatColor.YELLOW + " (no room for a repair sign — set one manually)"));
+		msg(player, ChatColor.GRAY + "Repair reward per level comes from config (barrier.repairPointsPerLevel).");
+	}
+
+	/** Place the [BarrierRepair] sign on the centre passage-side face of the barrier window. */
+	private boolean placeBarrierRepairSign(BuildSession session, Barrier barrier)
+	{
+		List<Block> blocks = barrier.getBlocks();
+		if(blocks.isEmpty())
+			return false;
+		int minX = Integer.MAX_VALUE, minZ = Integer.MAX_VALUE, maxX = Integer.MIN_VALUE, maxZ = Integer.MIN_VALUE;
+		for(Block b : blocks)
+		{
+			minX = Math.min(minX, b.getX());
+			maxX = Math.max(maxX, b.getX());
+			minZ = Math.min(minZ, b.getZ());
+			maxZ = Math.max(maxZ, b.getZ());
+		}
+		boolean wallAlongX = (maxX - minX) >= (maxZ - minZ);
+		BlockFace face = wallAlongX ? BlockFace.NORTH : BlockFace.WEST;
+		Block spot = centreFreeNeighbour(blocks, face);
+		if(spot == null)
+		{
+			face = wallAlongX ? BlockFace.SOUTH : BlockFace.EAST;
+			spot = centreFreeNeighbour(blocks, face);
+		}
+		if(spot == null)
+			return false;
+		barrier.setRepairLoc(spot.getLocation());
+		barrier.setSignFacing(face);
+		return true;
+	}
+
+	/** Place a CHEST on the first free block adjacent to the mystery-box sign (below, out, then sides). */
+	private void placeAdjacentChest(Block signBlock, BlockFace signFace)
+	{
+		BlockFace[] order = {BlockFace.DOWN, signFace, BlockFace.NORTH, BlockFace.SOUTH, BlockFace.EAST, BlockFace.WEST};
+		for(BlockFace f : order)
+		{
+			Block b = signBlock.getRelative(f);
+			if(b.getType().isAir())
+			{
+				b.setType(Material.CHEST, false);
+				return;
+			}
+		}
+	}
+
+	private boolean isComzSign(Block block)
+	{
+		if(!BlockUtils.isSign(block.getType()))
+			return false;
+		Sign sign = (Sign) block.getState();
+		return ChatColor.stripColor(sign.getLine(0)).equalsIgnoreCase("[Zombies]");
+	}
+
+	/** Begin editing a placed sign's price/cost — the next chat message becomes the new value. */
+	private void startPriceEdit(Player player, BuildSession session, Block signBlock)
+	{
+		session.setPendingPriceSign(signBlock.getLocation());
+		Sign sign = (Sign) signBlock.getState();
+		String type = ChatColor.stripColor(sign.getLine(1));
+		msg(player, ChatColor.GOLD + "Editing " + type + " — type the new price in chat"
+				+ (type.equalsIgnoreCase("Door") ? " (or 'power' to toggle power-gating)" : "") + ". Type 'cancel' to abort.");
 	}
 
 	/**

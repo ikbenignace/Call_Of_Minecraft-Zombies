@@ -92,7 +92,8 @@ public class Barrier implements Runnable
 
 		game.updateBarrierDamage(stage, blocks.keySet());
 		int pointsEarned = earnedPoints.getOrDefault(player, 0);
-		//TODO: Make configurable
+		// Global config reward per repair level (not per-barrier), capped at reward * 6 (the 6 stages).
+		int reward = com.theprogrammingturkey.comz.config.ConfigManager.getMainConfig().barrierRepairPoints;
 		if(pointsEarned < reward * 6)
 		{
 			earnedPoints.put(player, pointsEarned + reward);
@@ -138,6 +139,11 @@ public class Barrier implements Runnable
 	public void addBarrierBlock(Block block, BlockData data)
 	{
 		blocks.put(block, data);
+	}
+
+	public void removeBarrierBlock(Location loc)
+	{
+		blocks.remove(loc.getBlock());
 	}
 
 	public List<Block> getBlocks()

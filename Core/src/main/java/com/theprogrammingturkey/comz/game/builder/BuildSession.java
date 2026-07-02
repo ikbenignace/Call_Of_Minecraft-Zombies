@@ -1,9 +1,13 @@
 package com.theprogrammingturkey.comz.game.builder;
 
 import com.theprogrammingturkey.comz.game.Game;
+import com.theprogrammingturkey.comz.game.features.Barrier;
 import com.theprogrammingturkey.comz.game.features.Door;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
+import org.bukkit.Material;
+import org.bukkit.block.Block;
+import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.ItemDisplay;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -41,6 +45,18 @@ public class BuildSession
 	/** A door currently being block-selected with the Door tool (before it is finalized), or null. */
 	private Door doorInProgress;
 
+	/** A barrier currently being block-selected with the Barrier tool (before finalize), or null. */
+	private Barrier barrierInProgress;
+
+	/** Temporary selection-marker blocks (door/barrier), mapping location → the real BlockData to restore. */
+	private final Map<Location, BlockData> markerOriginals = new HashMap<>();
+
+	/** Debounce so a single right-click can't place two things from one rapid event burst. */
+	private long lastPlaceMs = 0L;
+
+	/** Sign location awaiting a typed price/cost via chat (sneak-right-click price edit), or null. */
+	private Location pendingPriceSign;
+
 	public BuildSession(Player player, Game game)
 	{
 		this.game = game;
@@ -74,6 +90,61 @@ public class BuildSession
 	public void setDoorInProgress(Door door)
 	{
 		this.doorInProgress = door;
+	}
+
+	public Barrier getBarrierInProgress()
+	{
+		return barrierInProgress;
+	}
+
+	public void setBarrierInProgress(Barrier barrier)
+	{
+		this.barrierInProgress = barrier;
+	}
+
+	public Location getPendingPriceSign()
+	{
+		return pendingPriceSign;
+	}
+
+	public void setPendingPriceSign(Location loc)
+	{
+		this.pendingPriceSign = loc;
+	}
+
+	/** True if a place happened within the last 200ms (call to debounce rapid double right-clicks). */
+	public boolean onPlaceCooldown()
+	{
+		long now = System.currentTimeMillis();
+		if(now - lastPlaceMs < 200L)
+			return true;
+		lastPlaceMs = now;
+		return false;
+	}
+
+	/** Turn a block into a bright selection marker, remembering its real data for later restore. */
+	public void addMarker(Block block, Material marker)
+	{
+		if(!markerOriginals.containsKey(block.getLocation()))
+			markerOriginals.put(block.getLocation(), block.getBlockData());
+		block.setType(marker, false);
+	}
+
+	/** Restore one marker block to its real data (on deselect). */
+	public void restoreMarker(Block block)
+	{
+		BlockData data = markerOriginals.remove(block.getLocation());
+		if(data != null)
+			block.setBlockData(data, false);
+	}
+
+	/** Restore every outstanding marker block (on finalize / exit / cancel). */
+	public void restoreAllMarkers()
+	{
+		for(Map.Entry<Location, BlockData> e : markerOriginals.entrySet())
+			if(e.getKey().getWorld() != null)
+				e.getKey().getBlock().setBlockData(e.getValue(), false);
+		markerOriginals.clear();
 	}
 
 	/** Human label for the active room: {@code "Starting room"} or the door id. */

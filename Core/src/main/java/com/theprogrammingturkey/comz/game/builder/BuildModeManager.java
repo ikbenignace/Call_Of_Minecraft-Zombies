@@ -2,11 +2,16 @@ package com.theprogrammingturkey.comz.game.builder;
 
 import com.theprogrammingturkey.comz.game.Game;
 import com.theprogrammingturkey.comz.game.GameManager;
+import com.theprogrammingturkey.comz.game.features.Door;
+import com.theprogrammingturkey.comz.util.BlockUtils;
 import com.theprogrammingturkey.comz.util.CommandUtil;
 import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.ChatColor;
 import org.bukkit.GameMode;
+import org.bukkit.Location;
+import org.bukkit.block.Block;
+import org.bukkit.block.Sign;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -53,6 +58,9 @@ public final class BuildModeManager
 		player.setGameMode(GameMode.ADVENTURE);
 		player.setAllowFlight(true);
 		player.setFlying(true);
+		// Show zombie spawn points as END_PORTAL_FRAME markers so the builder sees them (and can remove
+		// them). Restored on exit. Same mechanism the chat-action spawn editor uses.
+		game.showSpawnLocations();
 		giveToolbar(player, session);
 		player.getInventory().setHeldItemSlot(0);
 
@@ -70,6 +78,8 @@ public final class BuildModeManager
 			return;
 		warnRoomProgressionIssues(player, session);
 		session.removeAllPreviews();
+		session.restoreAllMarkers();
+		session.getGame().resetSpawnLocationBlocks();
 		session.restore(player);
 		GameManager.INSTANCE.saveAllGames();
 		CommandUtil.sendMessageToPlayer(player, ChatColor.GREEN + "Build mode saved & exited.");
@@ -152,5 +162,79 @@ public final class BuildModeManager
 	public void actionBar(Player player, String text)
 	{
 		player.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(text));
+	}
+
+	/** True if this build player is mid price-edit (a sneak-right-click armed a sign for a chat value). */
+	public boolean hasPendingPriceEdit(Player player)
+	{
+		BuildSession session = sessions.get(player.getUniqueId());
+		return session != null && session.getPendingPriceSign() != null;
+	}
+
+	/**
+	 * Apply a chat-typed price to the sign the player armed via sneak-right-click. MUST run on the main
+	 * thread (it edits blocks) — the async chat listener schedules it. Handles the door 'power' keyword.
+	 */
+	public void handlePriceChat(Player player, String message)
+	{
+		BuildSession session = sessions.get(player.getUniqueId());
+		if(session == null)
+			return;
+		Location loc = session.getPendingPriceSign();
+		session.setPendingPriceSign(null);
+		if(loc == null)
+			return;
+
+		if(message.equalsIgnoreCase("cancel"))
+		{
+			CommandUtil.sendMessageToPlayer(player, ChatColor.GRAY + "Price edit cancelled.");
+			return;
+		}
+
+		Block block = loc.getBlock();
+		if(!BlockUtils.isSign(block.getType()) || !ChatColor.stripColor(((Sign) block.getState()).getLine(0)).equalsIgnoreCase("[Zombies]"))
+		{
+			CommandUtil.sendMessageToPlayer(player, ChatColor.RED + "That sign is gone.");
+			return;
+		}
+		Sign sign = (Sign) block.getState();
+		String type = ChatColor.stripColor(sign.getLine(1));
+		Game game = session.getGame();
+
+		if(type.equalsIgnoreCase("Door") && message.equalsIgnoreCase("power"))
+		{
+			Door door = game.doorManager.getDoorFromSign(loc);
+			if(door != null)
+			{
+				door.setPowerRequired(!door.requiresPower());
+				GameManager.INSTANCE.saveAllGames();
+				CommandUtil.sendMessageToPlayer(player, ChatColor.GREEN + "Door power-gating: " + (door.requiresPower() ? "ON (opens only when power is on)" : "OFF"));
+			}
+			return;
+		}
+
+		if(!message.matches("[0-9]{1,5}"))
+		{
+			CommandUtil.sendMessageToPlayer(player, ChatColor.RED + message + " is not a valid price.");
+			return;
+		}
+		int price = Integer.parseInt(message);
+
+		if(type.equalsIgnoreCase("Door"))
+		{
+			Door door = game.doorManager.getDoorFromSign(loc);
+			if(door != null)
+				door.setPrice(price);
+			sign.setLine(3, Integer.toString(price));
+		}
+		else
+		{
+			// Machine cost sits on line 2 or 3 depending on type; rewrite whichever holds the number.
+			int line = ChatColor.stripColor(sign.getLine(2)).matches("[0-9]+") ? 2 : 3;
+			sign.setLine(line, Integer.toString(price));
+		}
+		sign.update(true);
+		GameManager.INSTANCE.saveAllGames();
+		CommandUtil.sendMessageToPlayer(player, ChatColor.GREEN + "Price set to " + price + ".");
 	}
 }

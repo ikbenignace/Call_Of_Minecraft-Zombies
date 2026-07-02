@@ -158,6 +158,11 @@ public class SignListener implements Listener
 		if(event.getClickedBlock() == null)
 			return;
 
+		// Build mode owns all interaction for its players (BuildModeListener handles sign clicks + the
+		// sneak-right price edit); don't run the normal sign-edit / buy path for them.
+		if(com.theprogrammingturkey.comz.game.builder.BuildModeManager.INSTANCE.isInBuild(event.getPlayer()))
+			return;
+
 		COMZombies plugin = COMZombies.getPlugin();
 
 		if(BlockUtils.isSign(event.getClickedBlock().getType()))
