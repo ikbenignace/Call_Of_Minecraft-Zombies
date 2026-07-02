@@ -542,6 +542,9 @@ public class Game
 
 		waveNumber++;
 
+		// Re-arm the per-round power-up drop cap for the new round.
+		powerUpManager.resetRoundDrops();
+
 		// Tier 4 — fire any "reach round N" easter-egg quest step now that the round advanced.
 		questManager.onRoundReached(waveNumber);
 

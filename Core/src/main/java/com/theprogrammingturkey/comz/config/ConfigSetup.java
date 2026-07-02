@@ -163,6 +163,14 @@ public class ConfigSetup
 	 */
 	public int maxPowerUpsOnGround;
 	/**
+	 * 0j — Chance (percent) that a normal zombie kill drops a power-up. BO uses ~2% per kill.
+	 */
+	public int powerUpDropPercentage;
+	/**
+	 * 0j — Maximum power-ups that may drop in a single round (BO caps drops per round ~4). 0 disables the cap.
+	 */
+	public int maxPowerUpsPerRound;
+	/**
 	 * 0j — Whether re-picking a timed power-up refreshes/extends its active timer.
 	 */
 	public boolean powerUpRefreshOnPickup;
@@ -466,6 +474,8 @@ public class ConfigSetup
 		dogRoundEveryX = plugin.getConfig().getInt("config.gameSettings.dogRoundEveryX", 5);
 		dogRoundMaxAmmoDrop = plugin.getConfig().getBoolean("config.gameSettings.dogRoundMaxAmmoDrop", true);
 		maxPowerUpsOnGround = plugin.getConfig().getInt("config.gameSettings.maxPowerUpsOnGround", 4);
+		powerUpDropPercentage = plugin.getConfig().getInt("config.gameSettings.powerUpDropPercentage", 2);
+		maxPowerUpsPerRound = plugin.getConfig().getInt("config.gameSettings.maxPowerUpsPerRound", 4);
 		powerUpRefreshOnPickup = plugin.getConfig().getBoolean("config.gameSettings.powerUpRefreshOnPickup", true);
 		packAPunchRepackEnabled = plugin.getConfig().getBoolean("config.gameSettings.packAPunchRepackEnabled", true);
 		packAPunchRepackCost = plugin.getConfig().getInt("config.gameSettings.packAPunchRepackCost", 2500);

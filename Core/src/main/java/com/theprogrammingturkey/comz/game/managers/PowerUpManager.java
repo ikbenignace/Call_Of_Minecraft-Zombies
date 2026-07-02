@@ -29,12 +29,17 @@ public class PowerUpManager
 {
 	public static List<Entity> currentPowerUps = new ArrayList<>();
 
-	// Default 3% even if an arena has no powerup_settings block (loadAllPowerUps never called) — the
-	// old default of 0 meant such arenas silently never dropped a single power-up.
-	private int dropChance = 3;
+	// Default to the global config chance even if an arena has no powerup_settings block
+	// (loadAllPowerUps never called) — the old default of 0 meant such arenas silently never
+	// dropped a single power-up. Lazily resolved from config on first drop so config changes apply
+	// without a restart, and an arena's own value still wins when set.
+	private int dropChance = -1;
 	private final Map<PowerUp, Boolean> powerups = new HashMap<>();
 	private final Map<Entity, Integer> powerupTasks = new HashMap<>();
 	private final Map<Entity, ArmorStand> powerupNameplates = new HashMap<>();
+
+	/** Number of power-ups dropped in the current round, for the per-round cap. Reset on wave start. */
+	private int droppedThisRound = 0;
 
 	/**
 	 * Pure decision for the ground cap: whether the oldest power-up must be
@@ -74,12 +79,41 @@ public class PowerUpManager
 
 	public void loadAllPowerUps(JsonObject powerUpSettings)
 	{
-		dropChance = CustomConfig.getInt(powerUpSettings, "drop_percentage", 3);
+		dropChance = CustomConfig.getInt(powerUpSettings, "drop_percentage", ConfigManager.getMainConfig().powerUpDropPercentage);
 
-		JsonObject powerUpsJson = powerUpSettings.get("powerups").getAsJsonObject();
-		for(PowerUp powerUp : PowerUp.values())
-			if(powerUp != PowerUp.NONE)
-				powerups.put(powerUp, CustomConfig.getBoolean(powerUpsJson, powerUp.name().toLowerCase(), true));
+		// Harden against a powerup_settings block that exists but lacks a "powerups" object — fall
+		// back to all-enabled (ensureDefaults) rather than NPEing.
+		if(powerUpSettings.has("powerups") && powerUpSettings.get("powerups").isJsonObject())
+		{
+			JsonObject powerUpsJson = powerUpSettings.get("powerups").getAsJsonObject();
+			for(PowerUp powerUp : PowerUp.values())
+				if(powerUp != PowerUp.NONE)
+					powerups.put(powerUp, CustomConfig.getBoolean(powerUpsJson, powerUp.name().toLowerCase(), true));
+		}
+		else
+		{
+			ensureDefaults();
+		}
+	}
+
+	/**
+	 * Resolves the effective drop chance (percent). An arena's own value wins; otherwise the global
+	 * config default ({@code powerUpDropPercentage}, BO ~2%) is used. {@code dropChance} starts at -1
+	 * so this always returns a sensible value even when {@link #loadAllPowerUps} was never called
+	 * (arena with no powerup_settings block).
+	 */
+	private int effectiveDropChance()
+	{
+		return dropChance >= 0 ? dropChance : ConfigManager.getMainConfig().powerUpDropPercentage;
+	}
+
+	/**
+	 * Resets the per-round drop counter. Called by the game on every wave start so the
+	 * {@code maxPowerUpsPerRound} cap re-arms each round.
+	 */
+	public void resetRoundDrops()
+	{
+		droppedThisRound = 0;
 	}
 
 	/**
@@ -125,7 +159,9 @@ public class PowerUpManager
 		// Make the pickup unmistakable: a glowing item (outline through walls) with a themed beam.
 		droppedItem.setGlowing(true);
 		final org.bukkit.Color beamColor = powerUp.getGlowColor();
-		ArmorStand namePlate = (ArmorStand) mob.getWorld().spawnEntity(droppedItem.getLocation().clone().add(0, -1.7, 0), EntityType.ARMOR_STAND);
+		// Spawn the countdown nameplate ABOVE the dropped item (was -1.7 below, which buried it under
+		// the floor in most arenas and made the pickup timer invisible).
+		ArmorStand namePlate = (ArmorStand) mob.getWorld().spawnEntity(droppedItem.getLocation().clone().add(0, 1.2, 0), EntityType.ARMOR_STAND);
 		namePlate.setVisible(false);
 		namePlate.setGravity(false);
 		namePlate.setAI(false);
@@ -189,8 +225,14 @@ public class PowerUpManager
 			return;
 
 		ensureDefaults();
+		// Per-round cap (BO limits drops per round). 0 disables the cap. Guaranteed drops (e.g. the
+		// dog-round Max Ammo via dropPowerUp) bypass this since they don't go through powerUpDrop.
+		int maxPerRound = ConfigManager.getMainConfig().maxPowerUpsPerRound;
+		if(maxPerRound > 0 && droppedThisRound >= maxPerRound)
+			return;
+
 		int chance = COMZombies.rand.nextInt(100);
-		if(chance < dropChance)
+		if(chance < effectiveDropChance())
 		{
 			List<PowerUp> availableRewards = powerups.keySet().stream().filter(powerUp ->
 			{
@@ -203,6 +245,7 @@ public class PowerUpManager
 				return;
 
 			this.dropPowerUp(mob, availableRewards.get(COMZombies.rand.nextInt(availableRewards.size())));
+			droppedThisRound++;
 		}
 	}
 

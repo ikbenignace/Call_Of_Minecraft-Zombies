@@ -88,6 +88,10 @@ config:
     dogRoundEveryX: 5
     #Guarantee a Max Ammo drop when the last dog of a dog round dies (BO behavior).
     dogRoundMaxAmmoDrop: true
+    #Chance (percent) that a normal zombie kill drops a power-up. BO uses ~2% per kill.
+    powerUpDropPercentage: 2
+    #Maximum power-ups that may drop in a single round (BO caps drops per round ~4). 0 disables the cap.
+    maxPowerUpsPerRound: 4
     #Maximum power-ups allowed on the ground at once; oldest is removed beyond this (BO cap ~4).
     maxPowerUpsOnGround: 4
     #Re-picking a timed power-up (Insta-Kill/Double Points/Fire Sale) refreshes/extends its timer (BO behavior).
