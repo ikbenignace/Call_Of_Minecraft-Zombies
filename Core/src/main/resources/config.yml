@@ -84,6 +84,8 @@ config:
     maxGrenades: 4
     #Dogs spawned per player on a dog round (total = dogsPerPlayer * players). BO scales dogs by players, not round.
     dogsPerPlayer: 3
+    #Global default for how often a dog (hellhound) round occurs: a dog round fires every Nth wave (e.g. 5 = every 5th wave). Used as the fallback when an arena's own dog_round_every_x setting is missing/zero/negative, so dog rounds can never be silently disabled by a bad arena value. 0 disables dog rounds globally.
+    dogRoundEveryX: 5
     #Guarantee a Max Ammo drop when the last dog of a dog round dies (BO behavior).
     dogRoundMaxAmmoDrop: true
     #Maximum power-ups allowed on the ground at once; oldest is removed beyond this (BO cap ~4).

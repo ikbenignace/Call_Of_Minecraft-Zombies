@@ -297,6 +297,17 @@ public class SpawnManager
 	}
 
 	/**
+	 * Whether wave {@code wave} should be a dog (hellhound) round, given the configured interval
+	 * {@code dogRoundEveryX}. A dog round fires every Nth wave (e.g. N=5 -> waves 5,10,15...). A
+	 * value of 0 or negative disables dog rounds. Wave 0 is never a dog round (it is the pre-game
+	 * wave). Pure decision extracted for testability.
+	 */
+	public static boolean isDogRound(int wave, int dogRoundEveryX)
+	{
+		return dogRoundEveryX > 0 && wave > 0 && wave % dogRoundEveryX == 0;
+	}
+
+	/**
 	 * Tier 4 — whether {@code wave} is a boss round given the configured cadence. Boss rounds are
 	 * disabled entirely when {@code every <= 0}, and round 0 never triggers one. Pure gate so the
 	 * cadence is unit-testable without a running game.
@@ -515,7 +526,7 @@ public class SpawnManager
 			return RoundSpawnType.BOSS;
 		}
 
-		if(game.getDogRoundEveryX() != -1 && game.getDogRoundEveryX() != 0 && wave % game.getDogRoundEveryX() == 0)
+		if(isDogRound(wave, game.getDogRoundEveryX()))
 		{
 			bossRound = false;
 			dogRound = true;

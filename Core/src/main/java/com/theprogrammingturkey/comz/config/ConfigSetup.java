@@ -219,6 +219,14 @@ public class ConfigSetup
 	public double crawlerSpeedMultiplier;
 
 	/**
+	 * Global default for how often a dog (hellhound) round occurs: a dog round fires every Nth
+	 * wave. Used as the fallback when an arena's own {@code dog_round_every_x} setting is missing,
+	 * zero or negative, so dog rounds can never be silently disabled by a bad/absent arena value.
+	 * 0 disables dog rounds globally.
+	 */
+	public int dogRoundEveryX;
+
+	/**
 	 * Tier 2 — Duration in seconds the Death Machine temporary minigun is held before it
 	 * is removed and the player's inventory is restored.
 	 */
@@ -455,6 +463,7 @@ public class ConfigSetup
 		zombieStuckSeconds = plugin.getConfig().getInt("config.gameSettings.zombieStuckSeconds", 6);
 		zombieStuckMoveThreshold = plugin.getConfig().getDouble("config.gameSettings.zombieStuckMoveThreshold", 1.0);
 		dogsPerPlayer = plugin.getConfig().getInt("config.gameSettings.dogsPerPlayer", 3);
+		dogRoundEveryX = plugin.getConfig().getInt("config.gameSettings.dogRoundEveryX", 5);
 		dogRoundMaxAmmoDrop = plugin.getConfig().getBoolean("config.gameSettings.dogRoundMaxAmmoDrop", true);
 		maxPowerUpsOnGround = plugin.getConfig().getInt("config.gameSettings.maxPowerUpsOnGround", 4);
 		powerUpRefreshOnPickup = plugin.getConfig().getBoolean("config.gameSettings.powerUpRefreshOnPickup", true);

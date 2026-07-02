@@ -1016,7 +1016,12 @@ public class Game
 		maxPlayers = CustomConfig.getInt(arenaSettingsJson, "max_players", 8);
 		teddyBearPercent = CustomConfig.getInt(arenaSettingsJson, "teddy_bear_chance", 100);
 		startingGun = CustomConfig.getString(arenaSettingsJson, "StartingGun", "M1911");
-		dogRoundEveryX = CustomConfig.getInt(arenaSettingsJson, "dog_round_every_x", 5);
+		dogRoundEveryX = CustomConfig.getInt(arenaSettingsJson, "dog_round_every_x", ConfigManager.getMainConfig().dogRoundEveryX);
+		// Fall back to the global default when the arena's value is missing/zero/negative, so dog
+		// rounds can never be silently disabled by a bad or absent arena setting (the cause of
+		// "never see a dog round" even after many rounds). 0 then legitimately disables dogs.
+		if(dogRoundEveryX < 0)
+			dogRoundEveryX = ConfigManager.getMainConfig().dogRoundEveryX;
 		maxAmmoReplishClip = CustomConfig.getBoolean(arenaSettingsJson, "max_ammo_replenish_clip", false);
 
 		forceNight = CustomConfig.getBoolean(arenaSettingsJson, "force_night", false);
@@ -1336,8 +1341,12 @@ public class Game
 			if(mob instanceof Zombie)
 				zombieKilled(player);
 
-			if(spawnManager.getMobsSpawned() <= 0 && spawnManager.getMobsSpawned() == spawnManager.getMobsToSpawn())
+			if(!changingRound && spawnManager.getMobsSpawned() <= 0 && spawnManager.getMobsSpawned() == spawnManager.getMobsToSpawn())
 			{
+				// Note: SpawnManager.removeEntity already drops the guaranteed dog-round Max Ammo and
+				// calls nextWave() when the mob list empties, so guard against re-entering here to
+				// avoid a double Max Ammo drop and a redundant nextWave() (changingRound guards the
+				// wave advance, but the drop was not previously guarded).
 				if(mob instanceof Wolf)
 					powerUpManager.dropPowerUp(mob, PowerUp.MAX_AMMO);
 				nextWave();
@@ -1362,8 +1371,10 @@ public class Game
 			if(mob instanceof Zombie)
 				zombieKilled(player);
 
-			if(spawnManager.getEntities().isEmpty() && spawnManager.getMobsSpawned() == spawnManager.getMobsToSpawn())
+			if(!changingRound && spawnManager.getEntities().isEmpty() && spawnManager.getMobsSpawned() == spawnManager.getMobsToSpawn())
 			{
+				// See the Insta-Kill branch above: removeEntity already handled the dog-round Max
+				// Ammo + nextWave when the list emptied, so guard here to avoid a double drop/advance.
 				if(mob instanceof Wolf)
 					powerUpManager.dropPowerUp(mob, PowerUp.MAX_AMMO);
 				nextWave();
