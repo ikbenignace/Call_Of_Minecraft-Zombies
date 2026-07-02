@@ -18,6 +18,7 @@ import org.bukkit.block.BlockFace;
 import org.bukkit.block.Sign;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.Directional;
+import org.bukkit.block.data.type.Chest;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Item;
@@ -46,8 +47,6 @@ public class RandomBox
 	private Weapon weapon;
 	private Item item;
 	private ArmorStand namePlate;
-	/** BO2-fidelity: animated 3D box lid (pack-only). Null when the pack is disabled. */
-	private org.bukkit.entity.ItemDisplay lidDisplay;
 
 
 	public RandomBox(Location loc, BlockFace facing, Game game, String boxId, int cost)
@@ -91,16 +90,14 @@ public class RandomBox
 		if(chestLocation != null)
 			COMZombies.nmsUtil.playChestAction(chestLocation, true);
 
-		openLid();
-
 		running = true;
 		weapon = WeaponManager.getRandomWeapon(false, boxGame.getPlayersWeapons(player));
 		Location itemLoc;
 
 		if(chestLocation != null)
-			itemLoc = chestLocation.clone().add(.5, 1, .5);
+			itemLoc = getBoxCenterLoc();
 		else
-			itemLoc = boxLoc.clone().add(.5, .2, .5);
+			itemLoc = boxLoc.clone().add(.5, 1.0, .5);
 
 		item = player.getWorld().dropItem(itemLoc, weapon.getStack());
 		namePlate = (ArmorStand) player.getWorld().spawnEntity(itemLoc.clone().add(0, -1.7, 0), EntityType.ARMOR_STAND);
@@ -182,32 +179,59 @@ public class RandomBox
 	}
 
 	/**
-	 * BO2-fidelity: spawn a 3D box lid above the chest and slide/tilt it open. Pack-gated — does
-	 * nothing without the resource pack, so the vanilla chest open (playChestAction) remains the visual.
+	 * Returns the location the spinning weapon should occupy: the horizontal centre of the box's
+	 * chest, one block above it. For a double chest the centre is the midpoint of both halves, so
+	 * the weapon (and its nameplate) sits in the middle of the full chest instead of over one half
+	 * — matching the "weapon appears in the middle of the box" expectation.
 	 */
-	private void openLid()
+	private Location getBoxCenterLoc()
 	{
-		if(chestLocation == null || !com.theprogrammingturkey.comz.util.PackModels.isPackEnabled())
-			return;
-		Location lidLoc = chestLocation.clone().add(0.5, 1.0, 0.5);
-		lidDisplay = com.theprogrammingturkey.comz.util.ModelDisplay.spawnModel(lidLoc.getWorld(), lidLoc, "machine/box_lid", 1.0f, 0f);
-		if(lidDisplay == null)
-			return;
-		// Tilt the lid back ~100° around its rear hinge (X axis) and lift slightly — the "box pops open" beat.
-		org.bukkit.util.Transformation open = new org.bukkit.util.Transformation(
-				new org.joml.Vector3f(0f, 0.15f, 0f),
-				new org.joml.AxisAngle4f((float) Math.toRadians(-100f), 1f, 0f, 0f),
-				new org.joml.Vector3f(1f, 1f, 1f),
-				new org.joml.AxisAngle4f(0f, 0f, 1f, 0f));
-		com.theprogrammingturkey.comz.util.ModelDisplay.animate(lidDisplay, open, 8);
+		Location base = chestLocation.clone();
+		Block chestBlock = chestLocation.getBlock();
+		BlockData data = chestBlock.getBlockData();
+		if(data instanceof Chest chest && chest.getType() != org.bukkit.block.data.type.Chest.Type.SINGLE)
+		{
+			// Double chest: step to the other half via the facing direction and average the two centres.
+			BlockFace other = chest.getFacing();
+			// LEFT/RIGHT halves sit relative to the chest's facing; use the type to pick the offset.
+			org.bukkit.block.data.type.Chest.Type t = chest.getType();
+			if(t == org.bukkit.block.data.type.Chest.Type.LEFT)
+				other = rotateFaceCW(chest.getFacing());
+			else if(t == org.bukkit.block.data.type.Chest.Type.RIGHT)
+				other = rotateFaceCCW(chest.getFacing());
+			Block otherHalf = chestBlock.getRelative(other);
+			if(otherHalf.getType() == Material.CHEST || otherHalf.getType() == Material.TRAPPED_CHEST)
+			{
+				Location a = chestLocation.clone().add(.5, 0, .5);
+				Location b = otherHalf.getLocation().clone().add(.5, 0, .5);
+				base = new Location(chestLocation.getWorld(), (a.getX() + b.getX()) / 2.0, chestLocation.getY(), (a.getZ() + b.getZ()) / 2.0);
+			}
+		}
+		return base.add(0, 1.0, 0);
 	}
 
-	/** Remove the box lid display (if any). */
-	private void closeLid()
+	private static BlockFace rotateFaceCW(BlockFace f)
 	{
-		if(lidDisplay != null && !lidDisplay.isDead())
-			lidDisplay.remove();
-		lidDisplay = null;
+		return switch(f)
+		{
+			case NORTH -> BlockFace.EAST;
+			case EAST -> BlockFace.SOUTH;
+			case SOUTH -> BlockFace.WEST;
+			case WEST -> BlockFace.NORTH;
+			default -> f;
+		};
+	}
+
+	private static BlockFace rotateFaceCCW(BlockFace f)
+	{
+		return switch(f)
+		{
+			case NORTH -> BlockFace.WEST;
+			case WEST -> BlockFace.SOUTH;
+			case SOUTH -> BlockFace.EAST;
+			case EAST -> BlockFace.NORTH;
+			default -> f;
+		};
 	}
 
 	public boolean canActivate()
@@ -235,7 +259,6 @@ public class RandomBox
 			item.remove();
 		if(namePlate != null)
 			namePlate.remove();
-		closeLid();
 		if(chestLocation != null)
 			COMZombies.nmsUtil.playChestAction(chestLocation, false);
 		Integer id = RandomBox.boxes.remove(RandomBox.this);
