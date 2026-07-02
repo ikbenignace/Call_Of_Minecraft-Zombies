@@ -48,7 +48,14 @@ public abstract class RoundSpawner
 	{
 		AttributeInstance attr = mob.getAttribute(Attribute.MOVEMENT_SPEED);
 		if(attr != null)
-			attr.setBaseValue(attr.getValue() * mult);
+		{
+			// Apply the multiplier to the entity's default base value, not the current value.
+			// Reading getValue()/getBaseValue() here would compound if setSpeed were ever called
+			// more than once on the same entity (e.g. the wave>4 fast-zombie pass at 1.25x followed
+			// by a crawler conversion). getDefaultValue() is the vanilla starting speed, so each
+			// call is independent and idempotent.
+			attr.setBaseValue(attr.getDefaultValue() * mult);
+		}
 	}
 
 	public void setMaxHealth(Mob mob, float strength)

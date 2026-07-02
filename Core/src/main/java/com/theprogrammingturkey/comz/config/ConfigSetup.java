@@ -209,6 +209,14 @@ public class ConfigSetup
 	 * Tier 2 — Radius (blocks) around a crawler within which its gas poisons players.
 	 */
 	public double crawlerGasRadius;
+	/**
+	 * Tier 2 — Movement-speed multiplier applied to a crawler (relative to the zombie's normal
+	 * speed). 1.0 = full speed, 0.6 = 60% speed. No slowness potion is stacked on top, so this
+	 * value is the single knob controlling how fast a crawler moves. The previous behaviour
+	 * (0.35 + Slowness IV) left crawlers effectively frozen; the default keeps them clearly
+	 * slower than normal zombies while still able to close distance.
+	 */
+	public double crawlerSpeedMultiplier;
 
 	/**
 	 * Tier 2 — Duration in seconds the Death Machine temporary minigun is held before it
@@ -460,6 +468,7 @@ public class ConfigSetup
 		lastZombieCrawler = plugin.getConfig().getBoolean("config.gameSettings.lastZombieCrawler", true);
 		crawlerHealth = plugin.getConfig().getDouble("config.gameSettings.crawlerHealth", 2.0);
 		crawlerGasRadius = plugin.getConfig().getDouble("config.gameSettings.crawlerGasRadius", 3.0);
+		crawlerSpeedMultiplier = plugin.getConfig().getDouble("config.gameSettings.crawlerSpeedMultiplier", 0.6);
 		deathMachineDurationSeconds = plugin.getConfig().getInt("config.gameSettings.deathMachineDurationSeconds", 30);
 		bonfirePaPCost = plugin.getConfig().getInt("config.gameSettings.bonfirePaPCost", 1000);
 		vultureDropChance = plugin.getConfig().getInt("config.gameSettings.vultureDropChance", 10);

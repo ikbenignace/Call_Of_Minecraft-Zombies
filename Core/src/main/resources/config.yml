@@ -72,6 +72,8 @@ config:
     crawlerHealth: 2.0
     #Radius (blocks) around a crawler within which its toxic gas poisons players.
     crawlerGasRadius: 3.0
+    #Movement-speed multiplier applied to a crawler (1.0 = normal zombie speed, 0.6 = 60% speed). No slowness potion is stacked on top, so this is the single knob controlling crawler speed.
+    crawlerSpeedMultiplier: 0.6
     #Seconds a zombie may make no progress before it teleports to a reachable spawn near a player (fixes stuck/"1 zombie left" hangs). 0 disables.
     zombieStuckSeconds: 6
     #A zombie moving less than this many blocks within a check interval counts as no progress.
