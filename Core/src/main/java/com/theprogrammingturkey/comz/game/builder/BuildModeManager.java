@@ -47,7 +47,12 @@ public final class BuildModeManager
 		BuildSession session = new BuildSession(player, game);
 		sessions.put(player.getUniqueId(), session);
 
+		// ADVENTURE so the player can't accidentally break/place world blocks, plus flight so build mode
+		// feels like a free-cam editor (true spectator can't use inventory or click, so we fake it with
+		// adventure + flight). Clicks and inventory are intercepted by BuildModeListener.
 		player.setGameMode(GameMode.ADVENTURE);
+		player.setAllowFlight(true);
+		player.setFlying(true);
 		giveToolbar(player, session);
 		player.getInventory().setHeldItemSlot(0);
 

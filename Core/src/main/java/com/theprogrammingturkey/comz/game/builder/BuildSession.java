@@ -22,6 +22,8 @@ public class BuildSession
 	private final ItemStack[] savedContents;
 	private final GameMode savedMode;
 	private final int savedHeldSlot;
+	private final boolean savedAllowFlight;
+	private final boolean savedFlying;
 
 	/** Selected variant index per tool, indexed by {@link BuildTool#ordinal()}. */
 	private final int[] variantIndex = new int[BuildTool.values().length];
@@ -45,6 +47,8 @@ public class BuildSession
 		this.savedContents = player.getInventory().getContents();
 		this.savedMode = player.getGameMode();
 		this.savedHeldSlot = player.getInventory().getHeldItemSlot();
+		this.savedAllowFlight = player.getAllowFlight();
+		this.savedFlying = player.isFlying();
 	}
 
 	public Game getGame()
@@ -123,12 +127,16 @@ public class BuildSession
 		previews.clear();
 	}
 
-	/** Restore the player's pre-build inventory, held slot and gamemode. */
+	/** Restore the player's pre-build inventory, held slot, gamemode and flight state. */
 	public void restore(Player player)
 	{
 		player.getInventory().setContents(savedContents);
 		player.getInventory().setHeldItemSlot(savedHeldSlot);
+		// Set gamemode first (switching to/from creative forces allowFlight), then restore the saved flight
+		// state so a survival admin doesn't keep the build-mode flight.
 		player.setGameMode(savedMode);
+		player.setAllowFlight(savedAllowFlight);
+		player.setFlying(savedAllowFlight && savedFlying);
 		player.updateInventory();
 	}
 }
