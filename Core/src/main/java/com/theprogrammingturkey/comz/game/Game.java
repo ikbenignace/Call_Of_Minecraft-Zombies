@@ -1460,6 +1460,39 @@ public class Game
 		return startingGun;
 	}
 
+	// Setters used by the in-game settings GUI (/zombies settings). Callers persist via saveAllGames.
+	public boolean isForceNight()
+	{
+		return forceNight;
+	}
+
+	public void setTeddyBearPercent(int v)
+	{
+		this.teddyBearPercent = Math.max(0, Math.min(100, v));
+	}
+
+	public void setDogRoundEveryX(int v)
+	{
+		this.dogRoundEveryX = Math.max(0, v);
+	}
+
+	public void setMaxAmmoReplenishClip(boolean v)
+	{
+		this.maxAmmoReplishClip = v;
+	}
+
+	public void setForceNight(boolean v)
+	{
+		this.forceNight = v;
+		if(v)
+			forceNight();
+	}
+
+	public void setStartingGun(String gun)
+	{
+		this.startingGun = gun;
+	}
+
 	public void zombieKilled(Player player)
 	{
 		Leaderboard.getPlayerStatFromPlayer(player).incKills();

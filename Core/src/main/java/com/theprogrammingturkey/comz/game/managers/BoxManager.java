@@ -234,6 +234,11 @@ public class BoxManager
 		return multiBox;
 	}
 
+	public void setMultiBox(boolean multiBox)
+	{
+		this.multiBox = multiBox;
+	}
+
 	public Game getGame()
 	{
 		return game;

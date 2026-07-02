@@ -31,6 +31,7 @@ public enum COMZPermission
 	REMOVE_BARRIER(false, "zombies.removebarrier"),
 	ADD_DOOR(false, "zombies.adddoor"),
 	BUILD(false, "zombies.build"),
+	SETTINGS(false, "zombies.settings"),
 	REMOVE_DOOR(false, "zombies.removedoor"),
 	ADD_TELEPORTER(false, "zombies.addteleporter"),
 	REMOVE_TELEPORTER(false, "zombies.removeteleporter"),

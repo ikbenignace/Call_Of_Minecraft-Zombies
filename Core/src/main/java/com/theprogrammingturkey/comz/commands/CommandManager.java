@@ -157,6 +157,12 @@ public class CommandManager implements CommandExecutor, TabExecutor
 		commandList.put("build", new BuildCommand(COMZPermission.BUILD));
 		commandList.put("b", commandList.get("build"));
 
+		// Opens the in-game arena settings GUI:
+		// Perm
+		// - zombies.settings
+		commandList.put("settings", new SettingsCommand(COMZPermission.SETTINGS));
+		commandList.put("sett", commandList.get("settings"));
+
 		// Shows the list of every gun:
 		// Perm
 		// - zombies.listguns
