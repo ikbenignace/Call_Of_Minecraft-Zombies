@@ -17,6 +17,7 @@ import com.theprogrammingturkey.comz.game.features.Barrier;
 import com.theprogrammingturkey.comz.game.features.Door;
 import com.theprogrammingturkey.comz.game.features.PerkType;
 import com.theprogrammingturkey.comz.game.features.PowerUp;
+import com.theprogrammingturkey.comz.game.features.WhosWhoGhost;
 import com.theprogrammingturkey.comz.game.features.RandomBox;
 import com.theprogrammingturkey.comz.game.managers.*;
 import com.theprogrammingturkey.comz.game.weapons.BaseGun;
@@ -734,10 +735,21 @@ public class Game
 	 */
 	public void removePlayer(Player player)
 	{
+		// Tier 3 — Who's Who: if the player leaves mid-ghost, tear down the ghost (cancel its task,
+		// strip glowing/effects) so it can never leak into a later state and the player no longer
+		// appears to hold the ghost's temporary loadout/perks.
+		WhosWhoGhost ghost = downedPlayerManager.getGhost(player);
+		if(ghost != null)
+			ghost.quitCleanup();
+
 		if(downedPlayerManager.isDownedPlayer(player))
 			setDead(player);
 		else if(gamePlayers.containsKey(player))
 			gamePlayers.get(player).setState(PlayerState.LEFT_GAME);
+
+		// Clear any in-game perks so their icons (inventory slots 4-7) don't survive the quit —
+		// matches the expectation that leaving ends your run and its perk state.
+		perkManager.clearPlayersPerks(player);
 
 		resetPlayer(player);
 

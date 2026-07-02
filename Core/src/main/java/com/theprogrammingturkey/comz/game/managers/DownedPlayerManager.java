@@ -276,6 +276,15 @@ public class DownedPlayerManager
 		whosWhoGhosts.remove(player.getUniqueId());
 	}
 
+	/**
+	 * Tier 3 — Who's Who: returns the active ghost for a player, or null if they are not currently
+	 * in ghost mode. Used by the quit/leave path to tear down a ghost that was mid-self-revive.
+	 */
+	public WhosWhoGhost getGhost(Player player)
+	{
+		return whosWhoGhosts.get(player.getUniqueId());
+	}
+
 	public void removeDownedPlayer(Player player)
 	{
 		for(int i = downedPlayers.size() - 1; i >= 0; i--)
