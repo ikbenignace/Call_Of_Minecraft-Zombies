@@ -77,6 +77,8 @@ public class PlayerListener implements Listener
 		Player player = event.getPlayer();
 		Game game = GameManager.INSTANCE.getGame(player);
 		Location toLoc = event.getTo();
+		float DEAD_ZONE = 0.02f;
+
 		if(game == null || toLoc == null)
 			return;
 
@@ -104,6 +106,19 @@ public class PlayerListener implements Listener
 			{
 				player.sendMessage(ChatColor.RED + "" + ChatColor.BOLD + "You Moved! You are no longer reviving " + downedPlayer.getPlayer().getName());
 				downedPlayer.cancelRevive();
+			}
+		}
+
+		//get downed players and show message if nearby
+		for(DownedPlayer dp : game.downedPlayerManager.getDownedPlayers())
+		{
+			if(dp.isPlayerDown())
+			{
+				if(dp.getPlayer().getLocation().distance(player.getLocation()) < 5)
+				{
+					if(!dp.isBeingRevived())
+						player.sendMessage(ChatColor.RED + "" + ChatColor.BOLD + "Revive " + dp.getPlayer().getName() + " by right clicking them!");
+				}
 			}
 		}
 
