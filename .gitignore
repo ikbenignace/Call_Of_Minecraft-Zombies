@@ -21,3 +21,8 @@ Core/bin/*
 # Local SFTP deploy credentials (never commit)
 scripts/deploy.config.ini
 scripts/
+
+# built resource pack zips
+dist/
+
+.DS_Store
