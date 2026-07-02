@@ -61,7 +61,7 @@ public class WhosWhoGhost
 	 * @param range              configured revive range (blocks)
 	 * @param travelledEnough    whether the ghost has already exceeded MIN_TRAVEL_BLOCKS at some point
 	 */
-	static boolean shouldRevive(double distanceFromBody, double range, boolean travelledEnough)
+	public static boolean shouldRevive(double distanceFromBody, double range, boolean travelledEnough)
 	{
 		return travelledEnough && DownedPlayerManager.withinReviveRange(distanceFromBody * distanceFromBody, range);
 	}
