@@ -97,8 +97,6 @@ public class PlayerListener implements Listener
 		if(player.getGameMode() != GameMode.SPECTATOR && game.downedPlayerManager.isDownedPlayer(player) && change.getY() != 0)
 			event.setCancelled(true);
 
-		float DEAD_ZONE = 0.001f;
-
 		DownedPlayer downedPlayer = game.downedPlayerManager.getDownedPlayerForReviver(player);
 		if(downedPlayer != null)
 		{

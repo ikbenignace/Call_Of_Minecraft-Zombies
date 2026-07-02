@@ -305,6 +305,16 @@ public class DownedPlayerManager
 		return null;
 	}
 
+	/**
+	 * Read-only view of every currently-downed player in this game. Used by listeners (e.g. to
+	 * show "revive X" proximity messages). The returned list is an unmodifiable snapshot so callers
+	 * can iterate safely even if downs change concurrently.
+	 */
+	public List<DownedPlayer> getDownedPlayers()
+	{
+		return java.util.Collections.unmodifiableList(downedPlayers);
+	}
+
 	public DownedPlayer getDownedPlayerForReviver(Player player)
 	{
 		for(DownedPlayer dp : downedPlayers)

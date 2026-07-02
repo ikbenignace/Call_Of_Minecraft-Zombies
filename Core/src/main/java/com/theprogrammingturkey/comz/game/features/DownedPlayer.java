@@ -51,7 +51,6 @@ public class DownedPlayer implements Listener
 	private int fireWorksTask = -1;
 	private int reviveTask = -1;
 	private int reviveBarTask = -1;
-	private int reviveCountdownTask = -1;
 
 	/** Down-state visuals: the invisible seat the player rides (sit pose) + the floating revive icon. */
 	private ArmorStand seat;
@@ -266,17 +265,9 @@ public class DownedPlayer implements Listener
 			reviveTime /= 5;
 		startReviveBar(ChatColor.GREEN + "Reviving " + player.getName(), BarColor.GREEN, reviveTime);
 		reviveTask = COMZombies.scheduleTask(reviveTime, this::revivePlayer);
-		reviveCountdownTask = COMZombies.scheduleTask(0, 20, () ->
-		{
-			if(!isBeingRevived)
-				Bukkit.getScheduler().cancelTask(reviveCountdownTask);
-			else
-			{
-				int timeLeft = (reviveTime - downTime) / 20;
-				COMZombies.nmsUtil.sendActionBarMessage(reviver, ChatColor.GREEN + "You are reviving " + ChatColor.DARK_GREEN + player.getName() + ChatColor.GREEN + " in " + ChatColor.DARK_GREEN + timeLeft + ChatColor.GREEN + " seconds!");
-				COMZombies.nmsUtil.sendActionBarMessage(player, ChatColor.GREEN + "You are being revived by " + ChatColor.DARK_GREEN + reviver.getName() + ChatColor.GREEN + " in " + ChatColor.DARK_GREEN + timeLeft + ChatColor.GREEN + " seconds!");
-			}
-		});
+		// Note: the consolidated branch shows revive progress via the boss bar (startReviveBar)
+		// rather than action-bar messages, so the action-bar countdown that the "improved" branch
+		// added (which depended on an NMS method not present here) is intentionally not restored.
 	}
 
 	private void scheduleTask()
