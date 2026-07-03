@@ -26,71 +26,56 @@ public class HellHoundSpawner extends RoundSpawner
 		if(world == null)
 			return null;
 
+		// #125 — Spawn hellhounds at configured, door-aware spawn points (the same way zombies
+		// spawn) rather than scanning an arbitrary radius around a player. The old radius scan
+		// ignored door state, so dogs appeared in locked/unopened areas of the arena. Using the
+		// spawn-point set keeps dogs in reachable areas and respects room progression.
+		List<SpawnPoint> spawnable = new ArrayList<>();
+		for(SpawnPoint p : game.spawnManager.getPoints())
+			if(game.spawnManager.canSpawnPoint(p))
+				spawnable.add(p);
+
 		Player spawnPlayer = game.getPlayersInGame().get(COMZombies.rand.nextInt(game.getPlayersInGame().size()));
+		Location location = null;
 
-		List<Location> possibleSpawns = new ArrayList<>();
-		Location backupLocation = null;
-
-		int radiusMax = 15;
-		int radiusMin = 7;
-
-		for(int x = -radiusMax; x <= radiusMax; x++)
+		if(!spawnable.isEmpty())
 		{
-			for(int z = -radiusMax; z <= radiusMax; z++)
+			// Prefer spawnable points near a random player so dogs converge on the action.
+			SpawnPoint nearest = null;
+			double nearestDist = Double.MAX_VALUE;
+			for(SpawnPoint p : spawnable)
 			{
-				boolean found = false;
-				for(int y = 0; y < 255; y++)
+				double d = p.getLocation().distanceSquared(spawnPlayer.getLocation());
+				if(d < nearestDist)
 				{
-					for(int i = -1; i < 2; i += 2)
-					{
-						if(found)
-							continue;
-						Location spawnLoc = spawnPlayer.getLocation().clone().add(x, y * i, z);
-						if(game.arena.containsBlock(spawnLoc) && !spawnLoc.getBlock().isEmpty() && !spawnLoc.getBlock().isPassable())
-						{
-							spawnLoc.add(0, 1, 0);
-							if(spawnLoc.getBlock().isEmpty() || spawnLoc.getBlock().isPassable())
-							{
-								double dist = spawnLoc.distance(spawnPlayer.getLocation());
-								if(dist <= radiusMax && dist >= radiusMin)
-								{
-									possibleSpawns.add(spawnLoc);
-									found = true;
-									break;
-								}
-								else if(backupLocation == null)
-								{
-									backupLocation = spawnLoc;
-								}
-							}
-						}
-					}
+					nearestDist = d;
+					nearest = p;
 				}
 			}
+			if(nearest != null)
+				location = nearest.getLocation().clone().add(0.5, 0, 0.5);
 		}
-
-		Location location;
-		if(!possibleSpawns.isEmpty())
-			location = possibleSpawns.get(COMZombies.rand.nextInt(possibleSpawns.size()));
-		else
-			location = backupLocation;
 
 		if(location == null)
 			return null;
 
-		location.add(0.5, 0, 0.5);
-
 		world.strikeLightning(location);
 
+		// Capture a final reference for the delayed fire-clear task (the local `location` is
+		// reassigned above so it isn't effectively final).
+		final Location fireCheckLoc = location;
 		COMZombies.scheduleTask(10, () ->
 		{
-			if(location.getBlock().getType().equals(Material.FIRE))
-				BlockUtils.setBlockToAir(location);
+			if(fireCheckLoc.getBlock().getType().equals(Material.FIRE))
+				BlockUtils.setBlockToAir(fireCheckLoc);
 		});
 
 		Wolf wolf = (Wolf) world.spawnEntity(location, EntityType.WOLF);
 		wolf.setFireTicks(99999999);
 		wolf.addPotionEffect(new PotionEffect(PotionEffectType.FIRE_RESISTANCE, 99999, 1, true));
+		// #125 — make the wolf actively hostile so it actually path-finds to and attacks players.
+		// Without setAngry a wild wolf may target a player (setTarget) but not melee it reliably.
+		wolf.setAngry(true);
 		setFollowDistance(wolf, 512);
 
 		float strength = zombieHealth(wave);
@@ -99,13 +84,10 @@ public class HellHoundSpawner extends RoundSpawner
 
 		setSpeed(wolf, 1.15f);
 
-		//Incase they can't get to the player
-		COMZombies.scheduleTask(1200, () ->
-		{
-			if(!wolf.isDead())
-				wolf.remove();
-		});
-
+		// #125 — removed the blanket 60-second auto-remove. The stuck-zombie teleporter in
+		// SpawnManager.checkStuck already handles dogs that can't reach players by teleporting them
+		// to a reachable spawn near the target, so dogs no longer need to vanish on a timer. The old
+		// behaviour killed dogs that simply hadn't reached a player yet, making dog rounds trivial.
 		return wolf;
 	}
 }
