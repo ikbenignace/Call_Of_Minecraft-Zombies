@@ -195,6 +195,12 @@ public class Game
 	public MachineModelManager machineModelManager;
 
 	/**
+	 * Alternative-interaction layer — proximity scan + F-to-buy for doors / machines (replaces the
+	 * need to click world signs). No-op when {@code config.features.proximityBuy} is false.
+	 */
+	public ProximityBuyManager proximityBuyManager;
+
+	/**
 	 * Scoreboard used to manage players points
 	 */
 	public GameScoreboard scoreboard;
@@ -235,6 +241,7 @@ public class Game
 		downedPlayerManager = new DownedPlayerManager();
 		signManager = new SignManager(this);
 		machineModelManager = new MachineModelManager(this);
+		proximityBuyManager = new ProximityBuyManager(this);
 
 		scoreboard = new GameScoreboard(this);
 	}
@@ -508,6 +515,8 @@ public class Game
 		signManager.updateGame();
 		// BO2-fidelity: stand up the 3D machine models next to their signs (pack-gated, no-op otherwise).
 		machineModelManager.spawnAll();
+		// Start the proximity-buy scan so doors/machines can be bought with F (config-gated, no-op off).
+		proximityBuyManager.start();
 		KitManager.giveOutKits(this);
 	}
 
@@ -955,6 +964,7 @@ public class Game
 		}
 
 		boxManager.resetBoxes();
+		proximityBuyManager.stop();
 		machineModelManager.removeAll();
 		perkManager.clearPerks();
 		// Full reset (not just clearDownedPlayers): also wipes per-session solo self-revive uses,

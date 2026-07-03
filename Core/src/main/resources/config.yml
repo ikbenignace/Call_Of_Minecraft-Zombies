@@ -211,3 +211,15 @@ config:
     perkFeedback: true
     #Visual flourish (title + sound) when Pack-a-Punching a gun.
     papFeedback: true
+  features:
+    #Alternative interaction layer: instead of clicking world signs, walk up to a door / machine and
+    #press F (swap hands) to buy. An action-bar prompt appears when you're in range. Barriers are
+    #repaired by holding sneak (always on). Guns still require their wall sign.
+    #Show the action-bar prompt + allow F to buy doors / perk machines when nearby.
+    proximityBuy: true
+    #Keep door [Zombies] price signs visible in the world (classic look). When false, door signs are
+    #removed from the world and the door is bought via proximity + F instead.
+    useDoorSigns: false
+    #Spawn the ephemeral [BarrierRepair] sign on a window when zombies damage it (classic look). When
+    #false, no sign is spawned and the barrier is repaired by holding sneak near it instead.
+    spawnBarrierRepairSign: false

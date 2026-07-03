@@ -4,6 +4,7 @@ import com.theprogrammingturkey.comz.game.Game;
 import com.theprogrammingturkey.comz.game.Game.GameStatus;
 import com.theprogrammingturkey.comz.game.GameManager;
 import com.theprogrammingturkey.comz.game.managers.PlayerWeaponManager;
+import com.theprogrammingturkey.comz.game.managers.ProximityBuyManager;
 import com.theprogrammingturkey.comz.game.weapons.WeaponInstance;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -42,16 +43,37 @@ public class OnInventoryChangeEvent implements Listener
 		if(GameManager.INSTANCE.isPlayerInGame(event.getPlayer()))
 			event.setCancelled(true);
 
-		Game game = GameManager.INSTANCE.getGame(event.getPlayer());
+		Player player = event.getPlayer();
+		Game game = GameManager.INSTANCE.getGame(player);
 		if(game == null || game.getStatus() != GameStatus.INGAME)
 			return;
 
-		if(game.getPlayersWeapons(event.getPlayer()) != null)
+		// Proximity-buy: if the player is standing next to a door / machine (action-bar prompt shown),
+		// F buys it via the existing DoorSign / MachineModelManager paths and we skip the default
+		// held-weapon refresh so the press maps cleanly to "buy". When NOT near a buyable, F keeps its
+		// original behavior (refresh the held weapon's ammo readout).
+		ProximityBuyManager.BuyTarget target = game.proximityBuyManager.consumeBuyTarget(player);
+		if(target != null)
 		{
-			PlayerWeaponManager gunManager = game.getPlayersWeapons(event.getPlayer());
+			if(target.type == ProximityBuyManager.TargetType.DOOR)
+			{
+				com.theprogrammingturkey.comz.game.signs.IGameSign doorHandler = SignListener.getSignHandler("door");
+				if(doorHandler != null && target.location != null)
+					doorHandler.onInteract(game, player, target.location, new String[0]);
+			}
+			else if(target.type == ProximityBuyManager.TargetType.MACHINE && target.location != null)
+			{
+				game.machineModelManager.handleInteractByCentre(player, target.location);
+			}
+			return;
+		}
+
+		if(game.getPlayersWeapons(player) != null)
+		{
+			PlayerWeaponManager gunManager = game.getPlayersWeapons(player);
 			if(gunManager.isHeldItemWeapon())
 			{
-				WeaponInstance weapon = gunManager.getWeapon(event.getPlayer().getInventory().getHeldItemSlot());
+				WeaponInstance weapon = gunManager.getWeapon(player.getInventory().getHeldItemSlot());
 				weapon.updateWeapon();
 			}
 		}

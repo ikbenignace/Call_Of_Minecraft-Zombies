@@ -210,6 +210,17 @@ public class Door
 		for(Map.Entry<Location, BlockData> entry : signs.entrySet())
 		{
 			Block block = entry.getKey().getBlock();
+
+			// When the alternative-interaction layer is on, door price signs are intentionally kept
+			// out of the world (bought via proximity + F instead). The buy-point Location and the
+			// saved sign BlockData stay on this Door, so the proximity scanner and save/load still
+			// work — only the physical sign block is gone.
+			if(!com.theprogrammingturkey.comz.config.ConfigManager.getMainConfig().useDoorSigns)
+			{
+				BlockUtils.setBlockToAir(block);
+				continue;
+			}
+
 			BlockData savedData = entry.getValue();
 
 			// Restore the sign with its saved facing if we have it; otherwise fall back to a plain

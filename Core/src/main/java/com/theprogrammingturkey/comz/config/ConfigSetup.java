@@ -418,6 +418,15 @@ public class ConfigSetup
 	/** Visual flourish (title + sound) when Pack-a-Punching a gun. */
 	public boolean visualsPapFeedback;
 
+	// ---- Alternative interaction layer (proximity + key, vs. world signs) ----------------
+
+	/** Show the action-bar prompt + allow F (swap hands) to buy doors / machines when nearby. */
+	public boolean proximityBuy;
+	/** Keep door [Zombies] price signs visible in the world (classic look). False = bought via F. */
+	public boolean useDoorSigns;
+	/** Spawn the ephemeral [BarrierRepair] sign on damage (classic look). False = sneak-to-repair. */
+	public boolean spawnBarrierRepairSign;
+
 	/**
 	 * WeaponMechanics integration mode. {@code auto} (default) = use WM for mapped guns iff the
 	 * plugin is installed + enabled; {@code off} = always native even if WM is present; {@code force}
@@ -533,6 +542,11 @@ public class ConfigSetup
 		visualsBoxBeam = plugin.getConfig().getBoolean("config.visuals.boxBeam", true);
 		visualsPerkFeedback = plugin.getConfig().getBoolean("config.visuals.perkFeedback", true);
 		visualsPapFeedback = plugin.getConfig().getBoolean("config.visuals.papFeedback", true);
+
+		// ---- Alternative interaction layer (proximity + key, vs. world signs) ----
+		proximityBuy = plugin.getConfig().getBoolean("config.features.proximityBuy", true);
+		useDoorSigns = plugin.getConfig().getBoolean("config.features.useDoorSigns", false);
+		spawnBarrierRepairSign = plugin.getConfig().getBoolean("config.features.spawnBarrierRepairSign", false);
 
 		wmIntegrationMode = plugin.getConfig().getString("config.integration.weaponMechanics", "auto");
 

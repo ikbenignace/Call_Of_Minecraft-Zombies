@@ -170,6 +170,28 @@ public class MachineModelManager
 		MachineModel machine = byInteraction.get(entity.getUniqueId());
 		if(machine == null)
 			return false;
+		return runMachineBuy(player, machine);
+	}
+
+	/**
+	 * Proximity-buy trigger: run the backing sign's buy logic for the machine whose base centre matches
+	 * the given location (as returned by {@link MachineTarget#centre}). Returns true if a machine at
+	 * that location was found and handled. Used by the F-key path in {@code OnInventoryChangeEvent}.
+	 */
+	public boolean handleInteractByCentre(Player player, Location centre)
+	{
+		for(MachineModel m : machines)
+		{
+			Location c = m.baseLoc.clone().add(0.5, 0.5, 0.5);
+			if(c.getBlockX() == centre.getBlockX() && c.getBlockY() == centre.getBlockY() && c.getBlockZ() == centre.getBlockZ()
+					&& c.getWorld() != null && c.getWorld().equals(centre.getWorld()))
+				return runMachineBuy(player, m);
+		}
+		return false;
+	}
+
+	private boolean runMachineBuy(Player player, MachineModel machine)
+	{
 		if(game.getStatus() != Game.GameStatus.INGAME)
 			return true; // it's ours, but nothing to do outside a running game
 
@@ -213,5 +235,51 @@ public class MachineModelManager
 			machine.remove();
 		machines.clear();
 		byInteraction.clear();
+	}
+
+	/**
+	 * Snapshot of a machine for proximity-buy scanning: the centre of its base block (where a player
+	 * must stand to buy it) and its floating price label (already formatted with color + cost).
+	 */
+	public static final class MachineTarget
+	{
+		public final Location centre;
+		public final String label;
+
+		MachineTarget(Location centre, String label)
+		{
+			this.centre = centre;
+			this.label = label;
+		}
+	}
+
+	/**
+	 * Live snapshot of every spawned machine (base centre + price label) for the proximity-buy
+	 * scanner. Empty when machines aren't spawned (e.g. before game start or pack disabled).
+	 */
+	public List<MachineTarget> getMachineTargets()
+	{
+		List<MachineTarget> out = new ArrayList<>(machines.size());
+		for(MachineModel m : machines)
+			out.add(new MachineTarget(m.baseLoc.clone().add(0.5, 0.5, 0.5), labelFor(m)));
+		return out;
+	}
+
+	private String labelFor(MachineModel m)
+	{
+		if(m.hologram != null)
+			return m.hologram.getText(); // already formatted, e.g. "§bJuggernog §e$2500"
+		// Fallback when the hologram was never created (pack-less servers): rebuild from the sign.
+		BlockState state = m.signLoc.getBlock().getState();
+		if(state instanceof Sign)
+		{
+			Sign s = (Sign) state;
+			String type = ChatColor.stripColor(s.getLine(1)).trim().toLowerCase();
+			if(type.equals("pack-a-punch"))
+				return ChatColor.LIGHT_PURPLE + "Pack-a-Punch " + ChatColor.YELLOW + "$" + ChatColor.stripColor(s.getLine(2));
+			if(type.equals("perk machine"))
+				return ChatColor.AQUA + ChatColor.stripColor(s.getLine(2)) + ChatColor.YELLOW + " $" + ChatColor.stripColor(s.getLine(3));
+		}
+		return ChatColor.AQUA + "Machine";
 	}
 }

@@ -65,7 +65,12 @@ public class Barrier implements Runnable
 		}
 		else
 		{
-			if(stage > -1)
+			// The [BarrierRepair] sign is the classic "break-to-repair" interaction point. It is also
+			// a common glitch surface (stale signs, double-place, wrong facing). When the alternative
+			// interaction layer is on, skip spawning it entirely — BarrierRepairListener handles
+			// repair via hold-sneak, keyed off repairLoc (not the sign). The repairLoc field itself
+			// is still set/used for the proximity check, only the block is left as air.
+			if(stage > -1 && com.theprogrammingturkey.comz.config.ConfigManager.getMainConfig().spawnBarrierRepairSign)
 			{
 				Block block = repairLoc.getBlock();
 				block.setType(Material.OAK_WALL_SIGN);
