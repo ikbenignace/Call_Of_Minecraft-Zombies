@@ -335,28 +335,45 @@ public class SpawnManager
 
 		int playersSize = game.getPlayersInGame().size();
 
+		// Truly no spawn points configured for this arena — a setup error, not a temporary lock.
+		// Only this case ends the game (with the existing message); the all-spawns-locked case is
+		// handled below by retrying.
+		if(points.isEmpty())
+		{
+			oopsWeHadAnError();
+			return;
+		}
+
+		// #160 — Pre-compute the spawnable candidate set once. The old loop re-rolled a random point
+		// from the nearest list up to 1000 times and, if none passed canSpawn (e.g. every spawn is
+		// behind a closed door at round 1), ended the game with a "lack of skillez" message. Instead
+		// we filter to the actually-spawnable points up front and pick from those; if none are
+		// spawnable right now we skip this spawn tick and try again shortly rather than killing the
+		// game. This makes round 1 robust for arenas whose only spawns are inside the first room
+		// behind a door that opens from the start (or where the door-state isn't yet set).
 		SpawnPoint selectPoint = null;
 		Player player = game.getPlayersInGame().get(COMZombies.rand.nextInt(playersSize));
 
-		List<SpawnPoint> points = getNearestPoints(player.getLocation(), mobsToSpawn);
-		int totalRetries = 0;
-		int curr = 0;
-		while(selectPoint == null)
+		List<SpawnPoint> candidates = points.stream().filter(this::canSpawn).collect(Collectors.toList());
+		if(!candidates.isEmpty())
 		{
-			if(curr == points.size())
-			{
-				player = game.getPlayersInGame().get(COMZombies.rand.nextInt(playersSize));
-				points = getNearestPoints(player.getLocation(), mobsToSpawn / playersSize);
-				curr = 0;
-				continue;
-			}
-			selectPoint = points.get(COMZombies.rand.nextInt(points.size()));
-			if(!(canSpawn(selectPoint)))
-				selectPoint = null;
-			curr++;
-			if(totalRetries > 1000)
-				oopsWeHadAnError();
-			totalRetries++;
+			// Bias toward the spawns nearest a random player (keeps zombies spawning near players),
+			// but fall back to any spawnable point if the nearest set is empty.
+			List<SpawnPoint> nearest = getNearestPoints(player.getLocation(), Math.min(mobsToSpawn, candidates.size()));
+			nearest = nearest.stream().filter(this::canSpawn).collect(Collectors.toList());
+			if(!nearest.isEmpty())
+				selectPoint = nearest.get(COMZombies.rand.nextInt(nearest.size()));
+			else
+				selectPoint = candidates.get(COMZombies.rand.nextInt(candidates.size()));
+		}
+
+		if(selectPoint == null)
+		{
+			// No spawnable point right now (all behind closed doors). Don't end the game — retry
+			// shortly. Players opening a door will free up spawns and spawning will resume. Only
+			// warn once per few seconds to avoid log spam.
+			COMZombies.scheduleTask((int) spawnInterval * 20L, () -> smartSpawn(wave));
+			return;
 		}
 
 		final SpawnPoint finalPoint = selectPoint;
@@ -394,6 +411,9 @@ public class SpawnManager
 					checkStuck(mob, nearest);
 				}
 			}
+
+			// #130/#96 — drive barrier breaking by zombie proximity each tick.
+			game.barrierManager.tickBarriers();
 
 			maybeConvertLastZombie();
 
@@ -474,7 +494,29 @@ public class SpawnManager
 
 	private boolean canSpawn(SpawnPoint point)
 	{
+		return canSpawnPoint(point);
+	}
+
+	/**
+	 * #125 — Public door-aware spawn check for a SpawnPoint. Hellhounds use this to avoid spawning
+	 * in locked areas. A point not associated with any door is always spawnable; one inside a
+	 * door's room is only spawnable if that door is open.
+	 */
+	public boolean canSpawnPoint(SpawnPoint point)
+	{
 		if(point == null)
+			return false;
+		return canSpawnAt(point.getLocation());
+	}
+
+	/**
+	 * #125 — Whether a location is spawnable: not contained in any closed door's room. A location
+	 * not associated with any door is always spawnable; one inside a door's room is only spawnable
+	 * if that door is open. Used by the hellhound spawner so dogs don't appear in locked areas.
+	 */
+	public boolean canSpawnAt(Location loc)
+	{
+		if(loc == null)
 			return false;
 		boolean isContained = false;
 		boolean maySpawn = false;
@@ -482,7 +524,7 @@ public class SpawnManager
 		{
 			for(SpawnPoint p : door.getSpawnsInRoomDoorLeadsTo())
 			{
-				if(p.getLocation().equals(point.getLocation()))
+				if(p.getLocation().equals(loc))
 				{
 					if(door.isOpened())
 						maySpawn = true;
@@ -500,8 +542,9 @@ public class SpawnManager
 		if(game.getStatus() != GameStatus.INGAME)
 			return;
 
+		COMZombies.log.log(Level.SEVERE, "Arena '" + game.getName() + "' has no zombie spawn points configured! Ending the game.");
 		for(Player pl : game.getPlayersInGame())
-			pl.sendMessage(ChatColor.RED + "Well..  I guess we had an error trying to pick a spawn point out of the many we had! We'll have to end your game because of our lack of skillez.");
+			pl.sendMessage(ChatColor.RED + "This arena has no zombie spawn points set up! The game cannot continue. Ask an admin to add spawns.");
 		game.endGame();
 	}
 
