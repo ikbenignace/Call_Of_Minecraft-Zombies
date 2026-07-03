@@ -273,6 +273,26 @@ public class ConfigSetup
 	public int barrierRepairPoints;
 
 	/**
+	 * #70 — Ticks between barrier damage stages when a zombie is breaking a barrier. Lower values
+	 * mean zombies break through faster. Defaults to 60 (3 seconds) matching the original hard-coded
+	 * period. Scales down by one tick per round above 1 (see {@link #barrierBreakIntervalMin} floor).
+	 */
+	public int barrierBreakInterval;
+
+	/**
+	 * #70 — Hard floor for the round-scaled barrier break interval, so high rounds never break a
+	 * barrier faster than this many ticks. Prevents instant barriers on very high rounds.
+	 */
+	public int barrierBreakIntervalMin;
+
+	/**
+	 * #130/#96 — How close (in blocks) a zombie must be to a barrier's blocks to start breaking it.
+	 * Replaces the old spawn-point linkage model where only a zombie spawned at a linked point would
+	 * break the barrier. Defaults to 3.
+	 */
+	public double barrierBreakRadius;
+
+	/**
 	 * Tier 4 — Quest: points granted to every player in the arena when the easter-egg
 	 * quest is completed.
 	 */
@@ -505,6 +525,11 @@ public class ConfigSetup
 		trapCooldownSeconds = plugin.getConfig().getInt("config.trap.cooldownSeconds", 60);
 		trapKillRadius = plugin.getConfig().getDouble("config.trap.killRadius", 4.0);
 		barrierRepairPoints = plugin.getConfig().getInt("config.barrier.repairPointsPerLevel", 10);
+		// #70 — configurable + round-scaled barrier break speed.
+		barrierBreakInterval = plugin.getConfig().getInt("config.barrier.breakInterval", 60);
+		barrierBreakIntervalMin = plugin.getConfig().getInt("config.barrier.breakIntervalMin", 20);
+		// #130/#96 — proximity radius for zombie-vs-barrier breaking.
+		barrierBreakRadius = plugin.getConfig().getDouble("config.barrier.breakRadius", 3.0);
 		questCompletionReward = plugin.getConfig().getInt("config.quest.completionReward", 5000);
 		thundergunKnockback = plugin.getConfig().getDouble("config.wonderWeapons.thundergunKnockback", 3.0);
 		wunderwaffeChainCount = plugin.getConfig().getInt("config.wonderWeapons.wunderwaffeChainCount", 5);

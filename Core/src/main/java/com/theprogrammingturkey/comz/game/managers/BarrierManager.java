@@ -17,6 +17,7 @@ import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.entity.Mob;
 import org.bukkit.entity.Player;
 
 import java.util.ArrayList;
@@ -222,5 +223,55 @@ public class BarrierManager
 	{
 		for(Barrier b : barriers)
 			b.repairFull();
+	}
+
+	/**
+	 * #130/#96 — Drives barrier breaking by zombie proximity rather than spawn-point linkage. For
+	 * each intact barrier, if any in-game mob is within {@code barrierBreakRadius} of its blocks,
+	 * breaking starts; when no mob is near, breaking stops. This is called from the periodic
+	 * SpawnManager.update() tick so every barrier is re-evaluated against every live mob.
+	 */
+	public void tickBarriers()
+	{
+		if(game.getStatus() != Game.GameStatus.INGAME)
+			return;
+
+		double radius = com.theprogrammingturkey.comz.config.ConfigManager.getMainConfig().barrierBreakRadius;
+		double radiusSq = radius * radius;
+		List<Mob> mobs = game.spawnManager.getEntities();
+
+		for(Barrier barrier : barriers)
+		{
+			// Fully broken barriers have nothing left to break; fully repaired ones can be re-broken
+			// once a zombie approaches again, so only skip barriers already at max damage.
+			if(barrier.getStage() >= 5)
+				continue;
+
+			boolean zombieNear = false;
+			for(Block b : barrier.getBlocks())
+			{
+				Location blockLoc = b.getLocation();
+				for(Mob mob : mobs)
+				{
+					if(mob.isDead())
+						continue;
+					Location mobLoc = mob.getLocation();
+					if(mobLoc.getWorld() == blockLoc.getWorld() && mobLoc.distanceSquared(blockLoc) <= radiusSq)
+					{
+						zombieNear = true;
+						break;
+					}
+				}
+				if(zombieNear)
+					break;
+			}
+
+			if(zombieNear)
+				barrier.startBreaking();
+			else if(!barrier.isBreaking())
+				/* nothing to do, already stopped */;
+			else
+				barrier.stopBreaking();
+		}
 	}
 }

@@ -160,6 +160,12 @@ config:
   barrier:
     #Points awarded per barrier repair level (global, not per-barrier). Capped at repairPointsPerLevel * 6 total per barrier.
     repairPointsPerLevel: 10
+    #Issue #70 — ticks between barrier damage stages when a zombie is breaking it. Lower = faster.
+    #Scales down by one tick per round above 1, down to breakIntervalMin. Original hard-coded value was 60.
+    breakInterval: 60
+    breakIntervalMin: 20
+    #Issue #130/#96 — how close (in blocks) a zombie must be to a barrier's blocks to start breaking it.
+    breakRadius: 3.0
   buildable:
     #Tier 4 - Zombie Shield: number of zombie hits the equipped shield absorbs (reduced/no damage) before it breaks and is consumed.
     zombieShieldHits: 5

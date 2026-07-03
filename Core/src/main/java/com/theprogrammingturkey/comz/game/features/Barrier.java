@@ -12,7 +12,6 @@ import org.bukkit.block.BlockFace;
 import org.bukkit.block.Sign;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.Directional;
-import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 
 import java.util.ArrayList;
@@ -38,7 +37,6 @@ public class Barrier implements Runnable
 
 	private int reward;
 
-	private final List<Entity> ents = new ArrayList<>();
 	private final HashMap<Player, Integer> earnedPoints = new HashMap<>();
 
 	public Barrier(String id, Game game)
@@ -90,6 +88,13 @@ public class Barrier implements Runnable
 
 	public boolean repair(Player player)
 	{
+		// #70 — block the repair-while-being-broken exploit. Players used to be able to spam-repair
+		// (shift-to-repair or sign-break) while zombies were actively breaking the same barrier,
+		// ping-ponging the stage with no lock. While a zombie is actively breaking this barrier,
+		// repairs are rejected so the breaker-out race is no longer winnable by spam.
+		if(breaking)
+			return stage <= -1;
+
 		stage--;
 
 		if(stage < -1)
@@ -233,32 +238,61 @@ public class Barrier implements Runnable
 		return game;
 	}
 
+	/**
+	 * #70 — The barrier break interval (ticks between damage stages). Configurable via
+	 * {@code config.barrier.breakInterval}, and scales down as rounds progress so zombies break
+	 * through faster on higher rounds. Clamped to a minimum so it never becomes instant.
+	 */
+	private int breakIntervalTicks()
+	{
+		com.theprogrammingturkey.comz.config.ConfigSetup cfg = com.theprogrammingturkey.comz.config.ConfigManager.getMainConfig();
+		int base = cfg.barrierBreakInterval;
+		// Round scaling: subtract one tick per round above 1, down to a hard floor. This makes
+		// barriers feel more urgent as the game goes on without a sudden snap.
+		int scaled = base - Math.max(0, game.getWave() - 1);
+		return Math.max(cfg.barrierBreakIntervalMin, scaled);
+	}
+
+	/**
+	 * Drives the barrier-breaking schedule. Each tick damages the barrier one stage if it is still
+	 * intact, then reschedules itself at {@link #breakIntervalTicks()}. Breaking stops when the
+	 * barrier is fully broken (stage >= 5) or when {@link BarrierManager#tickBarriers} clears the
+	 * {@code breaking} flag because no zombie is in proximity any more.
+	 */
 	public void update()
 	{
-		for(int i = 0; i < ents.size(); i++)
-		{
-			Entity ent = ents.get(i);
-			if(ent.isDead())
-			{
-				ents.remove(ent);
-				i--;
-			}
-		}
+		if(!breaking)
+			return;
 
-		if(!ents.isEmpty() && !this.damage())
-			COMZombies.scheduleTask(60, this);
+		if(!this.damage())
+			COMZombies.scheduleTask(breakIntervalTicks(), this);
 		else
 			this.breaking = false;
 	}
 
-	public void initBarrier(Entity ent)
+	/**
+	 * #130/#96 — Starts barrier breaking driven by zombie proximity (called by
+	 * {@link BarrierManager#tickBarriers} when a zombie is near the barrier). Replaces the old
+	 * spawn-point-linked {@code initBarrier(zombie)} model where breaking was tied to the specific
+	 * zombie that spawned at a linked point.
+	 */
+	public void startBreaking()
 	{
-		ents.add(ent);
-		if(this.stage < 6 && !breaking)
-		{
-			this.breaking = true;
-			COMZombies.scheduleTask(60, this);
-		}
+		if(breaking)
+			return;
+		breaking = true;
+		COMZombies.scheduleTask(breakIntervalTicks(), this);
+	}
+
+	/** Stops the proximity-driven breaking (no zombie nearby any more). */
+	public void stopBreaking()
+	{
+		breaking = false;
+	}
+
+	public boolean isBreaking()
+	{
+		return breaking;
 	}
 
 	@Override

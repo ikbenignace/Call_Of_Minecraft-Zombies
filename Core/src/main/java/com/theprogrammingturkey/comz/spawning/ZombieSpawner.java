@@ -3,7 +3,6 @@ package com.theprogrammingturkey.comz.spawning;
 import com.theprogrammingturkey.comz.COMZombies;
 import com.theprogrammingturkey.comz.config.ConfigManager;
 import com.theprogrammingturkey.comz.game.Game;
-import com.theprogrammingturkey.comz.game.features.Barrier;
 import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.entity.EntityType;
@@ -160,9 +159,10 @@ public class ZombieSpawner extends RoundSpawner
 		if(game.getWave() > 4 && COMZombies.rand.nextInt(100) < 20 + (15 * (game.getWave() - 5)))
 			setSpeed(zomb, 1.25f);
 
-		Barrier b = game.barrierManager.getBarrier(loc);
-		if(b != null)
-			b.initBarrier(zomb);
+		// #130/#96 — barrier breaking is now proximity-driven (BarrierManager.tickBarriers checks
+		// which zombies are near each barrier), so we no longer tie a barrier to the specific zombie
+		// that spawned at a linked point. The old initBarrier(zomb) here caused barriers to only break
+		// when their "linked" zombie was alive, leaving adjacent barriers untouched.
 
 		return zomb;
 	}
