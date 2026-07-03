@@ -52,6 +52,11 @@ public class DownedPlayer implements Listener
 	private int reviveTask = -1;
 	private int reviveBarTask = -1;
 
+	/** #143 — wall-clock time (ms) at which the current revive started, for a grace window that
+	 * prevents the "You Moved!" false-cancel triggered by the interact/jitter on the very first
+	 * click. Uses wall-clock rather than server ticks so it is portable across Bukkit API versions. */
+	private long reviveStartMs = 0L;
+
 	/** Down-state visuals: the invisible seat the player rides (sit pose) + the floating revive icon. */
 	private ArmorStand seat;
 	private ItemDisplay reviveIcon;
@@ -86,6 +91,10 @@ public class DownedPlayer implements Listener
 		manager.addWeapon(WeaponManager.getGun(game.getStartingGun()).getNewInstance(player, 1));
 		player.setInvulnerable(true);
 		player.setWalkSpeed(0.02f);
+		// #114 — explicitly stop and lock sprinting while downed. The old code only set a very low
+		// walk speed, which a client-side sprint glitch (especially while riding the down-state
+		// armour-stand seat) could bypass, letting the player sprint at full pace while downed.
+		player.setSprinting(false);
 		applyDownVisuals();
 		scheduleTask();
 	}
@@ -260,6 +269,9 @@ public class DownedPlayer implements Listener
 			Bukkit.getScheduler().cancelTask(reviveTask);
 		this.isBeingRevived = true;
 		this.reviver = reviver;
+		// #143 — record the start time so a brief grace window suppresses the false "You Moved!"
+		// cancel that the right-click interact/jitter would otherwise trigger on the first revive.
+		reviveStartMs = System.currentTimeMillis();
 		int reviveTime = ConfigManager.getMainConfig().reviveTimer * 20;
 		if (game.perkManager.hasPerk(reviver, PerkType.QUICK_REVIVE))
 			reviveTime /= 5;
@@ -277,6 +289,10 @@ public class DownedPlayer implements Listener
 			downTime++;
 			displayDown();
 			player.setHealth(1);
+			// #114 — keep re-asserting sprint-off each tick while downed, in case a client-side
+			// toggle sneaks through. Cheap and stops the downed-but-sprinting glitch reliably.
+			if(player.isSprinting())
+				player.setSprinting(false);
 			if(!bleedoutSuppressed && downTime >= COMZombies.getPlugin().getConfig().getInt("config.ReviveSettings.MaxDownTime"))
 			{
 				player.sendMessage(ChatColor.RED + "" + ChatColor.BOLD + "You have died!");
@@ -326,6 +342,21 @@ public class DownedPlayer implements Listener
 	{
 		return isBeingRevived;
 	}
+
+	/**
+	 * #143 — Whether we are within the revive-start grace window (a few ticks after the revive
+	 * began), during which small movement from the interact/jitter should NOT cancel the revive.
+	 * This kills the false "You Moved!" on the first click.
+	 */
+	public boolean isInReviveGracePeriod()
+	{
+		if(reviveStartMs <= 0 || !isBeingRevived)
+			return false;
+		return (System.currentTimeMillis() - reviveStartMs) <= REVIVE_GRACE_MS;
+	}
+
+	/** Grace window in milliseconds (~5 ticks at 20 tps). */
+	private static final long REVIVE_GRACE_MS = 250L;
 
 	public Player getReviver()
 	{
