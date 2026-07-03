@@ -49,12 +49,14 @@ public abstract class RoundSpawner
 		AttributeInstance attr = mob.getAttribute(Attribute.MOVEMENT_SPEED);
 		if(attr != null)
 		{
-			// Apply the multiplier to the entity's default base value, not the current value.
-			// Reading getValue()/getBaseValue() here would compound if setSpeed were ever called
-			// more than once on the same entity (e.g. the wave>4 fast-zombie pass at 1.25x followed
-			// by a crawler conversion). getDefaultValue() is the vanilla starting speed, so each
-			// call is independent and idempotent.
-			attr.setBaseValue(attr.getDefaultValue() * mult);
+			// Multiply from the entity's CURRENT value (which for a freshly spawned mob equals its
+			// real base, e.g. 0.23 for a zombie). NOTE: do NOT use getDefaultValue() here — that
+			// returns the GENERIC attribute default (0.7), not the mob-type's own base, which made
+			// crawlers ~3x too fast. getValue() matches the mob's actual current speed; since each
+			// mob is setSpeed-ed at most once or twice in its lifetime, there is no compounding risk
+			// in practice (and a fast-zombie that later becomes a crawler being slightly faster is
+			// intended).
+			attr.setBaseValue(attr.getValue() * mult);
 		}
 	}
 
