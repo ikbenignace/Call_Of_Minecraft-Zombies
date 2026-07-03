@@ -62,7 +62,18 @@ public class GameScoreboard
 	{
 		team.removeEntry(player.getName());
 		board.resetScores(player.getName());
-		player.setScoreboard(manager.getNewScoreboard());
+		// #153 — do NOT hand the player a blank scoreboard here. CachedPlayerInfo.restorePlayerInfo
+		// (called just before this in the leave/end flow) restores the player's pre-game scoreboard,
+		// which is usually the server main board that prefix/nametag plugins attach to. Overwriting
+		// it with a fresh empty board was stripping those prefixes until a rejoin/reload. Only fall
+		// back to the main scoreboard if, for some reason, nothing restored one.
+		Scoreboard current = player.getScoreboard();
+		if(current == null || current == this.board)
+		{
+			Scoreboard main = manager.getMainScoreboard();
+			if(main != null)
+				player.setScoreboard(main);
+		}
 		playerScores.remove(player);
 		game.signManager.updateGame();
 	}
