@@ -28,9 +28,9 @@ public class NMSUtil_1_20_R2 implements INMSUtil
 		}
 	}
 
-	public void playBlockBreakAction(List<Player> players, int damage, Block block)
+	public void playBlockBreakAction(List<Player> players, int breakerId, int damage, Block block)
 	{
-		PacketPlayOutBlockBreakAnimation packet = new PacketPlayOutBlockBreakAnimation(0, new BlockPosition(block.getX(), block.getY(), block.getZ()), damage);
+		PacketPlayOutBlockBreakAnimation packet = new PacketPlayOutBlockBreakAnimation(breakerId, new BlockPosition(block.getX(), block.getY(), block.getZ()), damage);
 		for(Player player : players)
 			((CraftPlayer) player).getHandle().c.a(packet);
 	}

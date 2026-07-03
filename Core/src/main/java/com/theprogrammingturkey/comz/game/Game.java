@@ -1559,7 +1559,15 @@ public class Game
 	{
 		List<Player> players = getPlayersAndSpectators();
 		for(Block block : blocks)
-			COMZombies.nmsUtil.playBlockBreakAction(players, damage, block);
+		{
+			// Give each block a stable, unique breaker id so the client tracks each barrier block's
+			// break stage independently. Using the same id (0) for every block made the client
+			// clobber earlier blocks' progress, so not all blocks showed the same breaking level.
+			// The id is derived from the block position and shifted into the high range (10_000+)
+			// so it can never collide with a real entity id the client is tracking.
+			int breakerId = 10_000 + Math.floorMod(block.getX() * 31 * 31 + block.getY() * 31 + block.getZ(), 1_000_000);
+			COMZombies.nmsUtil.playBlockBreakAction(players, breakerId, damage, block);
+		}
 	}
 
 	public boolean isPlayerPlaying(Player player)

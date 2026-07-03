@@ -37,7 +37,7 @@ public class NMSUtil_Modern implements INMSUtil
 	}
 
 	@Override
-	public void playBlockBreakAction(List<Player> players, int damage, Block block)
+	public void playBlockBreakAction(List<Player> players, int breakerId, int damage, Block block)
 	{
 		// "damage" is the vanilla destroy stage: -1 clears the overlay, 0..9 are crack stages.
 		// sendBlockDamage takes progress 0.0 (no damage) .. 1.0 (most damaged); clamping maps
