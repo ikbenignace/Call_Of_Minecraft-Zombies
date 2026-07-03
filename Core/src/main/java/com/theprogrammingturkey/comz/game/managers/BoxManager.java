@@ -234,6 +234,20 @@ public class BoxManager
 		return multiBox;
 	}
 
+	/**
+	 * The boxes that are currently represented in the world (a chest at their location): every box in
+	 * multi-box mode, otherwise just the single active {@link #currentBox}. Used by the proximity-buy
+	 * scanner so F only targets boxes the player can actually see/interact with.
+	 */
+	public List<RandomBox> getActiveBoxes()
+	{
+		if(game.getStatus() != Game.GameStatus.INGAME)
+			return java.util.Collections.emptyList();
+		if(multiBox)
+			return new ArrayList<>(boxes);
+		return currentBox != null ? java.util.Collections.singletonList(currentBox) : java.util.Collections.emptyList();
+	}
+
 	public void setMultiBox(boolean multiBox)
 	{
 		this.multiBox = multiBox;

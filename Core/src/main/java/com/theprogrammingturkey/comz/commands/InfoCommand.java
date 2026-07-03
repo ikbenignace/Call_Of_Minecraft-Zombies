@@ -59,6 +59,8 @@ public class InfoCommand extends SubCommand
 					CommandUtil.sendMessageToPlayer(player, ChatColor.GREEN + "Spawn Rate: " + ChatColor.BLUE + "1 zombie / every " + game.spawnManager.getSpawnInterval() + " second(s)");
 					CommandUtil.sendMessageToPlayer(player, ChatColor.GREEN + "Is double points: " + ChatColor.BLUE + game.isDoublePoints());
 					CommandUtil.sendMessageToPlayer(player, ChatColor.GREEN + "Is insta-kill: " + ChatColor.BLUE + game.isInstaKill());
+					CommandUtil.sendMessageToPlayer(player, ChatColor.GREEN + "Power system enabled: " + ChatColor.BLUE + game.hasPower());
+					CommandUtil.sendMessageToPlayer(player, ChatColor.GREEN + "Power currently on: " + ChatColor.BLUE + game.isPowered());
 				}
 				else if(mode.equalsIgnoreCase("spawns") || mode.equalsIgnoreCase("spawn"))
 				{

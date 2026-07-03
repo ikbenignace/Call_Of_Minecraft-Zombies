@@ -9,7 +9,6 @@ import com.theprogrammingturkey.comz.game.managers.WeaponManager;
 import com.theprogrammingturkey.comz.game.weapons.WeaponInstance;
 import com.theprogrammingturkey.comz.leaderboards.Leaderboard;
 import com.theprogrammingturkey.comz.leaderboards.PlayerStats;
-import com.theprogrammingturkey.comz.spawning.SpawnPoint;
 import com.theprogrammingturkey.comz.util.CommandUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -33,12 +32,14 @@ import java.util.List;
  * <h2>Implementation</h2>
  * Bukkit has no API to clone a player, so we approximate the <em>gameplay</em> of the perk for the
  * solo (1-player) case only: instead of entering the immobile downed state, the lone player stays
- * alive and mobile as a "ghost" but is <strong>teleported away to a spawn point far from where they
- * fell</strong>. The down location is recorded as the "body" they must return to within
- * {@code whosWhoSeconds}. Reaching it revives them (keeping perks); timing out kills them for real
- * and consumes Who's Who. The teleport + a minimum-distance guard on the revive check is what makes
- * this a genuine trip rather than an instant self-revive (the previous implementation left the
- * player standing on their own body, so they revived on the first tick — effectively infinite lives).
+ * alive and mobile as a "ghost" but is <strong>teleported to the arena's player spawn</strong>
+ * ({@code arena.getPlayerTPLocation()} — where players spawn at the start of the game, matching
+ * BO2's fixed clone-spawn behaviour), far from the down location. The down location is recorded
+ * as the "body" they must return to within {@code whosWhoSeconds}. Reaching it revives them
+ * (keeping perks); timing out kills them for real and consumes Who's Who. The teleport + a
+ * minimum-distance guard on the revive check is what makes this a genuine trip rather than an
+ * instant self-revive (the previous implementation left the player standing on their own body,
+ * so they revived on the first tick — effectively infinite lives).
  *
  * <h2>Precedence vs. solo Quick Revive</h2>
  * Who's Who takes over solo-down handling when the player holds it: {@link Game} routes a lone down
@@ -111,10 +112,10 @@ public class WhosWhoGhost
 		savedGuns[2] = weapons.removeWeapon(3);
 		weapons.addWeapon(WeaponManager.getGun(game.getStartingGun()).getNewInstance(player, 1));
 
-		// BO2 fidelity: send the ghost to a spawn point far from the body so reaching it is a real
-		// trip. This is the core fix for the instant-revive loop — without moving the player they
-		// were standing on their own body and revived on the first proximity tick.
-		Location ghostSpawn = pickFarSpawn();
+		// BO2 fidelity: send the ghost to the arena's player spawn (where players spawn at round 1)
+		// so reaching the body is a real trip. This matches BO2's fixed clone-spawn behaviour and
+		// avoids dropping the player on top of a zombie spawn point (which the previous impl did).
+		Location ghostSpawn = pickGhostSpawn();
 		if(ghostSpawn != null)
 			player.teleport(ghostSpawn);
 
@@ -154,32 +155,17 @@ public class WhosWhoGhost
 	}
 
 	/**
-	 * Picks a zombie spawn point as far as possible from the body location, so the ghost has the
-	 * longest realistic trip back. Falls back to the body location only if the arena has no spawn
-	 * points configured (in which case the minimum-travel guard still prevents a true instant revive
-	 * by requiring the player to step away and return — not ideal, but never silently infinite).
+	 * Picks the arena's player spawn ({@code arena.getPlayerTPLocation()} — where players spawn at
+	 * the start of the game) as the ghost's spawn point, matching BO2's fixed clone-spawn behaviour.
+	 * This is a player-friendly, thematic location rather than a zombie spawn point. The run-back
+	 * challenge is preserved because the body can be anywhere on the map. Returns {@code null} only
+	 * if the arena has no player spawn configured (should never happen for a setup-complete arena);
+	 * the {@link #MIN_TRAVEL_BLOCKS} guard still prevents a true instant revive in that fallback by
+	 * requiring the player to step away and return.
 	 */
-	private Location pickFarSpawn()
+	private Location pickGhostSpawn()
 	{
-		List<SpawnPoint> points = game.spawnManager.getPoints();
-		if(points.isEmpty())
-			return null;
-		SpawnPoint farthest = null;
-		double farthestDist = -1;
-		for(SpawnPoint sp : points)
-		{
-			Location l = sp.getLocation();
-			if(l == null || l.getWorld() == null || bodyLocation.getWorld() == null
-					|| !l.getWorld().equals(bodyLocation.getWorld()))
-				continue;
-			double d = l.distanceSquared(bodyLocation);
-			if(d > farthestDist)
-			{
-				farthestDist = d;
-				farthest = sp;
-			}
-		}
-		return farthest != null ? farthest.getLocation() : points.get(0).getLocation();
+		return game.arena.getPlayerTPLocation();
 	}
 
 	/** Squared distance from the ghost to the body, or Double.MAX_VALUE if cross-world. */

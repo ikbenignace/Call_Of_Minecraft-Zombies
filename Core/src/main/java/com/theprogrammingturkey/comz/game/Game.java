@@ -34,12 +34,13 @@ import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.EntityEffect;
 import org.bukkit.GameMode;
-import org.bukkit.GameRule;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Sound;
 import org.bukkit.World;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockState;
+import org.bukkit.block.Sign;
 import org.bukkit.entity.*;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -390,6 +391,42 @@ public class Game
 		powerSetup = true;
 		CommandUtil.sendMessageToPlayer(player, ChatColor.GREEN + "Power enabled for this arena!");
 		GameManager.INSTANCE.saveAllGames();
+	}
+
+	/**
+	 * Scans the arena's loaded chunks for a {@code [Zombies] / Power} sign. Used at load time to
+	 * auto-repair arenas whose power_setup was incorrectly persisted as false (pre-commit-129a260),
+	 * so a power sign that exists in the world always actually enables power. Returns false when no
+	 * such sign is present or the arena bounds / world aren't set up yet.
+	 */
+	private boolean arenaHasPowerSign(World world)
+	{
+		if(world == null || !arena.areMinAndMaxSet())
+			return false;
+		Location min = arena.getMin();
+		Location max = arena.getMax();
+		int minCX = Math.min(min.getBlockX(), max.getBlockX()) >> 4;
+		int maxCX = Math.max(min.getBlockX(), max.getBlockX()) >> 4;
+		int minCZ = Math.min(min.getBlockZ(), max.getBlockZ()) >> 4;
+		int maxCZ = Math.max(min.getBlockZ(), max.getBlockZ()) >> 4;
+		for(int cx = minCX; cx <= maxCX; cx++)
+			for(int cz = minCZ; cz <= maxCZ; cz++)
+			{
+				if(!world.isChunkLoaded(cx, cz))
+					continue;
+				for(BlockState state : world.getChunkAt(cx, cz).getTileEntities())
+				{
+					if(!(state instanceof Sign))
+						continue;
+					if(!arena.containsBlock(state.getLocation()))
+						continue;
+					Sign s = (Sign) state;
+					if(ChatColor.stripColor(s.getLine(0)).equalsIgnoreCase("[Zombies]")
+							&& ChatColor.stripColor(s.getLine(1)).equalsIgnoreCase("Power"))
+						return true;
+				}
+			}
+		return false;
 	}
 
 	public void showSpawnLocations()
@@ -843,8 +880,60 @@ public class Game
 	 */
 	public void forceNight()
 	{
-		arena.getWorld().setGameRule(GameRule.ADVANCE_TIME, false);
-		arena.getWorld().setTime(18000L);
+		// Set the "advance_time" game rule to false by string, NOT via the typed GameRule API.
+		// The GameRule type flipped from interface to class between Paper 26.2 snapshots, so any
+		// reference compiled against one form throws IncompatibleClassChangeError on a server shipping
+		// the other. Reflecting on the World's string-based setGameRule keeps us binary-compatible
+		// across both shapes.
+		World world = arena.getWorld();
+		if(world == null)
+		{
+			COMZombies.log.log(Level.WARNING, "forceNight(): arena '" + arena.getName() + "' has no world yet; skipping.");
+			return;
+		}
+		setGameRuleByName(world, "advance_time", "false");
+		world.setTime(18000L);
+	}
+
+	/**
+	 * Set a game rule by its string name and string value, via reflection on the concrete World impl.
+	 * Falls back to the typed {@code setGameRule(GameRule, Object)} API only if no string overload is
+	 * found at runtime (older servers). Returns true if the rule was set.
+	 */
+	@SuppressWarnings("unchecked")
+	private boolean setGameRuleByName(org.bukkit.World world, String rule, String value)
+	{
+		if(world == null)
+		{
+			COMZombies.log.log(Level.WARNING, "Could not set game rule " + rule + " on a null world.");
+			return false;
+		}
+		try
+		{
+			// Prefer the deprecated (String, String) overload present on CraftWorld.
+			try
+			{
+				java.lang.reflect.Method m = world.getClass().getMethod("setGameRule", String.class, String.class);
+				return (Boolean) m.invoke(world, rule, value);
+			}
+			catch(NoSuchMethodException ignored)
+			{
+			}
+			// Fallback: typed API resolved by name. Resolved via the GameRule class's getByName, but
+			// reached reflectively so we don't statically reference the shifted type.
+			Class<?> gameRuleClass = Class.forName("org.bukkit.GameRule");
+			java.lang.reflect.Method getByName = gameRuleClass.getMethod("getByName", String.class);
+			Object gameRule = getByName.invoke(null, rule);
+			if(gameRule == null)
+				return false;
+			java.lang.reflect.Method setGameRule = world.getClass().getMethod("setGameRule", gameRuleClass, Object.class);
+			return (Boolean) setGameRule.invoke(world, gameRule, Boolean.valueOf(value));
+		}
+		catch(Exception e)
+		{
+			COMZombies.log.log(Level.WARNING, "Could not set game rule " + rule + " to " + value + " on world " + world.getName(), e);
+			return false;
+		}
 	}
 
 	/**
@@ -1035,6 +1124,16 @@ public class Game
 		}
 
 		powerSetup = CustomConfig.getBoolean(arenaSaveJson, "power_setup", false);
+		// Auto-repair: pre-fix arenas (commit 129a260) had power_setup incorrectly saved as false
+		// even though a [Zombies]/Power sign existed, which made right-clicking power silently do
+		// nothing. If the save says "no power" but a power sign is actually present in the arena,
+		// flip powerSetup back on so the sign works again. The scan needs loaded chunks, so it runs
+		// after arena.loadArena (which sets the world) — chunk-loadedness is handled by the caller.
+		if(!powerSetup && arenaHasPowerSign(world))
+		{
+			COMZombies.log.log(Level.INFO, "Arena '" + arena.getName() + "' had power_setup=false but a Power sign exists; auto-enabling power.");
+			powerSetup = true;
+		}
 		minPlayers = CustomConfig.getInt(arenaSettingsJson, "min_players", 1);
 		maxPlayers = CustomConfig.getInt(arenaSettingsJson, "max_players", 8);
 		teddyBearPercent = CustomConfig.getInt(arenaSettingsJson, "teddy_bear_chance", 100);
@@ -1048,11 +1147,14 @@ public class Game
 		maxAmmoReplishClip = CustomConfig.getBoolean(arenaSettingsJson, "max_ammo_replenish_clip", false);
 
 		forceNight = CustomConfig.getBoolean(arenaSettingsJson, "force_night", false);
-		if(forceNight)
-			forceNight();
 
 		arena.loadArena(arenaSaveJson, world);
 		status = GameStatus.WAITING;
+
+		// Apply force-night AFTER arena.loadArena so arena.getWorld() is populated. forceNight() reads
+		// the world from the arena; calling it before loadArena (the old order) hit a null world here.
+		if(forceNight)
+			forceNight();
 
 		if(arenaSettingsJson.has("powerup_settings"))
 			powerUpManager.loadAllPowerUps(arenaSettingsJson.get("powerup_settings").getAsJsonObject());

@@ -31,6 +31,9 @@ public class Door
 	public String doorID;
 	private final Game game;
 	private int price = 0;
+	/** Whether {@code price} was loaded from a persisted "price" json field. Used by loadSigns() to decide
+	 *  whether the legacy sign-line-3 fallback may overwrite the price. */
+	private boolean hasPersistedPrice = false;
 	// Full BlockData is stored (not just Material) so a door restores its blocks EXACTLY as
 	// authored — fence/wall/glass-pane connections, stair/slab shape, sign facing, etc. Restoring
 	// by Material alone lost that metadata, producing fences that render connection arms into air
@@ -62,6 +65,13 @@ public class Door
 
 	public void loadAll(JsonObject doorJson)
 	{
+		// Prefer the persisted price field (set it before loadSigns so a present sign can't override a
+		// freshly-edited value). Falls back to the legacy sign-line read inside loadSigns when absent.
+		if(doorJson.has("price"))
+		{
+			this.price = doorJson.get("price").getAsInt();
+			this.hasPersistedPrice = true;
+		}
 		if(doorJson.has("blocks"))
 			loadBlocks(doorJson.get("blocks").getAsJsonArray());
 		if(doorJson.has("signs"))
@@ -75,6 +85,10 @@ public class Door
 		JsonObject saveJson = new JsonObject();
 		saveJson.addProperty("id", doorID);
 		saveJson.addProperty("powerRequired", powerRequired);
+		// Persist price as its own field so it survives reloads independent of whether a sign block exists.
+		// Without this, sign-free doors (useDoorSigns=false) reset to the default on every reload because
+		// loadSigns() can only recover the price from a present sign's line 3.
+		saveJson.addProperty("price", price);
 
 		JsonArray blocksJson = new JsonArray();
 		saveJson.add("blocks", blocksJson);
@@ -158,9 +172,15 @@ public class Door
 				Block block = loc.getBlock();
 				if(BlockUtils.isSign(block.getType()))
 				{
-					Sign sign = (Sign) block.getState();
-					String costLine = ChatColor.stripColor(sign.getLine(3));
-					price = costLine.matches("[0-9]{1,9}") ? Integer.parseInt(costLine) : 750;
+					// Legacy fallback: recover the price from the sign's line 3 only when no persisted
+					// "price" field was loaded (pre-price-field saves). A persisted value wins over the
+					// sign text so an admin's chat edit is honoured even if the sign line is stale.
+					if(!hasPersistedPrice)
+					{
+						Sign sign = (Sign) block.getState();
+						String costLine = ChatColor.stripColor(sign.getLine(3));
+						price = costLine.matches("[0-9]{1,9}") ? Integer.parseInt(costLine) : 750;
+					}
 				}
 				this.signs.put(loc, savedData);
 			}

@@ -6,6 +6,7 @@ import com.theprogrammingturkey.comz.game.Game;
 import com.theprogrammingturkey.comz.game.features.PerkType;
 import com.theprogrammingturkey.comz.game.signs.IGameSign;
 import com.theprogrammingturkey.comz.listeners.SignListener;
+import com.theprogrammingturkey.comz.util.BlockUtils;
 import com.theprogrammingturkey.comz.util.DisplayEntityUtil;
 import com.theprogrammingturkey.comz.util.ModelDisplay;
 import com.theprogrammingturkey.comz.util.PackModels;
@@ -130,7 +131,16 @@ public class MachineModelManager
 		BlockData original = baseLoc.getBlock().getBlockData();
 		MachineModel machine = new MachineModel(baseLoc, original, signLoc);
 
+		// Capture the sign's text + facing so the buy logic can still read type/cost after we hide the
+		// sign block, and so it can be restored exactly on teardown.
+		machine.signLines = sign.getLines().clone();
+		machine.signBlockData = sign.getBlockData();
+
 		baseLoc.getBlock().setType(base, false);
+
+		// Hide the backing sign for the duration of the game — the machine IS the in-game representation.
+		// Its data lives on the MachineModel above; the block is restored in MachineModel.remove().
+		BlockUtils.setBlockToAir(signLoc);
 
 		float yaw = yawFromFace(facing);
 		Location centre = baseLoc.clone().add(0.5, 0.0, 0.5);
@@ -195,13 +205,14 @@ public class MachineModelManager
 		if(game.getStatus() != Game.GameStatus.INGAME)
 			return true; // it's ours, but nothing to do outside a running game
 
-		BlockState state = machine.signLoc.getBlock().getState();
-		if(!(state instanceof Sign))
+		// The sign block is hidden during the game (the machine IS the representation); read type/cost
+		// from the lines captured at spawn instead of the world block.
+		String[] lines = machine.signLines;
+		if(lines == null || lines.length < 2)
 			return true;
-		Sign sign = (Sign) state;
-		IGameSign handler = SignListener.getSignHandler(ChatColor.stripColor(sign.getLine(1)).toLowerCase());
+		IGameSign handler = SignListener.getSignHandler(ChatColor.stripColor(lines[1]).toLowerCase());
 		if(handler != null)
-			handler.onInteract(game, player, machine.signLoc, sign.getLines());
+			handler.onInteract(game, player, machine.signLoc, lines);
 		return true;
 	}
 
@@ -269,16 +280,16 @@ public class MachineModelManager
 	{
 		if(m.hologram != null)
 			return m.hologram.getText(); // already formatted, e.g. "§bJuggernog §e$2500"
-		// Fallback when the hologram was never created (pack-less servers): rebuild from the sign.
-		BlockState state = m.signLoc.getBlock().getState();
-		if(state instanceof Sign)
+		// Fallback when the hologram was never created (pack-less servers): rebuild from the captured
+		// sign lines (the sign block itself is hidden during the game).
+		String[] lines = m.signLines;
+		if(lines != null && lines.length >= 2)
 		{
-			Sign s = (Sign) state;
-			String type = ChatColor.stripColor(s.getLine(1)).trim().toLowerCase();
+			String type = ChatColor.stripColor(lines[1]).trim().toLowerCase();
 			if(type.equals("pack-a-punch"))
-				return ChatColor.LIGHT_PURPLE + "Pack-a-Punch " + ChatColor.YELLOW + "$" + ChatColor.stripColor(s.getLine(2));
+				return ChatColor.LIGHT_PURPLE + "Pack-a-Punch " + ChatColor.YELLOW + "$" + (lines.length > 2 ? ChatColor.stripColor(lines[2]) : "");
 			if(type.equals("perk machine"))
-				return ChatColor.AQUA + ChatColor.stripColor(s.getLine(2)) + ChatColor.YELLOW + " $" + ChatColor.stripColor(s.getLine(3));
+				return ChatColor.AQUA + (lines.length > 2 ? ChatColor.stripColor(lines[2]) : "Perk") + ChatColor.YELLOW + " $" + (lines.length > 3 ? ChatColor.stripColor(lines[3]) : "");
 		}
 		return ChatColor.AQUA + "Machine";
 	}

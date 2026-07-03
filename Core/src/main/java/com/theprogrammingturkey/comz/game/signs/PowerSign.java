@@ -18,16 +18,21 @@ public class PowerSign implements IGameSign
 	@Override
 	public void onInteract(Game game, Player player, Location location, String[] lines)
 	{
-		if(game.hasPower())
+		// Always surface a message so a click never silently does nothing — the historical "I clicked
+		// power and nothing happened" was caused by hasPower() being false (pre-fix arenas had
+		// power_setup saved as false), which fell through here with no feedback at all.
+		if(!game.hasPower())
 		{
-			if(game.isPowered())
-			{
-				CommandUtil.sendMessageToPlayer(player, ChatColor.RED + "The power is already on!");
-				return;
-			}
-			game.turnOnPower();
-			CommandUtil.sendMessageToPlayer(player, ChatColor.RED + "Power on!");
+			CommandUtil.sendMessageToPlayer(player, ChatColor.RED + "Power isn't set up for this arena! Ask an admin to place a [Zombies] Power sign.");
+			return;
 		}
+		if(game.isPowered())
+		{
+			CommandUtil.sendMessageToPlayer(player, ChatColor.RED + "The power is already on!");
+			return;
+		}
+		game.turnOnPower();
+		CommandUtil.sendMessageToPlayer(player, ChatColor.GREEN + "Power on!");
 	}
 
 	@Override

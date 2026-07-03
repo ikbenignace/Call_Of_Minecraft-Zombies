@@ -47,6 +47,8 @@ public class ProximityBuyManager
 	private static final double DOOR_REACH = 2.0D;
 	/** Max distance (blocks, centre-to-centre) from a machine's base at which F will buy it. */
 	private static final double MACHINE_REACH = 2.5D;
+	/** Max distance (blocks, centre-to-centre) from a mystery box's chest at which F will trigger it. */
+	private static final double BOX_REACH = 2.5D;
 
 	private final Game game;
 	private int taskId = -1;
@@ -192,7 +194,35 @@ public class ProximityBuyManager
 			}
 		}
 
+		// Mystery boxes: in-game they're a chest at boxLoc. Within BOX_REACH, F starts/picks the box.
+		for(com.theprogrammingturkey.comz.game.features.RandomBox box : game.boxManager.getActiveBoxes())
+		{
+			Location loc = box.getLocation();
+			if(loc == null || loc.getWorld() == null || !loc.getWorld().equals(player.getWorld()))
+				continue;
+			double dSq = distanceSqXZ(player.getLocation(), loc.getX() + 0.5, loc.getZ() + 0.5);
+			if(dSq > BOX_REACH * BOX_REACH)
+				continue;
+			if(dSq < bestDistSq)
+			{
+				bestDistSq = dSq;
+				best = new BuyTarget(TargetType.BOX, loc.clone(), boxPrompt(box, player), null);
+			}
+		}
+
 		return best;
+	}
+
+	private String boxPrompt(com.theprogrammingturkey.comz.game.features.RandomBox box, Player player)
+	{
+		// Spinning box: prompt reflects the current state (waiting for weapon pickup vs. ready to spin).
+		if(!box.canActivate() && box.canPickWeapon(player))
+			return ChatColor.GREEN + "[F] Take weapon";
+		if(!box.canActivate())
+			return ChatColor.GRAY + "[F] Box is in use";
+		boolean canAfford = PointManager.INSTANCE.getPlayersPoints(player) >= box.getCost();
+		ChatColor color = canAfford ? ChatColor.GREEN : ChatColor.RED;
+		return color + "[F] Mystery Box " + ChatColor.YELLOW + "$" + box.getCost();
 	}
 
 	private String doorPrompt(Door door, Player player)
@@ -288,7 +318,7 @@ public class ProximityBuyManager
 	}
 
 	/** What kind of buyable the player is standing next to. Determines which buy path F triggers. */
-	public enum TargetType { DOOR, MACHINE }
+	public enum TargetType { DOOR, MACHINE, BOX }
 
 	/** A resolved buy target: its kind, the location to route the buy to, and the prompt text. */
 	public static final class BuyTarget

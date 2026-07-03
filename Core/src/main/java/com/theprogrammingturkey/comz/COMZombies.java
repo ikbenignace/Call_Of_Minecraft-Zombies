@@ -187,6 +187,7 @@ public class COMZombies extends JavaPlugin
 		m.registerEvents(new ResourcePackListener(), this);
 		m.registerEvents(new BuildModeListener(), this);
 		m.registerEvents(new MachineInteractListener(), this);
+		m.registerEvents(new BoxInteractListener(), this);
 		m.registerEvents(new SettingsMenuListener(), this);
 	}
 

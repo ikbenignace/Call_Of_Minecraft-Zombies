@@ -61,6 +61,8 @@ public final class BuildModeManager
 		// Show zombie spawn points as END_PORTAL_FRAME markers so the builder sees them (and can remove
 		// them). Restored on exit. Same mechanism the chat-action spawn editor uses.
 		game.showSpawnLocations();
+		// Floating door-id holograms above every existing door so the editor can tell doors apart at a glance.
+		session.refreshDoorHolograms();
 		giveToolbar(player, session);
 		player.getInventory().setHeldItemSlot(0);
 
@@ -77,7 +79,9 @@ public final class BuildModeManager
 		if(session == null)
 			return;
 		warnRoomProgressionIssues(player, session);
+		session.cancelEditInProgress(); // revert any in-place door/barrier edit before tearing down markers
 		session.removeAllPreviews();
+		session.removeDoorHolograms();
 		session.restoreAllMarkers();
 		session.getGame().resetSpawnLocationBlocks();
 		session.restore(player);
@@ -164,25 +168,34 @@ public final class BuildModeManager
 		player.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(text));
 	}
 
-	/** True if this build player is mid price-edit (a sneak-right-click armed a sign for a chat value). */
+	/** True if this build player is mid price-edit (a sneak-right-click armed a sign, or the Door tool's
+	 *  "Set Price" variant armed a door, for a chat value). */
 	public boolean hasPendingPriceEdit(Player player)
 	{
 		BuildSession session = sessions.get(player.getUniqueId());
-		return session != null && session.getPendingPriceSign() != null;
+		return session != null && (session.getPendingPriceSign() != null || session.getPendingPriceDoor() != null);
 	}
 
 	/**
-	 * Apply a chat-typed price to the sign the player armed via sneak-right-click. MUST run on the main
-	 * thread (it edits blocks) — the async chat listener schedules it. Handles the door 'power' keyword.
+	 * Apply a chat-typed price to whatever the player armed — either a [Zombies] sign (sneak-right-click)
+	 * or a door directly (Door tool "Set Price" variant, used when door signs are disabled). MUST run on
+	 * the main thread (the sign path edits blocks) — the async chat listener schedules it. Handles the
+	 * door 'power' keyword.
 	 */
 	public void handlePriceChat(Player player, String message)
 	{
 		BuildSession session = sessions.get(player.getUniqueId());
 		if(session == null)
 			return;
+
+		// Drain whichever target was armed. The door path is the sign-free counterpart: it targets a Door
+		// directly instead of a sign Location, so it works when useDoorSigns=false has removed the signs.
+		Door pendingDoor = session.getPendingPriceDoor();
+		session.setPendingPriceDoor(null);
 		Location loc = session.getPendingPriceSign();
 		session.setPendingPriceSign(null);
-		if(loc == null)
+
+		if(pendingDoor == null && loc == null)
 			return;
 
 		if(message.equalsIgnoreCase("cancel"))
@@ -191,6 +204,29 @@ public final class BuildModeManager
 			return;
 		}
 
+		// Door-tool "Set Price" path: no sign to validate or rewrite, just mutate the door and save.
+		if(pendingDoor != null)
+		{
+			if(message.equalsIgnoreCase("power"))
+			{
+				pendingDoor.setPowerRequired(!pendingDoor.requiresPower());
+				GameManager.INSTANCE.saveAllGames();
+				CommandUtil.sendMessageToPlayer(player, ChatColor.GREEN + "Door power-gating: " + (pendingDoor.requiresPower() ? "ON (opens only when power is on)" : "OFF"));
+				return;
+			}
+			if(!message.matches("[0-9]{1,5}"))
+			{
+				CommandUtil.sendMessageToPlayer(player, ChatColor.RED + message + " is not a valid price.");
+				return;
+			}
+			int price = Integer.parseInt(message);
+			pendingDoor.setPrice(price);
+			GameManager.INSTANCE.saveAllGames();
+			CommandUtil.sendMessageToPlayer(player, ChatColor.GREEN + "Price set to " + price + ".");
+			return;
+		}
+
+		// Sign path (legacy / useDoorSigns=true): validate the sign is still there, then rewrite its line.
 		Block block = loc.getBlock();
 		if(!BlockUtils.isSign(block.getType()) || !ChatColor.stripColor(((Sign) block.getState()).getLine(0)).equalsIgnoreCase("[Zombies]"))
 		{

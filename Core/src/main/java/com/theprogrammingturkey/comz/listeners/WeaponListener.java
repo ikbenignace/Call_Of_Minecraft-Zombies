@@ -256,7 +256,9 @@ public class WeaponListener implements Listener
 			Location impact = toDamage.get(0).intersection.toLocation(world);
 			float splashDmg = (float) gun.getType().splashDamage;
 			double radiusSq = splashRadius * splashRadius;
-			for(Mob mob : game.spawnManager.getEntities())
+			// Iterate over a snapshot: damageMob -> removeEntity mutates the live mobs list on kill,
+			// which would otherwise throw ConcurrentModificationException mid-iteration.
+			for(Mob mob : new ArrayList<>(game.spawnManager.getEntities()))
 			{
 				if(mob.isDead())
 					continue;

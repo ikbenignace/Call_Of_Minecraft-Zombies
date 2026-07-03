@@ -1,12 +1,9 @@
 package com.theprogrammingturkey.comz.game.signs;
 
-import com.theprogrammingturkey.comz.economy.PointManager;
 import com.theprogrammingturkey.comz.game.Game;
 import com.theprogrammingturkey.comz.game.features.RandomBox;
-import com.theprogrammingturkey.comz.util.CommandUtil;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
-import org.bukkit.Sound;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.Directional;
 import org.bukkit.entity.Player;
@@ -27,27 +24,8 @@ public class MysteryBoxSign implements IGameSign
 		RandomBox box = game.boxManager.getBox(location);
 		if(box == null)
 			return;
-
-		if(box.canActivate())
-		{
-			int points = Integer.parseInt(lines[2]);
-			if(game.isFireSale())
-				points = 10;
-
-			if(PointManager.INSTANCE.canBuy(player, points))
-			{
-				box.Start(player, points);
-				com.theprogrammingturkey.comz.util.SoundUtil.play(player.getWorld(), player.getLocation(), com.theprogrammingturkey.comz.util.SoundConfig.get("box.open", Sound.BLOCK_CHEST_OPEN.name()), org.bukkit.SoundCategory.MASTER, 1, 1);
-			}
-			else
-			{
-				CommandUtil.sendMessageToPlayer(player, ChatColor.RED + "You don't have enough points!");
-			}
-		}
-		else if(box.canPickWeapon(player))
-		{
-			box.pickUpWeapon(player);
-		}
+		// Uniform entry: handles Start / pickUpWeapon, fire-sale cost override, sound + affordability.
+		box.interact(player);
 	}
 
 	@Override

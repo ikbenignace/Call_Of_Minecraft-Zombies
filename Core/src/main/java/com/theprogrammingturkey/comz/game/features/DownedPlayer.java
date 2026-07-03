@@ -51,6 +51,11 @@ public class DownedPlayer implements Listener
 	private int fireWorksTask = -1;
 	private int reviveTask = -1;
 	private int reviveBarTask = -1;
+	/** Scheduled solo Quick Revive self-revive. Tracked so it can be cancelled in
+	 * {@link #clearDownedState()} / {@link #cancelRevive()} when the down ends another way
+	 * (game over, quit, manual revive) before the delay elapses — otherwise the orphaned
+	 * task would fire {@link #revivePlayer()} on a dead/spectating player and re-arm a down. */
+	private int soloReviveTask = -1;
 
 	/** #143 — wall-clock time (ms) at which the current revive started, for a grace window that
 	 * prevents the "You Moved!" false-cancel triggered by the interact/jitter on the very first
@@ -105,6 +110,17 @@ public class DownedPlayer implements Listener
 		isBeingRevived = false;
 		if(fireWorksTask != -1)
 			Bukkit.getScheduler().cancelTask(fireWorksTask);
+		// Cancel any pending solo self-revive so it cannot fire after the down has ended
+		// (game over, quit, or a co-op revive that got there first) and re-arm a dead player.
+		if(soloReviveTask != -1)
+		{
+			Bukkit.getScheduler().cancelTask(soloReviveTask);
+			soloReviveTask = -1;
+		}
+		// Bleed-out suppression only applies while a solo self-revive is pending; once the
+		// down ends any other way the flag must be cleared so a re-down on the same DownedPlayer
+		// (or a reused instance) can actually bleed out instead of looping fireworks forever.
+		bleedoutSuppressed = false;
 		removeDownVisuals();
 		player.setGameMode(GameMode.SURVIVAL);
 		player.setInvulnerable(false);
@@ -252,12 +268,40 @@ public class DownedPlayer implements Listener
 		clearReviveProgress();
 		if(reviveTask != -1)
 			Bukkit.getScheduler().cancelTask(reviveTask);
+		// A cancelled revive must not leave a pending solo self-revive or bleed-out suppression
+		// in place — same reasoning as {@link #clearDownedState()}.
+		if(soloReviveTask != -1)
+		{
+			Bukkit.getScheduler().cancelTask(soloReviveTask);
+			soloReviveTask = -1;
+		}
+		bleedoutSuppressed = false;
 	}
 
 	/** Suppresses the bleed-out death (used when a solo Quick Revive self-revive is pending). */
 	public void suppressBleedout()
 	{
 		this.bleedoutSuppressed = true;
+	}
+
+	/**
+	 * Schedules a solo Quick Revive self-revive: suppresses bleed-out (so the bleed-out timer
+	 * can't kill the player first), shows the self-revive countdown bar, and after
+	 * {@code delaySeconds} revives the player if they are still down. The scheduled task id is
+	 * stored in {@link #soloReviveTask} so that {@link #clearDownedState()} / {@link #cancelRevive()}
+	 * cancel it when the down ends another way (game over, quit, manual revive) before the delay
+	 * elapses — preventing the orphaned revive from re-arming a dead/spectating player.
+	 */
+	public void scheduleSoloSelfRevive(int delaySeconds)
+	{
+		suppressBleedout();
+		showSelfReviveBar(delaySeconds);
+		soloReviveTask = COMZombies.scheduleTask(delaySeconds * 20, () ->
+		{
+			soloReviveTask = -1;
+			if(isPlayerDown)
+				revivePlayer();
+		});
 	}
 
 	public void startRevive(Player reviver)

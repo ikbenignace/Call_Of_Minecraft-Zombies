@@ -2,6 +2,7 @@ package com.theprogrammingturkey.comz.listeners;
 
 import com.theprogrammingturkey.comz.COMZombies;
 import com.theprogrammingturkey.comz.game.Game;
+import com.theprogrammingturkey.comz.game.GameManager;
 import com.theprogrammingturkey.comz.game.actions.BarrierSetupAction;
 import com.theprogrammingturkey.comz.game.builder.BuildModeManager;
 import com.theprogrammingturkey.comz.game.builder.BuildSession;
@@ -21,6 +22,7 @@ import com.theprogrammingturkey.comz.util.CommandUtil;
 import com.theprogrammingturkey.comz.util.PackModels;
 import com.theprogrammingturkey.comz.util.Util;
 import org.bukkit.ChatColor;
+import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Particle;
 import org.bukkit.block.Block;
@@ -152,6 +154,13 @@ public class BuildModeListener implements Listener
 		if(!manager.isInBuild(player))
 			return;
 		BuildSession session = manager.getSession(player);
+		// Switching away from the Door/Barrier tool discards an in-place edit of an existing door/barrier
+		// (markers come down, block set reverts to the snapshot). A brand-new in-progress selection is left
+		// alone so the player can resume it by switching back.
+		BuildTool oldTool = BuildTool.fromSlot(event.getPreviousSlot());
+		BuildTool newTool = BuildTool.fromSlot(event.getNewSlot());
+		if(oldTool != newTool && session.isEditingExisting())
+			session.cancelEditInProgress();
 		manager.actionBar(player, manager.currentToolText(session, event.getNewSlot()));
 	}
 
@@ -286,10 +295,9 @@ public class BuildModeListener implements Listener
 
 		Sign sign = (Sign) signBlock.getState();
 
-		// Mystery box needs an adjacent CHEST (RandomBox discovers its chest by scanning neighbours at
-		// start). Place one on the first free adjacent block so the tool drops a FULL box, not just a sign.
-		if(ChatColor.stripColor(sign.getLine(1)).equalsIgnoreCase("Mystery Box"))
-			placeAdjacentChest(signBlock, face);
+		// Mystery box: the sign IS the box anchor (boxLoc). In edit/lobby it shows as a sign; once a
+		// game starts, RandomBox.loadBox replaces it with a CHEST on this exact spot (+ price hologram).
+		// No separate chest block is placed during authoring anymore.
 
 		session.removePreview(signBlock.getLocation());
 		// Only spawn a preview model if THIS player actually has the pack loaded; otherwise the custom
@@ -429,6 +437,24 @@ public class BuildModeListener implements Listener
 
 		if(action == Action.RIGHT_CLICK_BLOCK && sneaking)
 		{
+			// Mid-edit sneak-right-click finalizes the in-progress door edit.
+			if(session.getDoorInProgress() != null)
+			{
+				finalizeDoor(player, session);
+				return;
+			}
+			// Not editing: sneak-right-click a registered door's block to edit its price / power-gating.
+			// This is the sign-free counterpart to sneak-right-clicking a [Zombies] door sign — needed now
+			// that useDoorSigns defaults to false and closeDoor() removes the sign blocks from the world.
+			for(Door existing : game.doorManager.getDoors())
+				if(existing.hasDoorLoc(clicked))
+				{
+					session.setPendingPriceDoor(existing);
+					msg(player, ChatColor.GOLD + "Editing door " + existing.doorID + " (current price " + existing.getCost() + ")"
+							+ ChatColor.GRAY + " — type the new price in chat (or 'power' to toggle power-gating). Type 'cancel' to abort.");
+					return;
+				}
+			// Nothing to finalize and not a door block: keep the old "select blocks first" prompt.
 			finalizeDoor(player, session);
 			return;
 		}
@@ -436,6 +462,20 @@ public class BuildModeListener implements Listener
 		Door door = session.getDoorInProgress();
 		if(door == null)
 		{
+			// No selection in progress: a right-click on a block that already belongs to a registered
+			// door opens that door for in-place editing (markers go up on every door block). This is the
+			// "adjust existing door" entry point — without it, build mode could only ever create new doors.
+			if(action == Action.RIGHT_CLICK_BLOCK)
+			{
+				for(Door existing : game.doorManager.getDoors())
+					if(existing.hasDoorLoc(clicked))
+					{
+						session.startEditingDoor(existing);
+						msg(player, ChatColor.GOLD + "Editing existing door " + existing.doorID + " (" + existing.getBlocks().size() + " blocks). Right-click to toggle, sneak-right-click to finish (empty = delete).");
+						return;
+					}
+			}
+			// Otherwise start a brand-new door selection.
 			door = new Door(game, Util.genRandId(), false);
 			session.setDoorInProgress(door);
 		}
@@ -466,26 +506,65 @@ public class BuildModeListener implements Listener
 		Door door = session.getDoorInProgress();
 		if(door == null || !door.hasDoorBlocks())
 		{
+			// An empty selection finalizes differently depending on whether we were editing an existing
+			// door (delete it) or had nothing in progress at all (no-op prompt).
+			if(session.isDoorInProgressExisting() && door != null && door.getBlocks().isEmpty())
+			{
+				deleteDoor(player, session, door);
+				return;
+			}
 			msg(player, ChatColor.RED + "Select the door blocks first (right-click them), then sneak-right-click to finish.");
 			return;
 		}
 
+		if(session.isDoorInProgressExisting())
+		{
+			// Editing an existing, registered door: just commit the mutated block set. Markers come down
+			// (restoring the real wall blocks), the door stays registered with its updated blocks. Re-close
+			// so the world matches the saved (closed) state.
+			session.restoreAllMarkers();
+			door.closeDoor();
+			session.clearEditInProgress();
+			GameManager.INSTANCE.saveAllGames();
+			session.refreshDoorHolograms();
+			msg(player, ChatColor.GREEN + "" + ChatColor.BOLD + "Door updated" + ChatColor.GREEN + " (" + door.getBlocks().size() + " block(s), " + door.doorID + ").");
+			return;
+		}
+
+		// Brand-new door: place opening signs, register, make it the active room.
 		session.restoreAllMarkers(); // restore the real wall blocks (door stored their data on add)
 		int signs = placeDoorSigns(door);
 		door.setPrice(1000);
 		door.closeDoor();
 		session.getGame().doorManager.addDoor(door);
 
-		session.setDoorInProgress(null);
+		session.clearEditInProgress();
 		session.setActiveRoomDoor(door);
 		manager.refreshToolItem(player, session, BuildTool.SPAWN);
 		manager.refreshToolItem(player, session, BuildTool.DOOR);
 		manager.refreshToolItem(player, session, BuildTool.BARRIER);
+		session.refreshDoorHolograms();
 
-		msg(player, ChatColor.GREEN + "" + ChatColor.BOLD + "Door created" + ChatColor.GREEN + " (" + signs + " sign(s) placed, price 1000 — edit the sign to change).");
+		msg(player, ChatColor.GREEN + "" + ChatColor.BOLD + "Door created" + ChatColor.GREEN + " (" + signs + " sign(s) placed, price 1000 — sneak-right-click a door block to change its price).");
 		msg(player, ChatColor.GOLD + "Active room is now this door. Place its zombie spawns & barrier next; they only activate when the door is opened.");
 		if(signs == 0)
 			msg(player, ChatColor.YELLOW + "Could not auto-place an opening sign (no free space beside the door). Add a Door sign manually.");
+	}
+
+	/** Remove a registered door entirely: clear its signs from the world, drop it from the manager, save. */
+	private void deleteDoor(Player player, BuildSession session, Door door)
+	{
+		Game game = session.getGame();
+		for(Location loc : door.getSignsLocations())
+			BlockUtils.setBlockToAir(loc.getBlock());
+		// Restore the door's wall blocks to the world (they were air while the door was open/closed-state).
+		door.closeDoor();
+		session.restoreAllMarkers();
+		game.doorManager.removeDoor(door);
+		session.clearEditInProgress();
+		GameManager.INSTANCE.saveAllGames();
+		session.refreshDoorHolograms();
+		msg(player, ChatColor.GREEN + "" + ChatColor.BOLD + "Door removed" + ChatColor.GREEN + " (" + door.doorID + ").");
 	}
 
 	/**
@@ -583,6 +662,17 @@ public class BuildModeListener implements Listener
 		Barrier barrier = session.getBarrierInProgress();
 		if(barrier == null)
 		{
+			// Right-click on a block already in a registered barrier opens that barrier for in-place edit.
+			if(action == Action.RIGHT_CLICK_BLOCK)
+			{
+				Barrier existing = game.barrierManager.getBarrier(clicked.getLocation());
+				if(existing != null)
+				{
+					session.startEditingBarrier(existing);
+					msg(player, ChatColor.GOLD + "Editing existing barrier " + existing.getID() + " (" + existing.getBlocks().size() + " blocks). Right-click to toggle, sneak-right-click to finish (empty = delete).");
+					return;
+				}
+			}
 			barrier = new Barrier(game.barrierManager.getNextBarrierNumber(), game);
 			session.setBarrierInProgress(barrier);
 		}
@@ -606,10 +696,32 @@ public class BuildModeListener implements Listener
 		Barrier barrier = session.getBarrierInProgress();
 		if(barrier == null || barrier.getBlocks().isEmpty())
 		{
+			if(session.isBarrierInProgressExisting() && barrier != null && barrier.getBlocks().isEmpty())
+			{
+				// Empty selection on an existing barrier = delete it. removeBarrier clears the repair sign,
+				// drops it from the manager and saves.
+				Game game = session.getGame();
+				session.restoreAllMarkers();
+				game.barrierManager.removeBarrier(player, barrier);
+				session.clearEditInProgress();
+				return;
+			}
 			msg(player, ChatColor.RED + "Select the barrier blocks first (right-click them), then sneak-right-click to finish.");
 			return;
 		}
 
+		if(session.isBarrierInProgressExisting())
+		{
+			// Editing a registered barrier: commit the mutated block set. Markers come down; the barrier
+			// stays registered with its updated blocks. Repair sign / spawns are unchanged.
+			session.restoreAllMarkers();
+			session.clearEditInProgress();
+			GameManager.INSTANCE.saveAllGames();
+			msg(player, ChatColor.GREEN + "" + ChatColor.BOLD + "Barrier updated" + ChatColor.GREEN + " (" + barrier.getBlocks().size() + " block(s), " + barrier.getID() + ").");
+			return;
+		}
+
+		// Brand-new barrier: place repair sign, link spawns to the active room, register.
 		// Repair sign at the centre passage face of the window.
 		boolean signOk = placeBarrierRepairSign(session, barrier);
 		// Link the barrier's spawns to the active room (the room the barrier's window feeds).
@@ -620,7 +732,7 @@ public class BuildModeListener implements Listener
 
 		session.restoreAllMarkers(); // restore the window blocks (barrier stored their real data on add)
 		barrier.getGame().barrierManager.addBarrier(barrier);
-		session.setBarrierInProgress(null);
+		session.clearEditInProgress();
 
 		msg(player, ChatColor.GREEN + "" + ChatColor.BOLD + "Barrier created" + ChatColor.GREEN + " for " + session.roomLabel() + (signOk ? "" : ChatColor.YELLOW + " (no room for a repair sign — set one manually)"));
 		msg(player, ChatColor.GRAY + "Repair reward per level comes from config (barrier.repairPointsPerLevel).");
@@ -653,21 +765,6 @@ public class BuildModeListener implements Listener
 		barrier.setRepairLoc(spot.getLocation());
 		barrier.setSignFacing(face);
 		return true;
-	}
-
-	/** Place a CHEST on the first free block adjacent to the mystery-box sign (below, out, then sides). */
-	private void placeAdjacentChest(Block signBlock, BlockFace signFace)
-	{
-		BlockFace[] order = {BlockFace.DOWN, signFace, BlockFace.NORTH, BlockFace.SOUTH, BlockFace.EAST, BlockFace.WEST};
-		for(BlockFace f : order)
-		{
-			Block b = signBlock.getRelative(f);
-			if(b.getType().isAir())
-			{
-				b.setType(Material.CHEST, false);
-				return;
-			}
-		}
 	}
 
 	private boolean isComzSign(Block block)

@@ -13,6 +13,7 @@ import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Sound;
+import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.Sign;
@@ -23,6 +24,7 @@ import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.TextDisplay;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.Vector;
 
@@ -32,12 +34,15 @@ import java.util.Map;
 public class RandomBox
 {
 	public static Map<RandomBox, Integer> boxes = new HashMap<>();
+	/** The box's anchor block. In-game this is the CHEST; in edit/lobby it's the authoring SIGN. */
 	private final Location boxLoc;
 	private final BlockFace facing;
-	private Location chestLocation = null;
 	private final Game boxGame;
 	private final String boxId;
 	private final int boxCost;
+
+	/** Floating price hologram spawned in-game above the chest; owned by this box. */
+	private TextDisplay priceHologram;
 
 	private Player openedBy;
 
@@ -75,15 +80,8 @@ public class RandomBox
 			return;
 		}
 
-		chestLocation = null;
-		for(BlockFace facing : BlockFace.values())
-		{
-			if(boxLoc.clone().add(facing.getModX(), facing.getModY(), facing.getModZ()).getBlock().getType().equals(Material.CHEST))
-			{
-				chestLocation = boxLoc.clone().add(facing.getModX(), facing.getModY(), facing.getModZ());
-				break;
-			}
-		}
+		// In-game the box IS the chest at boxLoc (loadBox placed it there); no neighbour scan needed.
+		Location chestLocation = boxLoc;
 
 		openedBy = player;
 
@@ -92,12 +90,7 @@ public class RandomBox
 
 		running = true;
 		weapon = WeaponManager.getRandomWeapon(false, boxGame.getPlayersWeapons(player));
-		Location itemLoc;
-
-		if(chestLocation != null)
-			itemLoc = getBoxCenterLoc();
-		else
-			itemLoc = boxLoc.clone().add(.5, 1.0, .5);
+		Location itemLoc = getBoxCenterLoc(chestLocation);
 
 		item = player.getWorld().dropItem(itemLoc, weapon.getStack());
 		namePlate = (ArmorStand) player.getWorld().spawnEntity(itemLoc.clone().add(0, -1.7, 0), EntityType.ARMOR_STAND);
@@ -184,7 +177,7 @@ public class RandomBox
 	 * the weapon (and its nameplate) sits in the middle of the full chest instead of over one half
 	 * — matching the "weapon appears in the middle of the box" expectation.
 	 */
-	private Location getBoxCenterLoc()
+	private Location getBoxCenterLoc(Location chestLocation)
 	{
 		Location base = chestLocation.clone();
 		Block chestBlock = chestLocation.getBlock();
@@ -259,8 +252,9 @@ public class RandomBox
 			item.remove();
 		if(namePlate != null)
 			namePlate.remove();
-		if(chestLocation != null)
-			COMZombies.nmsUtil.playChestAction(chestLocation, false);
+		// In-game the chest sits at boxLoc; close its lid animation.
+		if(boxLoc != null && boxGame.getStatus() == Game.GameStatus.INGAME)
+			COMZombies.nmsUtil.playChestAction(boxLoc, false);
 		Integer id = RandomBox.boxes.remove(RandomBox.this);
 		if(id != null)
 			Bukkit.getScheduler().cancelTask(id);
@@ -270,6 +264,15 @@ public class RandomBox
 			this.removeBox();
 	}
 
+	/**
+	 * Show the box in the world. Context-aware:
+	 * <ul>
+	 *   <li><b>In-game (INGAME):</b> the chest appears on {@code boxLoc} with a floating price
+	 *       hologram above it — matching the look of the real game (no sign).</li>
+	 *   <li><b>Edit / lobby (not INGAME):</b> an authoring {@code [Zombies] / Mystery Box} sign is
+	 *       shown on {@code boxLoc}, so builders can see/move the box.</li>
+	 * </ul>
+	 */
 	public void loadBox()
 	{
 		if(boxLoc == null)
@@ -278,13 +281,87 @@ public class RandomBox
 			return;
 		}
 
-		updateSign();
+		if(boxGame != null && boxGame.getStatus() == Game.GameStatus.INGAME)
+			showChest();
+		else
+			showSign();
 	}
 
+	/** In-game representation: a CHEST on boxLoc + a price hologram floating above it. */
+	private void showChest()
+	{
+		Block block = boxLoc.getBlock();
+		// Only (re)place if it isn't already a chest — avoid wiping a mid-spin chest state.
+		if(block.getType() != Material.CHEST)
+			block.setType(Material.CHEST, false);
+
+		if(priceHologram == null || priceHologram.isDead())
+		{
+			World world = boxLoc.getWorld();
+			if(world != null)
+			{
+				String label = ChatColor.AQUA + "Mystery Box " + ChatColor.YELLOW + "$" + getCost();
+				priceHologram = com.theprogrammingturkey.comz.util.DisplayEntityUtil.persistentText(
+						world, boxLoc.clone().add(0.5, 1.4, 0.5), label);
+			}
+		}
+	}
+
+	/** Edit/lobby representation: the authoring sign on boxLoc. */
+	private void showSign()
+	{
+		Block block = boxLoc.getBlock();
+		block.setType(Material.OAK_WALL_SIGN);
+		BlockData blockData = block.getBlockData();
+		if(blockData instanceof Directional)
+			((Directional) blockData).setFacing(facing);
+		block.setBlockData(blockData);
+		Sign sign = (Sign) block.getState();
+		sign.setLine(0, ChatColor.RED + "[Zombies]");
+		sign.setLine(1, ChatColor.AQUA + "Mystery Box");
+		sign.setLine(2, String.valueOf(boxCost));
+		sign.update();
+	}
+
+	/**
+	 * Remove the box's world representation. Clears whatever loadBox placed (chest+hologram in-game,
+	 * sign in lobby) back to air. No-op while a spin is running.
+	 */
 	public void removeBox()
 	{
-		if(!this.running)
-			BlockUtils.setBlockToAir(boxLoc);
+		if(this.running)
+			return;
+		BlockUtils.setBlockToAir(boxLoc);
+		if(priceHologram != null && !priceHologram.isDead())
+		{
+			priceHologram.remove();
+			priceHologram = null;
+		}
+	}
+
+	/**
+	 * Uniform entry point for any box interaction (right-click the chest, click the sign, or the F
+	 * proximity-buy key). Starts a spin when idle, picks up the weapon once selected. Owned here so
+	 * every trigger source shares the same logic and fire-sale cost override.
+	 */
+	public void interact(Player player)
+	{
+		if(canActivate())
+		{
+			if(!PointManager.INSTANCE.canBuy(player, getCost()))
+			{
+				CommandUtil.sendMessageToPlayer(player, ChatColor.RED + "You don't have enough points!");
+				return;
+			}
+			Start(player, getCost());
+			com.theprogrammingturkey.comz.util.SoundUtil.play(player.getWorld(), player.getLocation(),
+					com.theprogrammingturkey.comz.util.SoundConfig.get("box.open", Sound.BLOCK_CHEST_OPEN.name()),
+					org.bukkit.SoundCategory.MASTER, 1, 1);
+		}
+		else if(canPickWeapon(player))
+		{
+			pickUpWeapon(player);
+		}
 	}
 
 	public Location getLocation()
@@ -306,19 +383,5 @@ public class RandomBox
 	public int getCost()
 	{
 		return boxGame.isFireSale() ? 10 : boxCost;
-	}
-
-	public void updateSign()
-	{
-		Block block = boxLoc.getBlock();
-		block.setType(Material.OAK_WALL_SIGN);
-		BlockData blockData = block.getBlockData();
-		((Directional) blockData).setFacing(facing);
-		block.setBlockData(blockData);
-		Sign sign = (Sign) block.getState();
-		sign.setLine(0, ChatColor.RED + "[Zombies]");
-		sign.setLine(1, ChatColor.AQUA + "Mystery Box");
-		sign.setLine(2, String.valueOf(boxGame.isFireSale() ? 10 : boxCost));
-		sign.update();
 	}
 }

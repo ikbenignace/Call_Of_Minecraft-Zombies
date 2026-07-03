@@ -1,6 +1,5 @@
 package com.theprogrammingturkey.comz.game.managers;
 
-import com.theprogrammingturkey.comz.COMZombies;
 import com.theprogrammingturkey.comz.config.ConfigManager;
 import com.theprogrammingturkey.comz.game.Game;
 import com.theprogrammingturkey.comz.game.features.DownedPlayer;
@@ -221,16 +220,12 @@ public class DownedPlayerManager
 
 		int remaining = consumeSelfReviveUse(player.getUniqueId(), max);
 		int delaySeconds = ConfigManager.getMainConfig().soloReviveDelaySeconds;
-		// Guarantee the scheduled self-revive actually fires: stop the bleed-out timer from killing
-		// the player first if it is configured shorter than the self-revive delay. Without this the
-		// player could bleed out (-> setDead -> game over) before Quick Revive ever stood them up.
-		down.suppressBleedout();
-		down.showSelfReviveBar(delaySeconds);
-		COMZombies.scheduleTask(delaySeconds * 20, () ->
-		{
-			if(down.isPlayerDown())
-				down.revivePlayer();
-		});
+		// Schedule the self-revive on the DownedPlayer itself so the task id is tracked and
+		// cancelled in clearDownedState()/cancelRevive() if the down ends another way (game over,
+		// quit) before the delay elapses. This also suppresses bleed-out for the duration. The
+		// previous inline scheduleTask here discarded the id, leaving an orphaned revive that
+		// could re-arm a dead/spectating player and start a runaway firework loop.
+		down.scheduleSoloSelfRevive(delaySeconds);
 		CommandUtil.sendMessageToPlayer(player, org.bukkit.ChatColor.YELLOW + "Quick Revive: getting back up in " + delaySeconds + "s (" + remaining + " self-revive" + (remaining == 1 ? "" : "s") + " left)");
 		return true;
 	}
