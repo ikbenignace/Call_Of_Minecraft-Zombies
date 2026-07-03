@@ -102,8 +102,14 @@ public class PlayerListener implements Listener
 		{
 			if(downedPlayer.isPlayerDown() && change.lengthSquared() > DEAD_ZONE)
 			{
-				player.sendMessage(ChatColor.RED + "" + ChatColor.BOLD + "You Moved! You are no longer reviving " + downedPlayer.getPlayer().getName());
-				downedPlayer.cancelRevive();
+				// #143 — ignore small movement within the first few ticks of starting a revive. The
+				// right-click interact that starts a revive causes a tiny position jitter that used
+				// to instantly cancel the revive with a false "You Moved!", forcing a second click.
+				if(!downedPlayer.isInReviveGracePeriod())
+				{
+					player.sendMessage(ChatColor.RED + "" + ChatColor.BOLD + "You Moved! You are no longer reviving " + downedPlayer.getPlayer().getName());
+					downedPlayer.cancelRevive();
+				}
 			}
 		}
 
@@ -122,14 +128,23 @@ public class PlayerListener implements Listener
 
 
 		//Barriers move check
+		// #140 — only block movement INTO a barrier block, never out of one. The old check cancelled
+		// any move whose destination matched a barrier block, which trapped a player who ended up
+		// inside a barrier (e.g. one placed around them, or pushed into a gap) because every escape
+		// direction resolved to a barrier block and was cancelled. Now we let them leave.
 		for(Barrier barrier : game.barrierManager.getBarriers())
 		{
 			for(Block b : barrier.getBlocks())
 			{
 				if((int) toLoc.getX() == b.getX() && (int) toLoc.getY() == b.getY() && (int) toLoc.getZ() == b.getZ())
 				{
-					event.setCancelled(true);
-					return;
+					Location fromLoc = event.getFrom();
+					boolean fromInside = (int) fromLoc.getX() == b.getX() && (int) fromLoc.getY() == b.getY() && (int) fromLoc.getZ() == b.getZ();
+					if(!fromInside)
+					{
+						event.setCancelled(true);
+						return;
+					}
 				}
 			}
 		}
