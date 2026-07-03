@@ -14,10 +14,10 @@ import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Sound;
-import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.Sign;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.entity.Player;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -131,12 +131,16 @@ public class Door
 
 	public void playerDoorOpenSound()
 	{
-		World world = game.getWorld();
-		if(!blocks.isEmpty())
-		{
-			Block b = blocks.keySet().toArray(new Block[0])[0];
-			com.theprogrammingturkey.comz.util.SoundUtil.play(world, b.getLocation(), com.theprogrammingturkey.comz.util.SoundConfig.get("door.open", Sound.BLOCK_WOODEN_DOOR_OPEN.name()), org.bukkit.SoundCategory.MASTER, 1, 1);
-		}
+		// #57 — play the door-open sound to every in-game player at the door's first block, rather
+		// than a single world sound at one location. The old world-sound was inaudible to players
+		// far from that block (large doors) and silently no-op'd when the door had no saved blocks.
+		if(blocks.isEmpty())
+			return;
+		Block b = blocks.keySet().toArray(new Block[0])[0];
+		Location loc = b.getLocation();
+		String sound = com.theprogrammingturkey.comz.util.SoundConfig.get("door.open", Sound.BLOCK_WOODEN_DOOR_OPEN.name());
+		for(Player pl : game.getPlayersInGame())
+			com.theprogrammingturkey.comz.util.SoundUtil.play(pl, loc, sound, org.bukkit.SoundCategory.MASTER, 1, 1);
 	}
 
 	private void loadSigns(JsonArray signsJsonArray)
