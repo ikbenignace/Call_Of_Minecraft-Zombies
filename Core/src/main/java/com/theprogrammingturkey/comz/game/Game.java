@@ -403,12 +403,22 @@ public class Game
 	}
 
 	/**
-	 * Resets the blocks to air at the spawn locations
+	 * Restores the original block at each spawn location (the block that was there before it was
+	 * replaced with an END_PORTAL_FRAME marker). #103 — the old implementation set spawn blocks to
+	 * AIR, which left holes in the world where the original floor/wall used to be. Now we restore the
+	 * saved {@link SpawnPoint#getMaterial()} so the arena looks as it did before setup. Called on
+	 * game enable (clears leftover markers) and at the end of build/edit mode.
 	 */
 	public void resetSpawnLocationBlocks()
 	{
 		for(SpawnPoint point : spawnManager.getPoints())
-			BlockUtils.setBlockToAir(point.getLocation());
+		{
+			Material mat = point.getMaterial();
+			if(mat != null && !mat.equals(Material.END_PORTAL_FRAME))
+				point.getLocation().getBlock().setType(mat);
+			else
+				BlockUtils.setBlockToAir(point.getLocation());
+		}
 	}
 
 	/**
