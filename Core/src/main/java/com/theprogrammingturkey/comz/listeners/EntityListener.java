@@ -37,7 +37,19 @@ import java.util.Map;
 
 public class EntityListener implements Listener
 {
+	/**
+	 * Single registered instance (set in the constructor, since {@code COMZombies.registerEvents}
+	 * constructs one EntityListener). Lets {@link com.theprogrammingturkey.comz.game.Game#endGame}
+	 * clear heal timers without holding a listener reference itself.
+	 */
+	private static EntityListener instance = null;
+
 	private final Map<Player, Integer> healTimers = new HashMap<>();
+
+	public EntityListener()
+	{
+		instance = this;
+	}
 
 	/** Metadata key used to record the last time a zombie damaged a player (0c). */
 	private static final String LAST_ATTACK_META = "comz_last_attack_ms";
@@ -318,6 +330,20 @@ public class EntityListener implements Listener
 			Bukkit.getScheduler().cancelTask(healTimers.get(player));
 			healTimers.remove(player);
 		}
+	}
+
+	/**
+	 * Clears every outstanding heal timer. Called on game end and plugin disable so no recurring
+	 * heal task survives a game/server stop against players who are no longer in a game. Quit is
+	 * already handled per-player by {@link #onPlayerQuit}.
+	 */
+	public static void clearHealTimers()
+	{
+		if(instance == null)
+			return;
+		for(Integer taskId : instance.healTimers.values())
+			Bukkit.getScheduler().cancelTask(taskId);
+		instance.healTimers.clear();
 	}
 
 	private void resetHealingTimer(Player player)

@@ -962,6 +962,9 @@ public class Game
 
 		spawnManager.killAll(false);
 		spawnManager.reset();
+		// Cancel any outstanding heal timers for players leaving this game so the recurring heal
+		// task does not outlive the game. (Per-player quit is handled in EntityListener.onPlayerQuit.)
+		com.theprogrammingturkey.comz.listeners.EntityListener.clearHealTimers();
 		for(Door door : doorManager.getDoors())
 		{
 			// Isolate each door: a failure to restore one door's blocks/sign must never abort the

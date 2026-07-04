@@ -197,6 +197,9 @@ public class COMZombies extends JavaPlugin
 	{
 		reloadConfig();
 		GameManager.INSTANCE.endAll();
+		// Defensive: endAll() already clears heal timers via each Game.endGame(), but make sure no
+		// recurring heal task survives the disable for games that were never INGAME.
+		com.theprogrammingturkey.comz.listeners.EntityListener.clearHealTimers();
 		log.info(COMZombies.CONSOLE_PREFIX + "has been disabled!");
 	}
 

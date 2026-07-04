@@ -164,6 +164,8 @@ public class PowerUpManager
 		// Make the pickup unmistakable: a glowing item (outline through walls) with a themed beam.
 		droppedItem.setGlowing(true);
 		final org.bukkit.Color beamColor = powerUp.getGlowColor();
+		// Ground lifetime now comes from config (perkLife, default 30) instead of a hardcoded 30.
+		final int lifetimeSeconds = ConfigManager.getMainConfig().perkLife;
 		// Spawn the countdown nameplate ABOVE the dropped item (was -1.7 below, which buried it under
 		// the floor in most arenas and made the pickup timer invisible).
 		ArmorStand namePlate = (ArmorStand) mob.getWorld().spawnEntity(droppedItem.getLocation().clone().add(0, 1.2, 0), EntityType.ARMOR_STAND);
@@ -171,7 +173,7 @@ public class PowerUpManager
 		namePlate.setGravity(false);
 		namePlate.setAI(false);
 		namePlate.setMarker(true);
-		namePlate.setCustomName("30");
+		namePlate.setCustomName(String.valueOf(lifetimeSeconds));
 		namePlate.setCustomNameVisible(true);
 
 		// Enforce the ground cap: drop the oldest power-up before adding a new one.
@@ -181,11 +183,11 @@ public class PowerUpManager
 
 		currentPowerUps.add(droppedItem);
 		powerupNameplates.put(droppedItem, namePlate);
-		// 5-tick upkeep: draws a vertical themed beam every tick and counts the 30s lifetime down on
-		// every 20-tick boundary, so the beam is smooth while the countdown cadence is unchanged.
+		// 5-tick upkeep: draws a vertical themed beam every tick and counts the configured lifetime
+		// down on every 20-tick boundary, so the beam is smooth while the countdown cadence is unchanged.
 		int id = COMZombies.scheduleTask(0, 5, new Runnable()
 		{
-			int time = 30;
+			int time = lifetimeSeconds;
 			int ticks = 0;
 
 			@Override
