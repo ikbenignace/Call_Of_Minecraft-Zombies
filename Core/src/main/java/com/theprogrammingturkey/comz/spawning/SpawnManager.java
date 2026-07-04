@@ -52,6 +52,13 @@ public class SpawnManager
 	private boolean dogRound = false;
 	private boolean bossRound = false;
 
+	/**
+	 * Task id of the self-rescheduling periodic update() task, or -1 when none is scheduled.
+	 * Tracked so {@link #reset()} (called on game end) can cancel the still-pending tick instead
+	 * of letting it fire forever against a non-INGAME game.
+	 */
+	private int updateTaskId = -1;
+
 	/** 0L — stuck-detection state: last sampled location and accumulated no-progress ticks per mob. */
 	private final Map<Mob, Location> stuckLastLoc = new HashMap<>();
 	private final Map<Mob, Long> stuckTicks = new HashMap<>();
@@ -394,8 +401,12 @@ public class SpawnManager
 
 	public void update()
 	{
-		COMZombies.scheduleTask(100, () ->
+		// Cancel any previously scheduled update tick before arming a new one, so there is at most
+		// one pending at a time (defensive against double startArena / re-entry).
+		cancelUpdateTask();
+		updateTaskId = COMZombies.scheduleTask(100, () ->
 		{
+			updateTaskId = -1;
 			if(game.getStatus() != GameStatus.INGAME)
 				return;
 
@@ -419,6 +430,19 @@ public class SpawnManager
 
 			update();
 		});
+	}
+
+	/**
+	 * Cancels the pending update() tick (if any). Called by {@link #reset()} on game end so the
+	 * self-rescheduling task does not outlive the game.
+	 */
+	private void cancelUpdateTask()
+	{
+		if(updateTaskId != -1)
+		{
+			Bukkit.getScheduler().cancelTask(updateTaskId);
+			updateTaskId = -1;
+		}
 	}
 
 	/**
@@ -638,6 +662,7 @@ public class SpawnManager
 
 	public void reset()
 	{
+		cancelUpdateTask();
 		this.mobs.clear();
 		this.canSpawn = false;
 		this.mobsSpawned = 0;

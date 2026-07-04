@@ -123,10 +123,16 @@ public class GameManager
 
 	public Game getGame(String name)
 	{
+		if(name == null || name.isEmpty())
+			return null;
+
 		for(Game gl : games)
 			if(name.equalsIgnoreCase(gl.getName()))
 				return gl;
 
+		// Convenience: allow an unambiguous prefix of an arena name (e.g. "alph" for "alpha").
+		// The prefix must be non-empty and at least one character long so a blank argument can
+		// never match every arena.
 		for(Game gl : games)
 		{
 			String gameName = gl.getName();
@@ -163,9 +169,12 @@ public class GameManager
 
 	public boolean isValidArena(String name)
 	{
+		if(name == null || name.isEmpty())
+			return false;
 		for(Game gl : games)
 		{
-			for(int pf = gl.getName().length(); pf >= 0; pf--)
+			// Only non-empty prefixes — substring(0,0) is "" which matched any blank argument.
+			for(int pf = gl.getName().length(); pf >= 1; pf--)
 			{
 				String gN = gl.getName().substring(0, pf);
 				if(gN.equalsIgnoreCase(name))

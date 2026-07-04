@@ -1232,8 +1232,11 @@ public class Game
 
 		for(Entity current : entList)
 		{
-			// loop through the list
-			// make sure we are only deleting what we want to delete
+			// Only remove dropped items / zombies that are actually inside THIS arena. Previously
+			// every Item and Zombie in the entire world was removed on every game end, which on a
+			// shared world wiped other plugins' drops and any non-COMZ zombies.
+			if(!arena.containsBlock(current.getLocation()))
+				continue;
 			if(current instanceof Item)
 				current.remove();
 			if(current instanceof Zombie)
