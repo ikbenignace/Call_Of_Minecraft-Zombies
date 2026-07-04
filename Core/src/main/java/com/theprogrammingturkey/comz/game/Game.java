@@ -189,8 +189,9 @@ public class Game
 	public SignManager signManager;
 
 	/**
-	 * BO2-fidelity layer — spawns/removes the static 3D machine models (PaP, perks, box) that
-	 * stand next to their feature signs. No-op when the resource pack is disabled.
+	 * BO2-fidelity layer — spawns/removes the static 3D machine models (PaP, perks, box) on top of
+	 * their feature signs (the sign is hidden during play and restored on game end). No-op when the
+	 * resource pack is disabled.
 	 */
 	public MachineModelManager machineModelManager;
 

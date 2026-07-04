@@ -31,15 +31,16 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * BO2-fidelity machines. Each perk / Pack-a-Punch sign becomes a physical machine in front of the
- * wall: a solid base block (always visible, even without the pack), a 3D {@link ItemDisplay} overlay
- * that covers the block when the pack is guaranteed for all players, an invisible {@link Interaction}
- * hitbox so the machine is right-clickable, and a floating price {@link TextDisplay}. Right-clicking
- * the interaction forwards to the backing sign's buy logic — so the machine works even though the
- * block now sits in front of (and hides) the sign.
+ * BO2-fidelity machines. Each perk / Pack-a-Punch sign becomes a physical machine occupying the sign's
+ * own block: a solid base block (always visible, even without the pack), a 3D {@link ItemDisplay}
+ * overlay that covers the block when the pack is guaranteed for all players, an invisible
+ * {@link Interaction} hitbox so the machine is right-clickable, and a floating price
+ * {@link TextDisplay}. Right-clicking the interaction forwards to the backing sign's buy logic (the
+ * sign's lines are snapshotted at spawn so buying works while the sign is hidden, and the sign is
+ * rebuilt on teardown).
  *
  * <p>Spawned at game start by scanning the arena's loaded chunk tile-entities for feature signs, and
- * fully torn down (entities + restored base blocks) on game end.
+ * fully torn down (entities + restored signs) on game end.
  */
 public class MachineModelManager
 {
@@ -125,10 +126,11 @@ public class MachineModelManager
 		if(data instanceof Directional)
 			facing = ((Directional) data).getFacing();
 
-		// The machine stands on the open block in front of the wall sign.
-		Location baseLoc = signLoc.clone().add(facing.getModX(), 0, facing.getModZ());
-		BlockData original = baseLoc.getBlock().getBlockData();
-		MachineModel machine = new MachineModel(baseLoc, original, signLoc);
+		// The machine occupies the sign's own block (the sign's material/facing/text are snapshotted into
+		// the MachineModel and fully rebuilt on teardown).
+		Location baseLoc = signLoc.clone();
+		String[] signLines = sign.getLines().clone();
+		MachineModel machine = new MachineModel(baseLoc, signLoc, sign.getType(), data, signLines);
 
 		baseLoc.getBlock().setType(base, false);
 
@@ -195,13 +197,11 @@ public class MachineModelManager
 		if(game.getStatus() != Game.GameStatus.INGAME)
 			return true; // it's ours, but nothing to do outside a running game
 
-		BlockState state = machine.signLoc.getBlock().getState();
-		if(!(state instanceof Sign))
-			return true;
-		Sign sign = (Sign) state;
-		IGameSign handler = SignListener.getSignHandler(ChatColor.stripColor(sign.getLine(1)).toLowerCase());
+		// The backing sign has been overwritten by the machine's base block during play, so the buy path
+		// runs off the sign lines snapshotted at spawn rather than re-reading the world.
+		IGameSign handler = SignListener.getSignHandler(ChatColor.stripColor(machine.signLines[1]).toLowerCase());
 		if(handler != null)
-			handler.onInteract(game, player, machine.signLoc, sign.getLines());
+			handler.onInteract(game, player, machine.baseLoc, machine.signLines);
 		return true;
 	}
 
@@ -269,16 +269,15 @@ public class MachineModelManager
 	{
 		if(m.hologram != null)
 			return m.hologram.getText(); // already formatted, e.g. "§bJuggernog §e$2500"
-		// Fallback when the hologram was never created (pack-less servers): rebuild from the sign.
-		BlockState state = m.signLoc.getBlock().getState();
-		if(state instanceof Sign)
+		// Fallback when the hologram was never created (pack-less servers): rebuild from the snapshotted
+		// sign lines (the world block is the machine's base block during play, not the sign).
+		if(m.signLines != null && m.signLines.length >= 4)
 		{
-			Sign s = (Sign) state;
-			String type = ChatColor.stripColor(s.getLine(1)).trim().toLowerCase();
+			String type = ChatColor.stripColor(m.signLines[1]).trim().toLowerCase();
 			if(type.equals("pack-a-punch"))
-				return ChatColor.LIGHT_PURPLE + "Pack-a-Punch " + ChatColor.YELLOW + "$" + ChatColor.stripColor(s.getLine(2));
+				return ChatColor.LIGHT_PURPLE + "Pack-a-Punch " + ChatColor.YELLOW + "$" + ChatColor.stripColor(m.signLines[2]);
 			if(type.equals("perk machine"))
-				return ChatColor.AQUA + ChatColor.stripColor(s.getLine(2)) + ChatColor.YELLOW + " $" + ChatColor.stripColor(s.getLine(3));
+				return ChatColor.AQUA + ChatColor.stripColor(m.signLines[2]) + ChatColor.YELLOW + " $" + ChatColor.stripColor(m.signLines[3]);
 		}
 		return ChatColor.AQUA + "Machine";
 	}
