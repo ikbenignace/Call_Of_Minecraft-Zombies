@@ -98,7 +98,9 @@ public final class MachineSigns
 			facing = ((Directional) data).getFacing();
 
 		float yaw = yawFromFace(facing);
-		org.bukkit.Location at = sign.getLocation().clone().add(0.5 + facing.getModX() * 0.4, 0.0, 0.5 + facing.getModZ() * 0.4);
+		// Preview sits at the centre of the sign's own block, matching the in-game placement (the machine
+		// occupies the sign block, not the block in front of it).
+		org.bukkit.Location at = sign.getLocation().clone().add(0.5, 0.0, 0.5);
 		return ModelDisplay.spawnModel(sign.getLocation().getWorld(), at, modelKey, 1.0f, yaw);
 	}
 
