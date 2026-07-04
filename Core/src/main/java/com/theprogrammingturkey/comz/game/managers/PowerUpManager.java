@@ -27,7 +27,12 @@ import java.util.stream.Collectors;
 
 public class PowerUpManager
 {
-	public static List<Entity> currentPowerUps = new ArrayList<>();
+	/**
+	 * Power-ups currently on the ground in THIS arena. Instance-scoped: a power-up dropped in one
+	 * arena must only be visible/collectible within that arena. Was previously {@code static},
+	 * which shared the list across every concurrent game and caused cross-arena pickup/delete bugs.
+	 */
+	public final List<Entity> currentPowerUps = new ArrayList<>();
 
 	// Default to the global config chance even if an arena has no powerup_settings block
 	// (loadAllPowerUps never called) — the old default of 0 meant such arenas silently never

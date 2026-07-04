@@ -89,9 +89,11 @@ public class Game
 	private int paPCostOverride = -1;
 
 	/**
-	 * If insta kill is active.
+	 * If insta kill is active. Instance-scoped: Insta-Kill must be independent per arena (picking
+	 * it up in one arena must NOT enable it in another). Was previously {@code static}, which
+	 * shared the flag across every concurrent game and let one arena's endGame() clear it globally.
 	 */
-	private static boolean instaKill = false;
+	private boolean instaKill = false;
 
 	/**
 	 * If the power is on
