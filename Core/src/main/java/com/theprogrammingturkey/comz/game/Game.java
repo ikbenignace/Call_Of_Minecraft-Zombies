@@ -89,9 +89,11 @@ public class Game
 	private int paPCostOverride = -1;
 
 	/**
-	 * If insta kill is active.
+	 * If insta kill is active. Instance-scoped: Insta-Kill must be independent per arena (picking
+	 * it up in one arena must NOT enable it in another). Was previously {@code static}, which
+	 * shared the flag across every concurrent game and let one arena's endGame() clear it globally.
 	 */
-	private static boolean instaKill = false;
+	private boolean instaKill = false;
 
 	/**
 	 * If the power is on
@@ -961,6 +963,9 @@ public class Game
 
 		spawnManager.killAll(false);
 		spawnManager.reset();
+		// Cancel any outstanding heal timers for players leaving this game so the recurring heal
+		// task does not outlive the game. (Per-player quit is handled in EntityListener.onPlayerQuit.)
+		com.theprogrammingturkey.comz.listeners.EntityListener.clearHealTimers();
 		for(Door door : doorManager.getDoors())
 		{
 			// Isolate each door: a failure to restore one door's blocks/sign must never abort the
@@ -1231,8 +1236,11 @@ public class Game
 
 		for(Entity current : entList)
 		{
-			// loop through the list
-			// make sure we are only deleting what we want to delete
+			// Only remove dropped items / zombies that are actually inside THIS arena. Previously
+			// every Item and Zombie in the entire world was removed on every game end, which on a
+			// shared world wiped other plugins' drops and any non-COMZ zombies.
+			if(!arena.containsBlock(current.getLocation()))
+				continue;
 			if(current instanceof Item)
 				current.remove();
 			if(current instanceof Zombie)

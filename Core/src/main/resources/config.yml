@@ -37,6 +37,10 @@ config:
     defaultPointsOnHit: 10
     #Default points when you kill a zombie, value * 2 on double points
     defaultPointsOnKill: 60
+    #Maximum wave a game will run before ending automatically. 0 = no cap (games run until players die).
+    maxWave: 0
+    #Interval (seconds) between round change and the first zombie spawning. 0 = spawn immediately.
+    waveSpawnInterval: 0
     #Max possible zombies in an arena at once (legacy; board max is now player-scaled below)
     maxZombies: 20
     #BO2 board capacity: zombies alive at once = zombieBoardBase + zombieBoardPerPlayer*(players-1). BO2 = 24 + 6/extra player.
@@ -229,3 +233,5 @@ config:
     #Spawn the ephemeral [BarrierRepair] sign on a window when zombies damage it (classic look). When
     #false, no sign is spawned and the barrier is repaired by holding sneak near it instead.
     spawnBarrierRepairSign: false
+#Config version marker (read by ConfigSetup; currently informational only).
+vID: "2.0"
