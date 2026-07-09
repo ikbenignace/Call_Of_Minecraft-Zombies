@@ -6,7 +6,6 @@ import com.theprogrammingturkey.comz.game.Game;
 import com.theprogrammingturkey.comz.game.features.PerkType;
 import com.theprogrammingturkey.comz.game.signs.IGameSign;
 import com.theprogrammingturkey.comz.listeners.SignListener;
-import com.theprogrammingturkey.comz.util.BlockUtils;
 import com.theprogrammingturkey.comz.util.DisplayEntityUtil;
 import com.theprogrammingturkey.comz.util.ModelDisplay;
 import com.theprogrammingturkey.comz.util.PackModels;
@@ -32,15 +31,16 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * BO2-fidelity machines. Each perk / Pack-a-Punch sign becomes a physical machine in front of the
- * wall: a solid base block (always visible, even without the pack), a 3D {@link ItemDisplay} overlay
- * that covers the block when the pack is guaranteed for all players, an invisible {@link Interaction}
- * hitbox so the machine is right-clickable, and a floating price {@link TextDisplay}. Right-clicking
- * the interaction forwards to the backing sign's buy logic — so the machine works even though the
- * block now sits in front of (and hides) the sign.
+ * BO2-fidelity machines. Each perk / Pack-a-Punch sign becomes a physical machine occupying the sign's
+ * own block: a solid base block (always visible, even without the pack), a 3D {@link ItemDisplay}
+ * overlay that covers the block when the pack is guaranteed for all players, an invisible
+ * {@link Interaction} hitbox so the machine is right-clickable, and a floating price
+ * {@link TextDisplay}. Right-clicking the interaction forwards to the backing sign's buy logic (the
+ * sign's lines are snapshotted at spawn so buying works while the sign is hidden, and the sign is
+ * rebuilt on teardown).
  *
  * <p>Spawned at game start by scanning the arena's loaded chunk tile-entities for feature signs, and
- * fully torn down (entities + restored base blocks) on game end.
+ * fully torn down (entities + restored signs) on game end.
  */
 public class MachineModelManager
 {
@@ -126,21 +126,13 @@ public class MachineModelManager
 		if(data instanceof Directional)
 			facing = ((Directional) data).getFacing();
 
-		// The machine stands on the open block in front of the wall sign.
-		Location baseLoc = signLoc.clone().add(facing.getModX(), 0, facing.getModZ());
-		BlockData original = baseLoc.getBlock().getBlockData();
-		MachineModel machine = new MachineModel(baseLoc, original, signLoc);
-
-		// Capture the sign's text + facing so the buy logic can still read type/cost after we hide the
-		// sign block, and so it can be restored exactly on teardown.
-		machine.signLines = sign.getLines().clone();
-		machine.signBlockData = sign.getBlockData();
+		// The machine occupies the sign's own block (the sign's material/facing/text are snapshotted into
+		// the MachineModel and fully rebuilt on teardown).
+		Location baseLoc = signLoc.clone();
+		String[] signLines = sign.getLines().clone();
+		MachineModel machine = new MachineModel(baseLoc, signLoc, sign.getType(), data, signLines);
 
 		baseLoc.getBlock().setType(base, false);
-
-		// Hide the backing sign for the duration of the game — the machine IS the in-game representation.
-		// Its data lives on the MachineModel above; the block is restored in MachineModel.remove().
-		BlockUtils.setBlockToAir(signLoc);
 
 		float yaw = yawFromFace(facing);
 		Location centre = baseLoc.clone().add(0.5, 0.0, 0.5);
@@ -205,14 +197,14 @@ public class MachineModelManager
 		if(game.getStatus() != Game.GameStatus.INGAME)
 			return true; // it's ours, but nothing to do outside a running game
 
-		// The sign block is hidden during the game (the machine IS the representation); read type/cost
-		// from the lines captured at spawn instead of the world block.
+		// The backing sign has been overwritten by the machine's base block during play, so the buy path
+		// runs off the sign lines snapshotted at spawn rather than re-reading the world.
 		String[] lines = machine.signLines;
 		if(lines == null || lines.length < 2)
 			return true;
 		IGameSign handler = SignListener.getSignHandler(ChatColor.stripColor(lines[1]).toLowerCase());
 		if(handler != null)
-			handler.onInteract(game, player, machine.signLoc, lines);
+			handler.onInteract(game, player, machine.baseLoc, lines);
 		return true;
 	}
 
@@ -280,8 +272,8 @@ public class MachineModelManager
 	{
 		if(m.hologram != null)
 			return m.hologram.getText(); // already formatted, e.g. "§bJuggernog §e$2500"
-		// Fallback when the hologram was never created (pack-less servers): rebuild from the captured
-		// sign lines (the sign block itself is hidden during the game).
+		// Fallback when the hologram was never created (pack-less servers): rebuild from the snapshotted
+		// sign lines (the world block is the machine's base block during play, not the sign).
 		String[] lines = m.signLines;
 		if(lines != null && lines.length >= 2)
 		{

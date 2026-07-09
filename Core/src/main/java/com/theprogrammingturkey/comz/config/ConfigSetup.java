@@ -59,6 +59,11 @@ public class ConfigSetup
 	 */
 	public int fireSaleTimer;
 	/**
+	 * Seconds a ground power-up stays before expiring (BO default 30). Was hardcoded in
+	 * PowerUpManager and the config key was dead; now wired through.
+	 */
+	public int perkLife;
+	/**
 	 * Time it takes for an arena to start.
 	 */
 	public int arenaStartTime;
@@ -462,6 +467,7 @@ public class ConfigSetup
 		doublePointsTimer = plugin.getConfig().getInt("config.gameSettings.doublePointsTimer");
 		instaKillTimer = plugin.getConfig().getInt("config.gameSettings.instaKillTimer");
 		fireSaleTimer = plugin.getConfig().getInt("config.gameSettings.fireSaleTimer");
+		perkLife = plugin.getConfig().getInt("config.gameSettings.perkLife", 30);
 		maxZombies = (int) plugin.getConfig().getDouble("config.gameSettings.maxZombies");
 		waveSpawnInterval = plugin.getConfig().getInt("config.gameSettings.waveSpawnInterval");
 		pointsOnHit = plugin.getConfig().getInt("config.gameSettings.defaultPointsOnHit");

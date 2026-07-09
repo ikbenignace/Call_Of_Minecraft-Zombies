@@ -53,18 +53,28 @@ public class PlayerChatListener implements Listener
 
 		if(plugin.isEditingASign.containsKey(player))
 		{
+			// Any chat while editing a sign is consumed (not just the "done" message); otherwise a
+			// player typing anything else would leak the message to the server while still locked
+			// in sign-edit mode.
+			playerChat.setCancelled(true);
+
 			if(message.equalsIgnoreCase("done"))
 			{
 				Location loc = plugin.isEditingASign.get(player);
 				plugin.isEditingASign.remove(player);
-				playerChat.setCancelled(true);
 				CommandUtil.sendMessageToPlayer(player, "You are No longer editing a sign");
-				if(loc.getBlock().getState() instanceof Sign)
+				// Block/sign mutation and the synchronous SignChangeEvent must run on the main thread,
+				// not this async chat thread (calling a sync event from async throws). The location
+				// and sign lines are captured now so the deferred task sees the intended state.
+				COMZombies.scheduleTask(1, () ->
 				{
-					Sign sign = (Sign) loc.getBlock().getState();
-					Bukkit.getServer().getPluginManager().callEvent(new SignChangeEvent(sign.getBlock(), player, sign.getLines()));
-					sign.update();
-				}
+					if(loc.getBlock().getState() instanceof Sign)
+					{
+						Sign sign = (Sign) loc.getBlock().getState();
+						Bukkit.getServer().getPluginManager().callEvent(new SignChangeEvent(sign.getBlock(), player, sign.getLines()));
+						sign.update();
+					}
+				});
 			}
 		}
 	}

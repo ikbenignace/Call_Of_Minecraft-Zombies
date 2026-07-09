@@ -132,7 +132,7 @@ public class LegacyConfig
 			JsonObject p2Json = new JsonObject();
 			p2Json.addProperty("x", oldConfig.getInt(key + ".Location.P2.x"));
 			p2Json.addProperty("y", oldConfig.getInt(key + ".Location.P2.y"));
-			p2Json.addProperty("z", oldConfig.getInt(key + ".Location.P12.z"));
+			p2Json.addProperty("z", oldConfig.getInt(key + ".Location.P2.z"));
 			arenaSaveJson.add("p2", p2Json);
 
 			JsonObject psJson = new JsonObject();

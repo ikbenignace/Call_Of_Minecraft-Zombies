@@ -67,11 +67,11 @@ public class PowerUpDropListener implements Listener
 
 			if(!GameManager.INSTANCE.isPlayerInGame(player))
 			{
-				if(PowerUpManager.currentPowerUps.contains(event.getItem()))
+				if(isPowerUpItem(event.getItem()))
 					event.setCancelled(true);
 				return;
 			}
-			else if(!PowerUpManager.currentPowerUps.contains(event.getItem()))
+			else if(!isPowerUpItem(event.getItem()))
 			{
 				event.setCancelled(true);
 				return;
@@ -82,7 +82,7 @@ public class PowerUpDropListener implements Listener
 			event.getItem().remove();
 			event.setCancelled(true);
 
-			PowerUpManager.currentPowerUps.remove(event.getItem());
+			game.powerUpManager.currentPowerUps.remove(event.getItem());
 
 			ItemStack item = event.getItem().getItemStack();
 			PowerUp powerUp = PowerUp.getPowerUpForMaterial(item.getType());
@@ -314,5 +314,19 @@ public class PowerUpDropListener implements Listener
 			String sound = com.theprogrammingturkey.comz.util.SoundConfig.get("powerup." + powerUp.name(), powerUp.getSound().name());
 			com.theprogrammingturkey.comz.util.SoundUtil.play(pl, pl.getLocation(), sound, org.bukkit.SoundCategory.MASTER, 1, 1);
 		}
+	}
+
+	/**
+	 * Whether the given dropped item is a tracked ground power-up in ANY arena. Now that
+	 * {@code currentPowerUps} is per-game, an out-of-game player (or one whose game lookup is
+	 * ambiguous) still needs a global scan to know whether to block the pickup. Order is
+	 * irrelevant; membership is what matters.
+	 */
+	private boolean isPowerUpItem(org.bukkit.entity.Item item)
+	{
+		for(Game game : GameManager.INSTANCE.getGames())
+			if(game.powerUpManager.currentPowerUps.contains(item))
+				return true;
+		return false;
 	}
 }

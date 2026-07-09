@@ -10,7 +10,8 @@ import org.bukkit.event.player.PlayerInteractEntityEvent;
 /**
  * Right-clicking a machine's invisible {@link org.bukkit.entity.Interaction} hitbox forwards to the
  * backing feature sign's buy logic (via {@link com.theprogrammingturkey.comz.game.managers.MachineModelManager}).
- * This is what makes the 3D machines clickable now that the model/base block sits in front of the sign.
+ * This is what makes the 3D machines clickable now that the model/base block occupies the sign's own
+ * block during play.
  */
 public class MachineInteractListener implements Listener
 {

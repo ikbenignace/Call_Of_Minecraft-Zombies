@@ -286,7 +286,18 @@ public class CommandManager implements CommandExecutor, TabExecutor
 			}
 
 			if(commandList.containsKey(args[0].toLowerCase()))
-				this.commandList.get(args[0].toLowerCase()).onCommand(player, args);
+			{
+				SubCommand subCommand = this.commandList.get(args[0].toLowerCase());
+				// Enforce the subcommand's permission node before dispatch. Previously any player
+				// could run any registered subcommand directly (/z createarena, /z reload, /z
+				// removearena, /z debug, ...) because only tab-completion was permission-gated.
+				if(subCommand.permission != null && !subCommand.permission.hasPerm(player))
+				{
+					CommandUtil.sendMessageToPlayer(player, ChatColor.RED + "You do not have permission to use this command!");
+					return true;
+				}
+				subCommand.onCommand(player, args);
+			}
 			else
 				CommandUtil.sendMessageToPlayer(player, ChatColor.RED + "No such command! Type /zombies help for a list of commands!");
 		}

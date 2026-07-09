@@ -3,7 +3,6 @@ package com.theprogrammingturkey.comz.listeners;
 import com.theprogrammingturkey.comz.game.Game;
 import com.theprogrammingturkey.comz.game.Game.GameStatus;
 import com.theprogrammingturkey.comz.game.GameManager;
-import com.theprogrammingturkey.comz.game.managers.PowerUpManager;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
@@ -32,12 +31,14 @@ public class OnOutsidePlayerInteractEvent implements Listener
 
 		if(GameManager.INSTANCE.isPlayerInGame(player))
 		{
-			if(!PowerUpManager.currentPowerUps.contains(e.getEntity()))
-			{
-				e.getItem().remove();
+			// Fixed: previously this checked currentPowerUps.contains(e.getEntity()) — the PLAYER —
+			// which is never a dropped power-up, so the branch was always taken and every power-up
+			// pickup was DELETED instead of collected (PowerUpDropListener then ran on a removed
+			// entity). Now: if the dropped item is a tracked power-up in this player's game, leave it
+			// untouched so PowerUpDropListener can collect it; otherwise it's a stray item — remove it.
+			Game playerGame = GameManager.INSTANCE.getGame(player);
+			if(playerGame != null && playerGame.powerUpManager.currentPowerUps.contains(e.getItem()))
 				return;
-			}
-			e.setCancelled(true);
 			e.getItem().remove();
 		}
 	}
