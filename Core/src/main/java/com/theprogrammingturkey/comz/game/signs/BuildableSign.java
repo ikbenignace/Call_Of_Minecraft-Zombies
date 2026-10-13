@@ -128,6 +128,19 @@ public class BuildableSign implements IGameSign
 			return;
 		}
 
+		for(ItemStack held : player.getInventory().getContents())
+		{
+			String heldPart = BuildableItems.getPartName(held, buildable.getId());
+			if(heldPart != null)
+				missing.removeIf(part -> part.equalsIgnoreCase(heldPart));
+		}
+
+		if(missing.isEmpty())
+		{
+			CommandUtil.sendMessageToPlayer(player, ChatColor.YELLOW + "You already hold every missing part - deposit them here.");
+			return;
+		}
+
 		int cost = ConfigManager.getMainConfig().buildablePartCost;
 		if(!PointManager.INSTANCE.canBuy(player, cost))
 		{

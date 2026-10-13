@@ -86,6 +86,12 @@ public class Quest
 		return false;
 	}
 
+	public void reset()
+	{
+		currentStepIndex = 0;
+		completed = steps.isEmpty();
+	}
+
 	/**
 	 * Pure helper: is {@code index} the final index of a list of {@code size} steps?
 	 * An empty list ({@code size == 0}) has no last step.

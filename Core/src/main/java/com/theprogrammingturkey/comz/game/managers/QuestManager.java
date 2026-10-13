@@ -133,6 +133,12 @@ public class QuestManager
 		return quest;
 	}
 
+	public void reset()
+	{
+		if(quest != null)
+			quest.reset();
+	}
+
 	/**
 	 * Fired when a player right-clicks a quest sign. If the quest's current step is an
 	 * {@link QuestStepType#INTERACT} step matching {@code stepId}, advances the quest and

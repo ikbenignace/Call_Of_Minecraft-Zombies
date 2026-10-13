@@ -12,7 +12,8 @@ public class PowerSign implements IGameSign
 	@Override
 	public void onBreak(Game game, Player player, Location location)
 	{
-
+		game.turnOffPower();
+		game.removePower(player);
 	}
 
 	@Override

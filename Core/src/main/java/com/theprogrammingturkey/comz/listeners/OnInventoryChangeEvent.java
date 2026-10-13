@@ -47,6 +47,8 @@ public class OnInventoryChangeEvent implements Listener
 		Game game = GameManager.INSTANCE.getGame(player);
 		if(game == null || game.getStatus() != GameStatus.INGAME)
 			return;
+		if(game.downedPlayerManager.isDownedPlayer(player) || game.downedPlayerManager.isGhost(player))
+			return;
 
 		// Proximity-buy: if the player is standing next to a door / machine (action-bar prompt shown),
 		// F buys it via the existing DoorSign / MachineModelManager paths and we skip the default

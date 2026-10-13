@@ -35,6 +35,9 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.event.entity.EntityPickupItemEvent;
+import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
@@ -62,11 +65,11 @@ public class BuildModeListener implements Listener
 		Player player = event.getPlayer();
 		if(!manager.isInBuild(player))
 			return;
-		// Only react to the main hand so a click is handled once.
+		// Cancel both hands (the off-hand would otherwise open doors/chests/levers), but only act on the
+		// main hand so a click is handled once.
+		event.setCancelled(true);
 		if(event.getHand() != EquipmentSlot.HAND)
 			return;
-
-		event.setCancelled(true);
 
 		Block clicked = event.getClickedBlock();
 		if(clicked == null)
@@ -186,6 +189,31 @@ public class BuildModeListener implements Listener
 	}
 
 	@EventHandler
+	public void onDamage(EntityDamageEvent event)
+	{
+		if(event.getEntity() instanceof Player && manager.isInBuild((Player) event.getEntity()))
+			event.setCancelled(true);
+	}
+
+	@EventHandler
+	public void onPickup(EntityPickupItemEvent event)
+	{
+		if(event.getEntity() instanceof Player && manager.isInBuild((Player) event.getEntity()))
+			event.setCancelled(true);
+	}
+
+	/** Damage is cancelled, but /kill still gets through: never drop the toolbox items into the world. */
+	@EventHandler
+	public void onDeath(PlayerDeathEvent event)
+	{
+		if(!manager.isInBuild(event.getEntity()))
+			return;
+		event.getDrops().clear();
+		event.setKeepInventory(true);
+		event.setDroppedExp(0);
+	}
+
+	@EventHandler
 	public void onQuit(PlayerQuitEvent event)
 	{
 		if(manager.isInBuild(event.getPlayer()))
@@ -286,6 +314,13 @@ public class BuildModeListener implements Listener
 		if(kv == null)
 			return;
 
+		IGameSign handler = com.theprogrammingturkey.comz.listeners.SignListener.getSignHandler(kv[0]);
+		if(handler != null && handler.requiresGame() && !game.arena.containsBlock(signBlock.getLocation()))
+		{
+			msg(player, ChatColor.RED + "That must be placed inside the arena!");
+			return;
+		}
+
 		boolean ok = MachineSigns.placeSign(game, player, signBlock, face, kv[0], kv[1], kv[2]);
 		if(!ok)
 		{
@@ -356,7 +391,12 @@ public class BuildModeListener implements Listener
 				switch(label)
 				{
 					case "Trap":
-						return new String[]{"trap", "trap" + (game.trapManager.getTraps().size() + 1), "1000"};
+					{
+						int trapNum = game.trapManager.getTraps().size() + 1;
+						while(game.trapManager.getTrap("trap" + trapNum) != null)
+							trapNum++;
+						return new String[]{"trap", "trap" + trapNum, "1000"};
+					}
 					case "Buildable":
 						return new String[]{"buildable", BuildableItems.ZOMBIE_SHIELD_ID, ""};
 					case "Quest":
@@ -403,6 +443,13 @@ public class BuildModeListener implements Listener
 				return;
 			}
 			IGameSign handler = com.theprogrammingturkey.comz.listeners.SignListener.getSignHandler(ChatColor.stripColor(sign.getLine(1)).toLowerCase());
+			Game signGame = GameManager.INSTANCE.getGame(clicked.getLocation());
+			boolean otherArena = signGame != null ? signGame != game : handler != null && handler.requiresGame();
+			if(otherArena)
+			{
+				msg(player, ChatColor.RED + "That sign doesn't belong to " + game.getName() + ".");
+				return;
+			}
 			if(handler != null)
 				handler.onBreak(game, player, clicked.getLocation());
 			session.removePreview(clicked.getLocation());

@@ -8,13 +8,9 @@ import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Mob;
-import org.bukkit.entity.Player;
 import org.bukkit.entity.Wolf;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
-
-import java.util.ArrayList;
-import java.util.List;
 
 public class HellHoundSpawner extends RoundSpawner
 {
@@ -26,48 +22,16 @@ public class HellHoundSpawner extends RoundSpawner
 		if(world == null)
 			return null;
 
-		// #125 — Spawn hellhounds at configured, door-aware spawn points (the same way zombies
-		// spawn) rather than scanning an arbitrary radius around a player. The old radius scan
-		// ignored door state, so dogs appeared in locked/unopened areas of the arena. Using the
-		// spawn-point set keeps dogs in reachable areas and respects room progression.
-		List<SpawnPoint> spawnable = new ArrayList<>();
-		for(SpawnPoint p : game.spawnManager.getPoints())
-			if(game.spawnManager.canSpawnPoint(p))
-				spawnable.add(p);
-
-		Player spawnPlayer = game.getPlayersInGame().get(COMZombies.rand.nextInt(game.getPlayersInGame().size()));
-		Location location = null;
-
-		if(!spawnable.isEmpty())
-		{
-			// Prefer spawnable points near a random player so dogs converge on the action.
-			SpawnPoint nearest = null;
-			double nearestDist = Double.MAX_VALUE;
-			for(SpawnPoint p : spawnable)
-			{
-				double d = p.getLocation().distanceSquared(spawnPlayer.getLocation());
-				if(d < nearestDist)
-				{
-					nearestDist = d;
-					nearest = p;
-				}
-			}
-			if(nearest != null)
-				location = nearest.getLocation().clone().add(0.5, 0, 0.5);
-		}
-
-		if(location == null)
-			return null;
+		// #125 — dogs use the door-aware spawn point SpawnManager already picked (biased toward a
+		// player) instead of scanning a radius, so they never appear in locked areas.
+		Location location = loc.getLocation().clone().add(0.5, 0, 0.5);
 
 		world.strikeLightning(location);
 
-		// Capture a final reference for the delayed fire-clear task (the local `location` is
-		// reassigned above so it isn't effectively final).
-		final Location fireCheckLoc = location;
 		COMZombies.scheduleTask(10, () ->
 		{
-			if(fireCheckLoc.getBlock().getType().equals(Material.FIRE))
-				BlockUtils.setBlockToAir(fireCheckLoc);
+			if(location.getBlock().getType().equals(Material.FIRE))
+				BlockUtils.setBlockToAir(location);
 		});
 
 		Wolf wolf = (Wolf) world.spawnEntity(location, EntityType.WOLF);

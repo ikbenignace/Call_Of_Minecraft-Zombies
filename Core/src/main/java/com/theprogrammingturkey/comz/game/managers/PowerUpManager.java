@@ -81,6 +81,17 @@ public class PowerUpManager
 		currentPowerUps.remove(powerUp);
 	}
 
+	public void clearAll()
+	{
+		for(Entity powerUp : new ArrayList<>(currentPowerUps))
+			removePowerUp(powerUp);
+		for(Entity powerUp : new ArrayList<>(powerupTasks.keySet()))
+			removePowerUp(powerUp);
+		for(Entity powerUp : new ArrayList<>(powerupNameplates.keySet()))
+			removePowerUp(powerUp);
+		droppedThisRound = 0;
+	}
+
 
 	public void loadAllPowerUps(JsonObject powerUpSettings)
 	{
@@ -173,6 +184,7 @@ public class PowerUpManager
 		namePlate.setGravity(false);
 		namePlate.setAI(false);
 		namePlate.setMarker(true);
+		namePlate.setPersistent(false);
 		namePlate.setCustomName(String.valueOf(lifetimeSeconds));
 		namePlate.setCustomNameVisible(true);
 

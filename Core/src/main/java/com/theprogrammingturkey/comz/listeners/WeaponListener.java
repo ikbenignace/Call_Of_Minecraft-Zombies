@@ -57,6 +57,12 @@ public class WeaponListener implements Listener
 	/** guns.json display name of the Wunderwaffe Pack-a-Punch variant. */
 	private static final String WUNDERWAFFE_PAP = "Wunderwaffe DG-3 JZ";
 
+	public static boolean isWonderWeapon(String gunName)
+	{
+		return THUNDERGUN.equalsIgnoreCase(gunName) || THUNDERGUN_PAP.equalsIgnoreCase(gunName)
+				|| WUNDERWAFFE.equalsIgnoreCase(gunName) || WUNDERWAFFE_PAP.equalsIgnoreCase(gunName);
+	}
+
 	/**
 	 * Pure selection helper: given the squared distances of a set of candidates, return the
 	 * indices of the {@code count} nearest, ordered nearest-first. Used by the Wunderwaffe to
@@ -167,7 +173,7 @@ public class WeaponListener implements Listener
 
 							rayTrace.showParticles(event.getPlayer().getWorld(), dist, 0.5f, gun.getType().particleColor);
 
-							float damage = (float) gun.getType().damage / shots;
+							float baseDamage = (float) gun.getType().damage / shots;
 
 							for(RayTrace.RayEntityIntersection toDamageIntesect : toDamage)
 							{
@@ -189,6 +195,7 @@ public class WeaponListener implements Listener
 									double zombieHitLocY = toDamageIntesect.intersection.getY() - entToDamage.getLocation().getY();
 									double eyeHeight = ((Mob) entToDamage).getEyeHeight();
 									boolean headshot = zombieHitLocY > eyeHeight - (entToDamage.getHeight() - eyeHeight);
+									float damage = baseDamage;
 									if(headshot)
 									{
 										damage *= 1.5f;
@@ -445,6 +452,7 @@ public class WeaponListener implements Listener
 				attackEnt.setAI(false);
 				attackEnt.setMarker(true);
 				attackEnt.setInvulnerable(true);
+				attackEnt.setPersistent(false);
 				item.addPassenger(attackEnt);
 
 				for(Mob e : game.spawnManager.getEntities())

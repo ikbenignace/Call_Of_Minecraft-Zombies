@@ -101,7 +101,10 @@ public final class MachineSigns
 		// Preview sits at the centre of the sign's own block, matching the in-game placement (the machine
 		// occupies the sign block, not the block in front of it).
 		org.bukkit.Location at = sign.getLocation().clone().add(0.5, 0.0, 0.5);
-		return ModelDisplay.spawnModel(sign.getLocation().getWorld(), at, modelKey, 1.0f, yaw);
+		ItemDisplay preview = ModelDisplay.spawnModel(sign.getLocation().getWorld(), at, modelKey, 1.0f, yaw);
+		if(preview != null)
+			preview.setPersistent(false);
+		return preview;
 	}
 
 	private static float yawFromFace(BlockFace face)

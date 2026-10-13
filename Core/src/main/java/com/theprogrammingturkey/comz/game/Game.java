@@ -221,6 +221,8 @@ public class Game
 
 	public boolean changingRound = false;
 
+	private int roundStartTask = -1;
+
 	/**
 	 * Creates a game based off of the parameters and arena configuration file.
 	 *
@@ -437,7 +439,9 @@ public class Game
 		for(SpawnPoint point : spawnManager.getPoints())
 		{
 			Block block = point.getLocation().getBlock();
-			point.setMaterial(block.getType());
+			// A second editor would otherwise record the marker itself as the original block.
+			if(block.getType() != Material.END_PORTAL_FRAME)
+				point.setMaterial(block.getType());
 			block.setType(Material.END_PORTAL_FRAME);
 		}
 	}
@@ -524,6 +528,7 @@ public class Game
 			player.setLevel(0);
 			PointManager.INSTANCE.setPoints(player, 500);
 			Leaderboard.getPlayerStatFromPlayer(player).incGamesPlayed();
+			PermaPerkManager.applyOnGameEntry(player);
 		}
 
 		scoreboard.update();
@@ -608,8 +613,10 @@ public class Game
 		questManager.onRoundReached(waveNumber);
 
 		//get death and downed players and let them respawn or revive
+		// Offline dead players respawn via the rejoin path in addPlayer instead.
 		for(Player player : getDeathPlayers())
-			addPlayer(player);
+			if(player.isOnline())
+				respawnDeadPlayer(player);
 
 		downedPlayerManager.reviveDownedPlayers();
 
@@ -627,8 +634,9 @@ public class Game
 
 		RoundSpawnType spawnType = spawnManager.nextWave(waveNumber, getPlayersInGame());
 
-		COMZombies.scheduleTask(delay, () ->
+		roundStartTask = COMZombies.scheduleTask(delay, () ->
 		{
+			roundStartTask = -1;
 			for(Player pl : getPlayersAndSpectators())
 			{
 				pl.sendTitle(ChatColor.RED + "Round " + waveNumber, "", 10, 60, 10);
@@ -674,7 +682,7 @@ public class Game
 		player.getInventory().setArmorContents(null);
 		player.setExp(0);
 		player.setLevel(0);
-		player.teleport(arena.getLobbyLocation());
+		player.teleport(status == GameStatus.INGAME ? arena.getPlayerTPLocation() : arena.getLobbyLocation());
 		PointManager.INSTANCE.setPoints(player, points);
 		assignPlayerInventory(player);
 		player.setGameMode(GameMode.SURVIVAL);
@@ -705,8 +713,9 @@ public class Game
 			COMZombies.log.log(Level.SEVERE, "The " + startingGun + " is listed as the starting gun, but it could not be found! Did you forget to change this?");
 		}
 
-		// Tier 4 — apply any perma-perks this player has earned across previous games (passive bonuses).
-		PermaPerkManager.applyOnGameEntry(player);
+		// Lobby joins get perma-perks in startArena instead; the short bursts would expire before the game starts.
+		if(status == GameStatus.INGAME)
+			PermaPerkManager.applyOnGameEntry(player);
 	}
 
 	/**
@@ -716,6 +725,11 @@ public class Game
 	 */
 	public void addPlayer(Player player)
 	{
+		if(com.theprogrammingturkey.comz.game.builder.BuildModeManager.INSTANCE.isInBuild(player))
+		{
+			CommandUtil.sendMessageToPlayer(player, ChatColor.RED + "Exit build mode first (/zombies build).");
+			return;
+		}
 		com.theprogrammingturkey.comz.util.ResourcePackUtil.apply(player);
 		if(status == GameStatus.WAITING || status == GameStatus.STARTING)
 		{
@@ -743,12 +757,7 @@ public class Game
 			}
 			else if(isPlayerDeath(player))
 			{
-				// removePlayer(player);
-				gamePlayers.put(player, new GamePlayer(player));
-				//resetPlayer(player);
-				internalAddPlayer(player, 500 * waveNumber);
-
-				sendMessageToPlayers(player.getName() + " can play again!");
+				respawnDeadPlayer(player);
 			}
 //			else if (getWave() <= 5) {
 //				gamePlayers.put(player, new GamePlayer(player));
@@ -765,6 +774,13 @@ public class Game
 			CommandUtil.sendMessageToPlayer(player, "Something could have went wrong here, COM Zombies has picked this up and will continue without error.");
 		}
 		signManager.updateGame();
+	}
+
+	private void respawnDeadPlayer(Player player)
+	{
+		gamePlayers.put(player, new GamePlayer(player));
+		internalAddPlayer(player, 500 * waveNumber);
+		sendMessageToPlayers(player.getName() + " can play again!");
 	}
 
 	public void addSpectator(Player player)
@@ -805,8 +821,8 @@ public class Game
 			ghost.quitCleanup();
 
 		if(downedPlayerManager.isDownedPlayer(player))
-			setDead(player);
-		else if(gamePlayers.containsKey(player))
+			downedPlayerManager.removeDownedPlayer(player);
+		if(gamePlayers.containsKey(player))
 			gamePlayers.get(player).setState(PlayerState.LEFT_GAME);
 
 		// Clear any in-game perks so their icons (inventory slots 4-7) don't survive the quit —
@@ -820,6 +836,8 @@ public class Game
 
 		if(getPlayersInGame().isEmpty() && status != GameStatus.WAITING && status != GameStatus.DISABLED)
 			endGame();
+		else
+			checkGameEndCondition();
 	}
 
 	private void removePlayerActions(Player player)
@@ -862,6 +880,7 @@ public class Game
 		CachedPlayerInfo.restorePlayerInfo(player);
 		player.setHealth(20);
 		player.setWalkSpeed(0.2F);
+		player.setMaximumNoDamageTicks(20);
 		scoreboard.removePlayer(player);
 		player.updateInventory();
 		COMZombies plugin = COMZombies.getPlugin();
@@ -1041,8 +1060,8 @@ public class Game
 		{
 			if(v.isInGame() || v.hasLeftGame() || v.isDead())
 			{
-				PointManager.INSTANCE.playerLeaveGame(v.getPlayer());
 				removePlayerActions(v.getPlayer());
+				PointManager.INSTANCE.playerLeaveGame(v.getPlayer());
 			}
 			else
 			{
@@ -1050,8 +1069,15 @@ public class Game
 			}
 		}
 
+		if(roundStartTask != -1)
+		{
+			Bukkit.getScheduler().cancelTask(roundStartTask);
+			roundStartTask = -1;
+		}
 		spawnManager.killAll(false);
 		spawnManager.reset();
+		powerUpManager.clearAll();
+		com.theprogrammingturkey.comz.listeners.PowerUpDropListener.cancelAllTimers(this);
 		// Cancel any outstanding heal timers for players leaving this game so the recurring heal
 		// task does not outlive the game. (Per-player quit is handled in EntityListener.onPlayerQuit.)
 		com.theprogrammingturkey.comz.listeners.EntityListener.clearHealTimers();
@@ -1076,6 +1102,10 @@ public class Game
 		// tombstone snapshots and any lingering Who's Who ghost so a re-used Game object starts the
 		// next session clean (otherwise solo self-revive uses would never replenish between games).
 		downedPlayerManager.reset();
+		questManager.reset();
+		buildableManager.resetAll();
+		trapManager.resetAll();
+		teleporterManager.resetSessionState();
 		turnOffPower();
 		boxManager.loadAllBoxes();
 		barrierManager.unloadAllBarriers();
@@ -1130,16 +1160,6 @@ public class Game
 		}
 
 		powerSetup = CustomConfig.getBoolean(arenaSaveJson, "power_setup", false);
-		// Auto-repair: pre-fix arenas (commit 129a260) had power_setup incorrectly saved as false
-		// even though a [Zombies]/Power sign existed, which made right-clicking power silently do
-		// nothing. If the save says "no power" but a power sign is actually present in the arena,
-		// flip powerSetup back on so the sign works again. The scan needs loaded chunks, so it runs
-		// after arena.loadArena (which sets the world) — chunk-loadedness is handled by the caller.
-		if(!powerSetup && arenaHasPowerSign(world))
-		{
-			COMZombies.log.log(Level.INFO, "Arena '" + arena.getName() + "' had power_setup=false but a Power sign exists; auto-enabling power.");
-			powerSetup = true;
-		}
 		minPlayers = CustomConfig.getInt(arenaSettingsJson, "min_players", 1);
 		maxPlayers = CustomConfig.getInt(arenaSettingsJson, "max_players", 8);
 		teddyBearPercent = CustomConfig.getInt(arenaSettingsJson, "teddy_bear_chance", 100);
@@ -1156,6 +1176,17 @@ public class Game
 
 		arena.loadArena(arenaSaveJson, world);
 		status = GameStatus.WAITING;
+
+		// Auto-repair: pre-fix arenas (commit 129a260) had power_setup incorrectly saved as false
+		// even though a [Zombies]/Power sign existed, which made right-clicking power silently do
+		// nothing. If the save says "no power" but a power sign is actually present in the arena,
+		// flip powerSetup back on so the sign works again. The scan needs loaded chunks, so it runs
+		// after arena.loadArena (which sets the world and arena bounds) — chunk-loadedness is handled by the caller.
+		if(!powerSetup && arenaHasPowerSign(world))
+		{
+			COMZombies.log.log(Level.INFO, "Arena '" + arena.getName() + "' had power_setup=false but a Power sign exists; auto-enabling power.");
+			powerSetup = true;
+		}
 
 		// Apply force-night AFTER arena.loadArena so arena.getWorld() is populated. forceNight() reads
 		// the world from the arena; calling it before loadArena (the old order) hit a null world here.
@@ -1582,7 +1613,8 @@ public class Game
 				perkManager.hasPerk(player, PerkType.QUICK_REVIVE),
 				downedPlayerManager.getSelfReviveUses(player.getUniqueId(), ConfigManager.getMainConfig().soloQuickReviveUses));
 
-		if(!canSelfRevive && downedPlayerManager.numDownedPlayers() + 1 == getPlayersInGame().size())
+		// Living, not getPlayersInGame(): bled-out players are DEAD and no longer in the downed list.
+		if(!canSelfRevive && downedPlayerManager.numDownedPlayers() + 1 == getLivingPlayers().size())
 		{
 			// Everyone is now down/out with no self-revive available — the run is over. Make the
 			// ending explicit (BO2 shows a Game Over) instead of silently yanking the player out.

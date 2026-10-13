@@ -28,8 +28,25 @@ import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.potion.PotionEffectType;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
+
 public class PlayerListener implements Listener
 {
+	private static final long REVIVE_PROMPT_INTERVAL_MS = 3000;
+	private final Map<UUID, Long> lastRevivePrompt = new HashMap<>();
+
+	private boolean canSendRevivePrompt(Player player)
+	{
+		long now = System.currentTimeMillis();
+		Long last = lastRevivePrompt.get(player.getUniqueId());
+		if(last != null && now - last < REVIVE_PROMPT_INTERVAL_MS)
+			return false;
+		lastRevivePrompt.put(player.getUniqueId(), now);
+		return true;
+	}
+
 	@EventHandler
 	public void onPlayerJoin(PlayerJoinEvent event)
 	{
@@ -54,6 +71,7 @@ public class PlayerListener implements Listener
 	public void onPlayerLeave(PlayerQuitEvent event)
 	{
 		Player player = event.getPlayer();
+		lastRevivePrompt.remove(player.getUniqueId());
 		if(GameManager.INSTANCE.isPlayerInGame(player))
 		{
 			Game game = GameManager.INSTANCE.getGame(player);
@@ -116,14 +134,11 @@ public class PlayerListener implements Listener
 		//get downed players and show message if nearby
 		for(DownedPlayer dp : game.downedPlayerManager.getDownedPlayers())
 		{
-			if(dp.isPlayerDown())
-			{
-				if(dp.getPlayer().getLocation().distance(player.getLocation()) < 5)
-				{
-					if(!dp.isBeingRevived())
-						player.sendMessage(ChatColor.RED + "" + ChatColor.BOLD + "Revive " + dp.getPlayer().getName() + " by right clicking them!");
-				}
-			}
+			Player downed = dp.getPlayer();
+			if(!dp.isPlayerDown() || dp.isBeingRevived() || downed.equals(player) || !downed.getWorld().equals(player.getWorld()))
+				continue;
+			if(downed.getLocation().distanceSquared(player.getLocation()) < 25 && canSendRevivePrompt(player))
+				player.sendMessage(ChatColor.RED + "" + ChatColor.BOLD + "Revive " + downed.getName() + " by right clicking them!");
 		}
 
 
@@ -136,10 +151,10 @@ public class PlayerListener implements Listener
 		{
 			for(Block b : barrier.getBlocks())
 			{
-				if((int) toLoc.getX() == b.getX() && (int) toLoc.getY() == b.getY() && (int) toLoc.getZ() == b.getZ())
+				if(toLoc.getBlockX() == b.getX() && toLoc.getBlockY() == b.getY() && toLoc.getBlockZ() == b.getZ())
 				{
 					Location fromLoc = event.getFrom();
-					boolean fromInside = (int) fromLoc.getX() == b.getX() && (int) fromLoc.getY() == b.getY() && (int) fromLoc.getZ() == b.getZ();
+					boolean fromInside = fromLoc.getBlockX() == b.getX() && fromLoc.getBlockY() == b.getY() && fromLoc.getBlockZ() == b.getZ();
 					if(!fromInside)
 					{
 						event.setCancelled(true);

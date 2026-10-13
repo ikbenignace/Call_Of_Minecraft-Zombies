@@ -46,6 +46,14 @@ public final class BuildModeManager
 		return sessions.get(player.getUniqueId());
 	}
 
+	public boolean isArenaBeingBuilt(Game game)
+	{
+		for(BuildSession session : sessions.values())
+			if(session.getGame() == game)
+				return true;
+		return false;
+	}
+
 	/** Enter build mode for {@code game}: stash the real inventory, switch to a safe gamemode, hand over the toolbox. */
 	public void enter(Player player, Game game)
 	{
@@ -87,6 +95,19 @@ public final class BuildModeManager
 		session.restore(player);
 		GameManager.INSTANCE.saveAllGames();
 		CommandUtil.sendMessageToPlayer(player, ChatColor.GREEN + "Build mode saved & exited.");
+	}
+
+	/** Restores every builder's real inventory and the world before a plugin disable/reload. */
+	public void exitAll()
+	{
+		for(UUID uuid : new java.util.ArrayList<>(sessions.keySet()))
+		{
+			Player player = org.bukkit.Bukkit.getPlayer(uuid);
+			if(player != null)
+				exit(player);
+			else
+				sessions.remove(uuid);
+		}
 	}
 
 	/**

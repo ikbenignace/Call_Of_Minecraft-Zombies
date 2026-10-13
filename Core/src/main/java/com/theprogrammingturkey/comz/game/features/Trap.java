@@ -32,6 +32,7 @@ public class Trap
 	private long lastUsed = 0L;
 	/** True while the trap is mid-activation (killing). Transient. */
 	private boolean active = false;
+	private int activation = 0;
 
 	public Trap(String id, Location center, int cost)
 	{
@@ -101,6 +102,13 @@ public class Trap
 		return !active && isReady(lastUsed, System.currentTimeMillis(), cooldownSeconds);
 	}
 
+	public void reset()
+	{
+		lastUsed = 0L;
+		active = false;
+		activation++;
+	}
+
 	/**
 	 * Activates the trap: marks it used, then for {@code trapDurationSeconds} repeatedly
 	 * (every {@link #SWEEP_PERIOD_TICKS} ticks) kills tracked zombies within
@@ -111,6 +119,7 @@ public class Trap
 		ConfigSetup cfg = ConfigManager.getMainConfig();
 		lastUsed = System.currentTimeMillis();
 		active = true;
+		final int thisActivation = ++activation;
 
 		long durationTicks = Math.max(1L, cfg.trapDurationSeconds * 20L);
 		// Number of sweeps over the active window.
@@ -120,6 +129,8 @@ public class Trap
 		{
 			final boolean last = (i == sweeps);
 			COMZombies.scheduleTask(i * SWEEP_PERIOD_TICKS, () -> {
+				if(thisActivation != activation)
+					return;
 				if(last)
 				{
 					active = false;

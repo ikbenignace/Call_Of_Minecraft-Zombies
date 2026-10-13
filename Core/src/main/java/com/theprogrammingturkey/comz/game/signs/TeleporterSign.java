@@ -95,6 +95,16 @@ public class TeleporterSign implements IGameSign
 						boolean grantPaP = grantsPaPAccess(lines);
 
 						COMZombies.scheduleTask(cfg.teleporterChargeUpTicks, () -> {
+						if(!player.isOnline() || game.getStatus() != Game.GameStatus.INGAME
+								|| !game.getLivingPlayers().contains(player) || game.downedPlayerManager.isDownedPlayer(player))
+						{
+							if(player.isOnline() && game.getStatus() == Game.GameStatus.INGAME && game.getPlayersInGame().contains(player))
+							{
+								PointManager.INSTANCE.addPoints(player, points);
+								PointManager.INSTANCE.notifyPlayer(player);
+							}
+							return;
+						}
 						player.teleport(target);
 						player.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 30, 30));
 
@@ -153,7 +163,7 @@ public class TeleporterSign implements IGameSign
 	@Override
 	public void onChange(Game game, Player player, SignChangeEvent sign)
 	{
-		String thirdLine = ChatColor.stripColor(sign.getLine(2));
+		String thirdLine = ChatColor.stripColor(sign.getLine(2)).toLowerCase();
 		if(game.teleporterManager.getTeleporters().containsKey(thirdLine))
 		{
 			// Tier 2 — "pap" keyword on the label line opts the teleporter in to granting PaP access.

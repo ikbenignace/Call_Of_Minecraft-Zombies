@@ -103,7 +103,14 @@ public class SignListener implements Listener
 	{
 		if(keyword == null)
 			return null;
-		return GAME_SIGNS.get(keyword.toLowerCase());
+		String key = keyword.trim().toLowerCase();
+		IGameSign handler = GAME_SIGNS.get(key);
+		if(handler != null)
+			return handler;
+		// Some signs append a qualifier to their type line (e.g. "Teleporter [PaP]"), so fall back to the
+		// first word when the full line isn't a registered keyword.
+		int space = key.indexOf(' ');
+		return space > 0 ? GAME_SIGNS.get(key.substring(0, space)) : null;
 	}
 
 	@EventHandler(priority = EventPriority.HIGHEST)
@@ -126,8 +133,8 @@ public class SignListener implements Listener
 				return;
 			}
 
-			IGameSign signLogic = GAME_SIGNS.get(lineTwo.toLowerCase());
-			if(signLogic != null && (game != null || !signLogic.requiresGame()))
+			IGameSign signLogic = getSignHandler(lineTwo);
+			if(signLogic != null && !event.isCancelled() && (game != null || !signLogic.requiresGame()))
 				signLogic.onBreak(game, event.getPlayer(), signLoc);
 		}
 		else if(lineOne.equalsIgnoreCase("[BarrierRepair]"))
@@ -198,11 +205,19 @@ public class SignListener implements Listener
 			if(lineOne.equalsIgnoreCase("[Zombies]"))
 			{
 				Game game = GameManager.INSTANCE.getGame(sign.getLocation());
-				IGameSign signLogic = GAME_SIGNS.get(lineTwo.toLowerCase());
+				IGameSign signLogic = getSignHandler(lineTwo);
 				if(signLogic != null && (game != null || !signLogic.requiresGame()))
 				{
-					if(game != null && signLogic.requiresGame() && game.getStatus() != Game.GameStatus.INGAME)
-						return;
+					if(game != null && signLogic.requiresGame())
+					{
+						if(game.getStatus() != Game.GameStatus.INGAME)
+							return;
+						if(!game.getLivingPlayers().contains(player) || game.downedPlayerManager.isDownedPlayer(player))
+						{
+							event.setCancelled(true);
+							return;
+						}
+					}
 
 					signLogic.onInteract(game, player, sign.getLocation(), sign.getLines());
 					event.setCancelled(true);
@@ -221,7 +236,7 @@ public class SignListener implements Listener
 		if(lineOne != null && lineOne.equalsIgnoreCase("[Zombies]") && lineTwo != null)
 		{
 			Game game = GameManager.INSTANCE.getGame(event.getBlock().getLocation());
-			IGameSign signLogic = GAME_SIGNS.get(lineTwo.toLowerCase());
+			IGameSign signLogic = getSignHandler(lineTwo);
 			if(signLogic != null && (game != null || !signLogic.requiresGame()))
 			{
 				signLogic.onChange(game, event.getPlayer(), event);

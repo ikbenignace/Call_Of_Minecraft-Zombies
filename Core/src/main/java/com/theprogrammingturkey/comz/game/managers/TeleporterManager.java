@@ -108,7 +108,7 @@ public class TeleporterManager
 
 			Location loc = CustomConfig.getLocationWithWorld(teleporterJson, "", game.getWorld());
 			String teleporterID = CustomConfig.getString(teleporterJson, "id", "missing");
-			this.teleporters.put(teleporterID, loc);
+			this.teleporters.put(teleporterID.toLowerCase(), loc);
 		}
 	}
 
@@ -149,5 +149,11 @@ public class TeleporterManager
 	public Map<String, Location> getTeleporters()
 	{
 		return teleporters;
+	}
+
+	public void resetSessionState()
+	{
+		lastUse.clear();
+		paPAccessExpiry.clear();
 	}
 }

@@ -31,6 +31,7 @@ import org.bukkit.inventory.ItemStack;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 public class PowerUpDropListener implements Listener
 {
@@ -40,14 +41,71 @@ public class PowerUpDropListener implements Listener
 	 * cancel the in-flight expiry task and reschedule a fresh full-duration
 	 * one when {@code powerUpRefreshOnPickup} is enabled.
 	 */
-	private final Map<Game, Map<PowerUp, Integer>> activeTimerTasks = new HashMap<>();
+	private static final Map<Game, Map<PowerUp, Integer>> activeTimerTasks = new HashMap<>();
 
-	private void setActiveTimerTask(Game game, PowerUp powerUp, int taskId)
+	private static final Map<Game, Map<UUID, DeathMachineGrant>> activeDeathMachines = new HashMap<>();
+
+	private static final class DeathMachineGrant
 	{
-		activeTimerTasks.computeIfAbsent(game, g -> new HashMap<>()).put(powerUp, taskId);
+		final WeaponInstance instance;
+		final WeaponInstance displaced;
+		final ItemStack savedStack;
+		final int slot;
+		int taskId = -1;
+
+		DeathMachineGrant(WeaponInstance instance, WeaponInstance displaced, ItemStack savedStack, int slot)
+		{
+			this.instance = instance;
+			this.displaced = displaced;
+			this.savedStack = savedStack;
+			this.slot = slot;
+		}
 	}
 
-	private void cancelActiveTimerTask(Game game, PowerUp powerUp)
+	/**
+	 * Cancels every pending power-up expiry (timed power-ups and Death Machines) for the game. The
+	 * game itself resets the power-up flags and player inventories on end, so displaced weapons are
+	 * simply dropped rather than restored.
+	 */
+	public static void cancelAllTimers(Game game)
+	{
+		Map<PowerUp, Integer> byType = activeTimerTasks.remove(game);
+		if(byType != null)
+			for(int taskId : byType.values())
+				Bukkit.getScheduler().cancelTask(taskId);
+
+		Map<UUID, DeathMachineGrant> grants = activeDeathMachines.remove(game);
+		if(grants != null)
+			for(DeathMachineGrant grant : grants.values())
+				Bukkit.getScheduler().cancelTask(grant.taskId);
+	}
+
+	public static boolean isDeathMachine(WeaponInstance weapon)
+	{
+		return weapon != null && WeaponManager.DEATH_MACHINE_NAME.equals(weapon.getBaseWeapon().getName());
+	}
+
+	/**
+	 * Schedules a power-up expiry that only fires while it is still the registered timer for this
+	 * game, so a task that outlives its session (or was superseded by a refresh) can never touch
+	 * the next game's state.
+	 */
+	private static void scheduleExpiry(Game game, PowerUp powerUp, int duration, Runnable onExpire)
+	{
+		final int[] taskId = {-1};
+		taskId[0] = COMZombies.scheduleTask(duration, () ->
+		{
+			Map<PowerUp, Integer> byType = activeTimerTasks.get(game);
+			if(byType == null || !Integer.valueOf(taskId[0]).equals(byType.get(powerUp)))
+				return;
+			byType.remove(powerUp);
+			if(game.getStatus() == Game.GameStatus.INGAME)
+				onExpire.run();
+		});
+		activeTimerTasks.computeIfAbsent(game, g -> new HashMap<>()).put(powerUp, taskId[0]);
+	}
+
+	private static void cancelActiveTimerTask(Game game, PowerUp powerUp)
 	{
 		Map<PowerUp, Integer> byType = activeTimerTasks.get(game);
 		if(byType == null)
@@ -115,7 +173,7 @@ public class PowerUpDropListener implements Listener
 						cancelActiveTimerTask(game, PowerUp.INSTA_KILL);
 					}
 					game.setInstaKill(true);
-					setActiveTimerTask(game, PowerUp.INSTA_KILL, COMZombies.scheduleTask(duration, () -> game.setInstaKill(false)));
+					scheduleExpiry(game, PowerUp.INSTA_KILL, duration, () -> game.setInstaKill(false));
 					break;
 				case CARPENTER:
 					for(Barrier barrier : game.barrierManager.getBarriers())
@@ -169,7 +227,7 @@ public class PowerUpDropListener implements Listener
 						cancelActiveTimerTask(game, PowerUp.DOUBLE_POINTS);
 					}
 					game.setDoublePoints(true);
-					setActiveTimerTask(game, PowerUp.DOUBLE_POINTS, COMZombies.scheduleTask(duration, () -> game.setDoublePoints(false)));
+					scheduleExpiry(game, PowerUp.DOUBLE_POINTS, duration, () -> game.setDoublePoints(false));
 					break;
 				case FIRE_SALE:
 					duration = ConfigManager.getMainConfig().fireSaleTimer * 20;
@@ -180,18 +238,21 @@ public class PowerUpDropListener implements Listener
 							duration = -1;
 							break;
 						}
+						// Both sales share the fire-sale flag, so the other sale's timer must not end it early.
 						cancelActiveTimerTask(game, PowerUp.FIRE_SALE);
+						cancelActiveTimerTask(game, PowerUp.BONFIRE_SALE);
 					}
 					else
 					{
 						game.boxManager.FireSale();
 					}
 					game.setFireSale(true);
-					setActiveTimerTask(game, PowerUp.FIRE_SALE, COMZombies.scheduleTask(duration, () ->
+					scheduleExpiry(game, PowerUp.FIRE_SALE, duration, () ->
 					{
 						game.setFireSale(false);
 						game.boxManager.FireSale();
-					}));
+						game.setPaPCostOverride(-1);
+					});
 					break;
 				case BONFIRE_SALE:
 					// Bonfire Sale = Fire Sale (cheap mystery box) + a global Pack-a-Punch discount.
@@ -203,6 +264,7 @@ public class PowerUpDropListener implements Listener
 							duration = -1;
 							break;
 						}
+						cancelActiveTimerTask(game, PowerUp.FIRE_SALE);
 						cancelActiveTimerTask(game, PowerUp.BONFIRE_SALE);
 					}
 					else
@@ -211,12 +273,12 @@ public class PowerUpDropListener implements Listener
 					}
 					game.setFireSale(true);
 					game.setPaPCostOverride(ConfigManager.getMainConfig().bonfirePaPCost);
-					setActiveTimerTask(game, PowerUp.BONFIRE_SALE, COMZombies.scheduleTask(duration, () ->
+					scheduleExpiry(game, PowerUp.BONFIRE_SALE, duration, () ->
 					{
 						game.setFireSale(false);
 						game.boxManager.FireSale();
 						game.setPaPCostOverride(-1);
-					}));
+					});
 					break;
 				case DEATH_MACHINE:
 					// Instant power-up: hand the picking player a temporary minigun for a fixed
@@ -255,27 +317,34 @@ public class PowerUpDropListener implements Listener
 	/**
 	 * Hands the player a temporary Death Machine minigun and schedules its removal.
 	 * <p>
-	 * Approach (kept deliberately robust over a full inventory swap/restore, which is
-	 * fragile across perks/Mule Kick/box guns): the minigun is added as an <em>extra</em>
-	 * weapon in a free gun slot chosen by {@link PlayerWeaponManager#getCorrectSlot}. Both the
-	 * {@link WeaponInstance} previously tracked in that slot (if any) and the raw inventory
-	 * {@link ItemStack} occupying it are saved, then restored verbatim on expiry. If the slot
-	 * was empty it is simply cleared. This never destroys the player's real guns — at worst it
-	 * temporarily overlays one slot and puts it back exactly as it was.
+	 * The minigun overlays one gun slot chosen by {@link PlayerWeaponManager#getCorrectSlot}; the
+	 * {@link WeaponInstance} and raw {@link ItemStack} it displaced are restored on expiry. A second
+	 * pickup while one is active only refreshes the timer and ammo, so the first minigun is never
+	 * mistaken for a real gun to restore. If the slot no longer holds the minigun at expiry (the
+	 * player replaced it), the slot is left alone.
 	 */
-	private void giveDeathMachine(Game game, Player player)
+	private static void giveDeathMachine(Game game, Player player)
 	{
 		final PlayerWeaponManager manager = game.getPlayersWeapons(player);
 		final BaseGun deathMachine = WeaponManager.getGun(WeaponManager.DEATH_MACHINE_NAME);
-		if(deathMachine == null)
+		if(manager == null || deathMachine == null)
 			return;
 
-		final int slot = manager.getCorrectSlot(deathMachine);
+		Map<UUID, DeathMachineGrant> grants = activeDeathMachines.computeIfAbsent(game, g -> new HashMap<>());
+		int durationTicks = ConfigManager.getMainConfig().deathMachineDurationSeconds * 20;
 
-		// Save whatever currently lives in the chosen slot so we can put it back on expiry.
+		DeathMachineGrant active = grants.get(player.getUniqueId());
+		if(active != null && manager.getWeapon(active.slot) == active.instance)
+		{
+			Bukkit.getScheduler().cancelTask(active.taskId);
+			active.instance.maxAmmo();
+			active.taskId = COMZombies.scheduleTask(durationTicks, () -> expireDeathMachine(game, player, active));
+			return;
+		}
+
+		final int slot = manager.getCorrectSlot(deathMachine);
 		final WeaponInstance displaced = manager.getWeapon(slot);
 		final ItemStack savedStack = player.getInventory().getItem(slot);
-		final ItemStack savedStackCopy = savedStack == null ? null : savedStack.clone();
 
 		if(displaced != null)
 			manager.removeWeapon(displaced);
@@ -283,27 +352,45 @@ public class PowerUpDropListener implements Listener
 		final WeaponInstance deathMachineInstance = deathMachine.getNewInstance(player, slot);
 		manager.addWeapon(deathMachineInstance);
 
-		int durationTicks = ConfigManager.getMainConfig().deathMachineDurationSeconds * 20;
-		COMZombies.scheduleTask(durationTicks, () ->
-		{
-			// Remove the temporary minigun.
-			manager.removeWeapon(deathMachineInstance);
+		DeathMachineGrant grant = new DeathMachineGrant(deathMachineInstance, displaced, savedStack == null ? null : savedStack.clone(), slot);
+		grants.put(player.getUniqueId(), grant);
+		grant.taskId = COMZombies.scheduleTask(durationTicks, () -> expireDeathMachine(game, player, grant));
+	}
 
-			if(!GameManager.INSTANCE.isPlayerInGame(player))
-				return;
+	/**
+	 * Ends the player's Death Machine early and puts back the gun it displaced, e.g. before a
+	 * downed-player loadout snapshot so the real gun is kept instead of the temporary minigun.
+	 */
+	public static void revertDeathMachine(Game game, Player player)
+	{
+		Map<UUID, DeathMachineGrant> grants = activeDeathMachines.get(game);
+		DeathMachineGrant grant = grants == null ? null : grants.get(player.getUniqueId());
+		if(grant == null)
+			return;
+		Bukkit.getScheduler().cancelTask(grant.taskId);
+		expireDeathMachine(game, player, grant);
+	}
 
-			// Restore the displaced weapon instance (if any) and its rendered item.
-			if(displaced != null)
-				manager.addWeapon(displaced);
+	private static void expireDeathMachine(Game game, Player player, DeathMachineGrant grant)
+	{
+		Map<UUID, DeathMachineGrant> grants = activeDeathMachines.get(game);
+		if(grants == null || grants.get(player.getUniqueId()) != grant)
+			return;
+		grants.remove(player.getUniqueId());
 
-			if(savedStackCopy != null)
-				player.getInventory().setItem(slot, savedStackCopy);
-			else
-				player.getInventory().setItem(slot, null);
+		PlayerWeaponManager manager = game.getPlayersWeapons(player);
+		if(manager == null || game.getStatus() != Game.GameStatus.INGAME || GameManager.INSTANCE.getGame(player) != game)
+			return;
+		if(manager.getWeapon(grant.slot) != grant.instance)
+			return;
 
-			manager.updateWeapons();
-			player.updateInventory();
-		});
+		manager.removeWeapon(grant.instance);
+		if(grant.displaced != null)
+			manager.addWeapon(grant.displaced);
+		player.getInventory().setItem(grant.slot, grant.savedStack);
+
+		manager.updateWeapons();
+		player.updateInventory();
 	}
 
 	public void notifyAll(Game game, PowerUp powerUp)

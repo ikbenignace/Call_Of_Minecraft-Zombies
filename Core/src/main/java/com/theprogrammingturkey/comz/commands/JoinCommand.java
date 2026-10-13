@@ -4,6 +4,7 @@ import com.theprogrammingturkey.comz.game.Game;
 import com.theprogrammingturkey.comz.game.Game.GameStatus;
 import com.theprogrammingturkey.comz.game.GameManager;
 import com.theprogrammingturkey.comz.game.GamePlayer;
+import com.theprogrammingturkey.comz.game.builder.BuildModeManager;
 import com.theprogrammingturkey.comz.util.COMZPermission;
 import com.theprogrammingturkey.comz.util.CommandUtil;
 import org.bukkit.ChatColor;
@@ -21,6 +22,11 @@ public class JoinCommand extends SubCommand
 	@Override
 	public boolean onCommand(Player player, String[] args)
 	{
+		if(BuildModeManager.INSTANCE.isInBuild(player))
+		{
+			CommandUtil.sendMessageToPlayer(player, ChatColor.RED + "Exit build mode first (/zombies build).");
+			return true;
+		}
 		if(GameManager.INSTANCE.isPlayerInGame(player))
 		{
 			Map<Player, GamePlayer> gamePlayers = GameManager.INSTANCE.getGame(player).gamePlayers;

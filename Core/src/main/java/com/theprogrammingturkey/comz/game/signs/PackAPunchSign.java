@@ -150,6 +150,7 @@ public class PackAPunchSign implements IGameSign
 			d.setBillboard(org.bukkit.entity.Display.Billboard.FIXED);
 			d.setTransformation(com.theprogrammingturkey.comz.util.ModelDisplay.transform(new org.joml.Vector3f(0f, 0f, 0f), 0.7f, 0f));
 			d.setInterpolationDelay(0);
+			d.setPersistent(false);
 		});
 
 		// Lower into the machine, hold while "upgrading", then lift the upgraded gun back out and remove.

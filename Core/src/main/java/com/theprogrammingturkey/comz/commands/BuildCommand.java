@@ -37,6 +37,12 @@ public class BuildCommand extends SubCommand
 			return true;
 		}
 
+		if(GameManager.INSTANCE.isPlayerInGame(player))
+		{
+			CommandUtil.sendMessageToPlayer(player, ChatColor.RED + "Leave your current game first!");
+			return true;
+		}
+
 		if(COMZombies.getPlugin().activeActions.containsKey(player))
 		{
 			CommandUtil.sendMessageToPlayer(player, ChatColor.RED + "Finish your current setup action first (/zombies cancel).");
@@ -56,6 +62,16 @@ public class BuildCommand extends SubCommand
 		}
 
 		Game game = GameManager.INSTANCE.getGame(args[1]);
+		if(game.getStatus() == Game.GameStatus.INGAME || game.getStatus() == Game.GameStatus.STARTING || !game.getPlayersInGame().isEmpty())
+		{
+			CommandUtil.sendMessageToPlayer(player, ChatColor.RED + game.getName() + " has players in it! End the game first.");
+			return true;
+		}
+		if(BuildModeManager.INSTANCE.isArenaBeingBuilt(game))
+		{
+			CommandUtil.sendMessageToPlayer(player, ChatColor.RED + "Someone is already building " + game.getName() + ".");
+			return true;
+		}
 		game.setDisabled();
 		BuildModeManager.INSTANCE.enter(player, game);
 		return true;

@@ -63,10 +63,10 @@ public class SettingsMenu implements InventoryHolder
 		switch(slot)
 		{
 			case SLOT_MIN:
-				game.minPlayers = Math.max(1, game.minPlayers + (up ? step : -step));
+				game.minPlayers = Math.max(1, Math.min(game.maxPlayers, game.minPlayers + (up ? step : -step)));
 				break;
 			case SLOT_MAX:
-				game.maxPlayers = Math.max(1, game.maxPlayers + (up ? step : -step));
+				game.maxPlayers = Math.max(Math.max(1, game.minPlayers), game.maxPlayers + (up ? step : -step));
 				break;
 			case SLOT_TEDDY:
 				game.setTeddyBearPercent(game.getTeddyBearPercent() + (up ? step : -step));

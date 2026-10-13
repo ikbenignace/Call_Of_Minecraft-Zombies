@@ -38,6 +38,7 @@ public class TrapManager
 			Location loc = CustomConfig.getLocationWithWorld(trapJson, "", game.getWorld());
 			String id = CustomConfig.getString(trapJson, "id", "missing");
 			int cost = CustomConfig.getInt(trapJson, "cost", 1000);
+			id = id.toLowerCase();
 			traps.put(id, new Trap(id, loc, cost));
 		}
 	}
@@ -84,5 +85,11 @@ public class TrapManager
 	public Map<String, Trap> getTraps()
 	{
 		return traps;
+	}
+
+	public void resetAll()
+	{
+		for(Trap trap : traps.values())
+			trap.reset();
 	}
 }

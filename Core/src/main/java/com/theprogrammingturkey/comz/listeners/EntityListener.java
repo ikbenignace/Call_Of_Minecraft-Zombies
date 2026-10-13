@@ -6,7 +6,6 @@ import com.theprogrammingturkey.comz.game.Game;
 import com.theprogrammingturkey.comz.game.GameManager;
 import com.theprogrammingturkey.comz.game.features.BuildableItems;
 import com.theprogrammingturkey.comz.game.features.PerkType;
-import com.theprogrammingturkey.comz.game.managers.PerkManager;
 import com.theprogrammingturkey.comz.util.CommandUtil;
 import org.bukkit.inventory.ItemStack;
 import com.theprogrammingturkey.comz.spawning.BossSpawner;
@@ -136,9 +135,10 @@ public class EntityListener implements Listener
 					damage = game.damagePlayer(player, damage);
 					e.setDamage(damage);
 
-					// 0c — clear i-frames so concurrent swarm hits this tick all land
-					player.setNoDamageTicks(0);
+					// 0c — no i-frames so concurrent swarm hits this tick all land. setNoDamageTicks alone is
+					// overwritten with the maximum after the event; Game.resetPlayer restores the maximum.
 					player.setMaximumNoDamageTicks(0);
+					player.setNoDamageTicks(0);
 
 					//heal system
 					resetHealingTimer(player);
@@ -367,14 +367,24 @@ public class EntityListener implements Listener
 		game.perkManager.removePerkEffect(player, disabled);
 		player.sendMessage(ChatColor.RED + "Brutus disabled your " + disabled + "!");
 
+		// Going down, Who's Who, leaving or a new game all replace the per-player perk list, so
+		// identity of this list doubles as a "same life, same session" token for the restore.
+		final List<PerkType> perkListAtDisable = held;
 		long restoreTicks = (long) Math.max(1, ConfigManager.getMainConfig().brutusDisableSeconds) * 20L;
 		COMZombies.scheduleTask(restoreTicks, () ->
 		{
-			if(!game.getPlayersInGame().contains(player))
+			if(game.getStatus() != Game.GameStatus.INGAME || !game.getPlayersInGame().contains(player))
 				return;
-			if(game.perkManager.hasPerk(player, disabled))
+			if(game.downedPlayerManager.isDownedPlayer(player) || game.downedPlayerManager.isGhost(player))
 				return;
-			PerkManager.givePerk(game, player, disabled);
+			List<PerkType> current = game.perkManager.getPlayersPerks(player);
+			if(current != perkListAtDisable || current.contains(disabled))
+				return;
+			// Restored directly rather than via addPerk: the perk was owned before, so the maxPerks
+			// cap (which may have been filled in the meantime) must not swallow it.
+			current.add(disabled);
+			disabled.initialEffect(player);
+			game.perkManager.applyPerkEffect(player, disabled);
 			player.sendMessage(ChatColor.GREEN + "Your " + disabled + " is back.");
 		});
 	}

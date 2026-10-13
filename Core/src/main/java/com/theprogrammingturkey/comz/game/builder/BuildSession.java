@@ -403,7 +403,10 @@ public class BuildSession
 					+ (door.isOpened() ? ChatColor.GREEN + " (open)" : "");
 			TextDisplay hologram = DisplayEntityUtil.persistentText(world, at, label);
 			if(hologram != null)
+			{
+				hologram.setPersistent(false);
 				doorHolograms.put(door.doorID, hologram);
+			}
 		}
 	}
 

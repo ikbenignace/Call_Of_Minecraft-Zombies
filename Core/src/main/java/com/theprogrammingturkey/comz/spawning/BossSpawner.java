@@ -15,6 +15,7 @@ import org.bukkit.boss.BarStyle;
 import org.bukkit.boss.BossBar;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Mob;
+import org.bukkit.entity.PiglinAbstract;
 import org.bukkit.entity.Player;
 import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.metadata.MetadataValue;
@@ -39,16 +40,14 @@ import com.theprogrammingturkey.comz.util.SoundUtil;
  * </ul>
  *
  * Bosses are added to the normal {@code mobs} list so the round ends through the usual
- * {@code removeEntity} path; a long max-lifetime safety task removes a boss that can never reach
- * a player (same pattern as {@link HellHoundSpawner}).
+ * {@code removeEntity} path. A boss that cannot reach a player is handled by the shared stuck-mob
+ * teleporter in {@link SpawnManager} rather than despawned on a timer, since any despawn of the
+ * last boss would pay out the boss rewards without a kill.
  */
 public class BossSpawner extends RoundSpawner
 {
 	/** Marks a spawned Brutus so the damage listener can fire its perk-disable ability. */
 	public static final String BRUTUS_META = "comz_brutus";
-
-	/** Max ticks a boss may live before the safety task removes it (1 minute). */
-	private static final long BOSS_MAX_LIFETIME_TICKS = 1200L;
 
 	public enum BossType
 	{
@@ -104,6 +103,8 @@ public class BossSpawner extends RoundSpawner
 		float strength = bossHealth(wave, mult);
 
 		Mob boss = (type == BossType.GEORGE) ? spawnGeorge(world, location, strength) : spawnBrutus(world, location, strength);
+		if(boss == null)
+			return null;
 
 		setFollowDistance(boss, 512);
 		setMaxHealth(boss, strength);
@@ -114,20 +115,17 @@ public class BossSpawner extends RoundSpawner
 			boss.setTarget(nearest);
 
 		// Relentless retarget: keep chasing the nearest living in-game player.
-		COMZombies.scheduleTask(40L, 40L, () ->
+		final int[] retargetTaskId = new int[1];
+		retargetTaskId[0] = COMZombies.scheduleTask(40L, 40L, () ->
 		{
 			if(boss.isDead() || !game.spawnManager.isEntitySpawned(boss))
+			{
+				Bukkit.getScheduler().cancelTask(retargetTaskId[0]);
 				return;
+			}
 			Player p = nearestPlayer(game, boss);
 			if(p != null)
 				boss.setTarget(p);
-		});
-
-		// Safety: a boss that can never reach a player is removed so the round can still end.
-		COMZombies.scheduleTask(BOSS_MAX_LIFETIME_TICKS, () ->
-		{
-			if(!boss.isDead())
-				boss.remove();
 		});
 
 		// Tier 4 — boss presence: stinger + a tracked health BossBar for the fight, gated by config.
@@ -207,6 +205,10 @@ public class BossSpawner extends RoundSpawner
 				brutus.getEquipment().setChestplate(new org.bukkit.inventory.ItemStack(org.bukkit.Material.IRON_CHESTPLATE));
 			}
 		}
+		// Piglin brutes zombify after ~15s outside the Nether, which would silently swap Brutus
+		// for an untracked zombified piglin.
+		if(brutus instanceof PiglinAbstract)
+			((PiglinAbstract) brutus).setImmuneToZombification(true);
 		brutus.setCustomName("Brutus");
 		brutus.setCustomNameVisible(true);
 		brutus.setMetadata(BRUTUS_META, new FixedMetadataValue(COMZombies.getPlugin(), true));

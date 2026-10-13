@@ -10,6 +10,7 @@ import com.theprogrammingturkey.comz.game.managers.WeaponManager;
 import com.theprogrammingturkey.comz.game.weapons.WeaponInstance;
 import com.theprogrammingturkey.comz.leaderboards.Leaderboard;
 import com.theprogrammingturkey.comz.leaderboards.PlayerStats;
+import com.theprogrammingturkey.comz.listeners.PowerUpDropListener;
 import com.theprogrammingturkey.comz.util.PackModels;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -89,9 +90,10 @@ public class DownedPlayer implements Listener
 			player.sendMessage(ChatColor.GRAY + "Tombstone Soda will preserve your perks.");
 		}
 		game.perkManager.clearPlayersPerks(player);
+		PowerUpDropListener.revertDeathMachine(game, player);
 		PlayerWeaponManager manager = game.getPlayersWeapons(player);
-		guns[0] = manager.removeWeapon(1);
-		guns[1] = manager.removeWeapon(2);
+		guns[0] = snapshotGun(manager.removeWeapon(1));
+		guns[1] = snapshotGun(manager.removeWeapon(2));
 		manager.removeWeapon(3);
 		manager.addWeapon(WeaponManager.getGun(game.getStartingGun()).getNewInstance(player, 1));
 		player.setInvulnerable(true);
@@ -104,12 +106,25 @@ public class DownedPlayer implements Listener
 		scheduleTask();
 	}
 
+	private static WeaponInstance snapshotGun(WeaponInstance gun)
+	{
+		return gun != null && PowerUpDropListener.isDeathMachine(gun) ? null : gun;
+	}
+
 	public void clearDownedState()
 	{
 		isPlayerDown = false;
 		isBeingRevived = false;
 		if(fireWorksTask != -1)
+		{
 			Bukkit.getScheduler().cancelTask(fireWorksTask);
+			fireWorksTask = -1;
+		}
+		if(reviveTask != -1)
+		{
+			Bukkit.getScheduler().cancelTask(reviveTask);
+			reviveTask = -1;
+		}
 		// Cancel any pending solo self-revive so it cannot fire after the down has ended
 		// (game over, quit, or a co-op revive that got there first) and re-arm a dead player.
 		if(soloReviveTask != -1)
@@ -152,6 +167,7 @@ public class DownedPlayer implements Listener
 			as.setBasePlate(false);
 			as.setCollidable(false);
 			as.setSilent(true);
+			as.setPersistent(false);
 		});
 		seat.addPassenger(player);
 
@@ -161,6 +177,7 @@ public class DownedPlayer implements Listener
 		{
 			disp.setItemStack(iconStack);
 			disp.setBillboard(Display.Billboard.CENTER);
+			disp.setPersistent(false);
 			Transformation t = disp.getTransformation();
 			disp.setTransformation(new Transformation(new Vector3f(0f, 1.6f, 0f), t.getLeftRotation(), new Vector3f(0.85f, 0.85f, 0.85f), t.getRightRotation()));
 		});
@@ -237,6 +254,8 @@ public class DownedPlayer implements Listener
 
 	public void revivePlayer()
 	{
+		if(!isPlayerDown)
+			return;
 		player.sendMessage(ChatColor.GREEN + "You have been revived!");
 		if(reviver != null)
 		{
@@ -250,9 +269,13 @@ public class DownedPlayer implements Listener
 		clearDownedState();
 		game.downedPlayerManager.downedPlayerRevived(this);
 		PlayerWeaponManager manager = game.getPlayersWeapons(player);
-		manager.removeWeapon(1);
-		manager.addWeapon(guns[0]);
-		manager.addWeapon(guns[1]);
+		for(WeaponInstance gun : guns)
+		{
+			if(gun == null)
+				continue;
+			manager.removeWeapon(gun.getSlot());
+			manager.addWeapon(gun);
+		}
 
 		// Tier 3 — Tombstone Soda: re-grant the snapshotted perks (one-shot) if one was saved.
 		game.downedPlayerManager.reclaimTombstonePerks(game, player);
@@ -267,7 +290,10 @@ public class DownedPlayer implements Listener
 		this.reviver = null;
 		clearReviveProgress();
 		if(reviveTask != -1)
+		{
 			Bukkit.getScheduler().cancelTask(reviveTask);
+			reviveTask = -1;
+		}
 		// A cancelled revive must not leave a pending solo self-revive or bleed-out suppression
 		// in place — same reasoning as {@link #clearDownedState()}.
 		if(soloReviveTask != -1)
@@ -345,6 +371,7 @@ public class DownedPlayer implements Listener
 				// in the manager (perks are only ever re-granted on a successful revive).
 				game.downedPlayerManager.consumeTombstoneSnapshot(player.getUniqueId());
 				clearDownedState();
+				game.downedPlayerManager.downedPlayerRevived(this);
 				game.setDead(player);
 				//game.gamePlayers.remove(player);
 				PlayerStats stats = Leaderboard.getPlayerStatFromPlayer(player);

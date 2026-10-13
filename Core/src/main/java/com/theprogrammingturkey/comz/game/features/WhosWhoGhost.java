@@ -8,6 +8,7 @@ import com.theprogrammingturkey.comz.game.managers.PlayerWeaponManager;
 import com.theprogrammingturkey.comz.game.managers.WeaponManager;
 import com.theprogrammingturkey.comz.game.weapons.WeaponInstance;
 import com.theprogrammingturkey.comz.leaderboards.Leaderboard;
+import com.theprogrammingturkey.comz.listeners.PowerUpDropListener;
 import com.theprogrammingturkey.comz.leaderboards.PlayerStats;
 import com.theprogrammingturkey.comz.util.CommandUtil;
 import org.bukkit.Bukkit;
@@ -106,10 +107,13 @@ public class WhosWhoGhost
 
 		// Snapshot then strip the loadout (mirrors DownedPlayer), to be restored on revive.
 		game.perkManager.clearPlayersPerks(player);
+		PowerUpDropListener.revertDeathMachine(game, player);
 		PlayerWeaponManager weapons = game.getPlayersWeapons(player);
-		savedGuns[0] = weapons.removeWeapon(1);
-		savedGuns[1] = weapons.removeWeapon(2);
-		savedGuns[2] = weapons.removeWeapon(3);
+		for(int i = 0; i < savedGuns.length; i++)
+		{
+			WeaponInstance gun = weapons.removeWeapon(i + 1);
+			savedGuns[i] = gun != null && PowerUpDropListener.isDeathMachine(gun) ? null : gun;
+		}
 		weapons.addWeapon(WeaponManager.getGun(game.getStartingGun()).getNewInstance(player, 1));
 
 		// BO2 fidelity: send the ghost to the arena's player spawn (where players spawn at round 1)
@@ -189,10 +193,13 @@ public class WhosWhoGhost
 
 		// Restore the snapshotted loadout (mirrors DownedPlayer#revivePlayer).
 		PlayerWeaponManager weapons = game.getPlayersWeapons(player);
-		weapons.removeWeapon(1);
 		for(WeaponInstance gun : savedGuns)
-			if(gun != null)
-				weapons.addWeapon(gun);
+		{
+			if(gun == null)
+				continue;
+			weapons.removeWeapon(gun.getSlot());
+			weapons.addWeapon(gun);
+		}
 		for(PerkType perk : savedPerks)
 			com.theprogrammingturkey.comz.game.managers.PerkManager.givePerk(game, player, perk);
 

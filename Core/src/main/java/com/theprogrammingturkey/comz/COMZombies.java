@@ -197,6 +197,7 @@ public class COMZombies extends JavaPlugin
 	public void onDisable()
 	{
 		reloadConfig();
+		com.theprogrammingturkey.comz.game.builder.BuildModeManager.INSTANCE.exitAll();
 		GameManager.INSTANCE.endAll();
 		// Defensive: endAll() already clears heal timers via each Game.endGame(), but make sure no
 		// recurring heal task survives the disable for games that were never INGAME.

@@ -7,6 +7,8 @@ import com.theprogrammingturkey.comz.game.managers.WeaponManager;
 import com.theprogrammingturkey.comz.game.weapons.BaseGun;
 import com.theprogrammingturkey.comz.game.weapons.GunInstance;
 import com.theprogrammingturkey.comz.game.weapons.WeaponInstance;
+import com.theprogrammingturkey.comz.listeners.PowerUpDropListener;
+import com.theprogrammingturkey.comz.listeners.WeaponListener;
 import com.theprogrammingturkey.comz.util.CommandUtil;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
@@ -45,6 +47,9 @@ public class FridgeSign implements IGameSign
 	@Override
 	public void onInteract(Game game, Player player, Location location, String[] lines)
 	{
+		if(game.getPlayersWeapons(player) == null)
+			return;
+
 		UUID uuid = player.getUniqueId();
 
 		if(player.isSneaking())
@@ -62,6 +67,12 @@ public class FridgeSign implements IGameSign
 		if(gun == null)
 		{
 			CommandUtil.sendMessageToPlayer(player, ChatColor.RED + "Hold the gun you want to store in the fridge!");
+			return;
+		}
+
+		if(PowerUpDropListener.isDeathMachine(gun) || WeaponListener.isWonderWeapon(gun.getType().getName()))
+		{
+			CommandUtil.sendMessageToPlayer(player, ChatColor.RED + "That weapon can't be stored in the fridge!");
 			return;
 		}
 
@@ -100,6 +111,7 @@ public class FridgeSign implements IGameSign
 
 		PlayerWeaponManager manager = game.getPlayersWeapons(player);
 		int slot = manager.getCorrectSlot(base);
+		manager.removeWeapon(slot);
 		WeaponInstance instance = base.getNewInstance(player, slot);
 		if(pap && instance instanceof GunInstance)
 			((GunInstance) instance).setPackOfPunch();

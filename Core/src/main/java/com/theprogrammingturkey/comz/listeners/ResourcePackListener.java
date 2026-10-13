@@ -9,6 +9,7 @@ import com.theprogrammingturkey.comz.util.ResourcePackUtil;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerResourcePackStatusEvent;
 
 import java.util.Set;
@@ -29,6 +30,12 @@ public class ResourcePackListener implements Listener
 	public static boolean hasPackLoaded(Player player)
 	{
 		return packLoaded.contains(player.getUniqueId());
+	}
+
+	@EventHandler
+	public void onQuit(PlayerQuitEvent event)
+	{
+		packLoaded.remove(event.getPlayer().getUniqueId());
 	}
 
 	@EventHandler

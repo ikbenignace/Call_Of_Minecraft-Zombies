@@ -2,6 +2,7 @@ package com.theprogrammingturkey.comz.commands;
 
 import com.theprogrammingturkey.comz.game.Game;
 import com.theprogrammingturkey.comz.game.GameManager;
+import com.theprogrammingturkey.comz.game.builder.BuildModeManager;
 import com.theprogrammingturkey.comz.util.COMZPermission;
 import com.theprogrammingturkey.comz.util.CommandUtil;
 import org.bukkit.ChatColor;
@@ -16,6 +17,11 @@ public class SpectateCommand extends SubCommand
 	
 	public boolean onCommand(Player player, String[] args)
 	{
+		if(BuildModeManager.INSTANCE.isInBuild(player))
+		{
+			CommandUtil.sendMessageToPlayer(player, ChatColor.RED + "Exit build mode first (/zombies build).");
+			return true;
+		}
 		if(args.length == 1)
 		{
 			CommandUtil.sendMessageToPlayer(player, ChatColor.RED + "Please specify an arena to spectate!");

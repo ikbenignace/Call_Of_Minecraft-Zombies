@@ -32,6 +32,7 @@ public final class DisplayEntityUtil
 			display.setBillboard(Display.Billboard.CENTER);
 			display.setSeeThrough(true);
 			display.setDefaultBackground(false);
+			display.setPersistent(false);
 		});
 		// Schedule self-removal after its lifetime, guarding against an already-dead entity.
 		COMZombies.scheduleTask(lifeTicks, () ->

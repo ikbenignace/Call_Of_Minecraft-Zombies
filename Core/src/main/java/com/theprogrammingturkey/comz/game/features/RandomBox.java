@@ -95,6 +95,7 @@ public class RandomBox
 		item = player.getWorld().dropItem(itemLoc, weapon.getStack());
 		namePlate = (ArmorStand) player.getWorld().spawnEntity(itemLoc.clone().add(0, -1.7, 0), EntityType.ARMOR_STAND);
 		namePlate.setVisible(false);
+		namePlate.setPersistent(false);
 		namePlate.setGravity(false);
 		namePlate.setAI(false);
 		namePlate.setCustomName(weapon.getName());
@@ -303,6 +304,8 @@ public class RandomBox
 				String label = ChatColor.AQUA + "Mystery Box " + ChatColor.YELLOW + "$" + getCost();
 				priceHologram = com.theprogrammingturkey.comz.util.DisplayEntityUtil.persistentText(
 						world, boxLoc.clone().add(0.5, 1.4, 0.5), label);
+				if(priceHologram != null)
+					priceHologram.setPersistent(false);
 			}
 		}
 	}
@@ -310,6 +313,9 @@ public class RandomBox
 	/** Edit/lobby representation: the authoring sign on boxLoc. */
 	private void showSign()
 	{
+		// The lobby/edit view never shows a price hologram; this also clears the current box's
+		// hologram at game end, which reset() deliberately leaves standing mid-game.
+		removePriceHologram();
 		Block block = boxLoc.getBlock();
 		block.setType(Material.OAK_WALL_SIGN);
 		BlockData blockData = block.getBlockData();
@@ -332,7 +338,12 @@ public class RandomBox
 		if(this.running)
 			return;
 		BlockUtils.setBlockToAir(boxLoc);
-		if(priceHologram != null && !priceHologram.isDead())
+		removePriceHologram();
+	}
+
+	private void removePriceHologram()
+	{
+		if(priceHologram != null)
 		{
 			priceHologram.remove();
 			priceHologram = null;

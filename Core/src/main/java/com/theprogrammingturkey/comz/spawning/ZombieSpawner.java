@@ -142,6 +142,8 @@ public class ZombieSpawner extends RoundSpawner
 	@Override
 	public Mob spawnEntity(Game game, SpawnPoint loc, int wave)
 	{
+		if(loc.getLocation().getWorld() == null)
+			return null;
 		Location location = new Location(loc.getLocation().getWorld(), loc.getLocation().getBlockX(), loc.getLocation().getBlockY(), loc.getLocation().getBlockZ());
 		location.add(0.5, 0, 0.5);
 		Zombie zomb = (Zombie) location.getWorld().spawnEntity(location, EntityType.ZOMBIE);

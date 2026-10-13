@@ -100,4 +100,10 @@ public class BuildableManager
 	{
 		return buildables;
 	}
+
+	public void resetAll()
+	{
+		for(Buildable buildable : buildables.values())
+			buildable.reset();
+	}
 }

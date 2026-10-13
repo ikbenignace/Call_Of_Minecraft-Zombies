@@ -165,6 +165,9 @@ public class DownedPlayerManager
 		downedPlayers.clear();
 		soloSelfReviveUses.clear();
 		tombstoneSnapshots.clear();
+		// quitCleanup() calls endGhost(), which mutates the map, so iterate a copy.
+		for(WhosWhoGhost ghost : new ArrayList<>(whosWhoGhosts.values()))
+			ghost.quitCleanup();
 		whosWhoGhosts.clear();
 	}
 
@@ -175,6 +178,8 @@ public class DownedPlayerManager
 
 	public void setPlayerDowned(Player player, Game game)
 	{
+		// Must be read before setPlayerDown(), which clears the player's perks.
+		boolean hasQuickRevive = game.perkManager.hasPerk(player, PerkType.QUICK_REVIVE);
 		DownedPlayer down = new DownedPlayer(player, game);
 		down.setPlayerDown();
 		downedPlayers.add(down);
@@ -185,7 +190,7 @@ public class DownedPlayerManager
 		// prompt when nobody is going to self-revive AND there is actually someone who could revive
 		// (co-op). In a solo game with no self-revive the player never reaches here — Game.playerDowned
 		// ends the game instead — so the co-op prompt is never wrongly shown to a lone player.
-		boolean selfReviving = trySoloSelfRevive(player, game, down);
+		boolean selfReviving = trySoloSelfRevive(player, game, down, hasQuickRevive);
 		if(!selfReviving)
 		{
 			// Only prompt for a co-op revive when there is actually a teammate able to perform it:
@@ -208,10 +213,9 @@ public class DownedPlayerManager
 	 * decrement their remaining uses. No-op in co-op (more than one player), without the perk, or once
 	 * uses are exhausted (the player then bleeds out / the game ends per existing logic).
 	 */
-	private boolean trySoloSelfRevive(Player player, Game game, DownedPlayer down)
+	private boolean trySoloSelfRevive(Player player, Game game, DownedPlayer down, boolean hasQuickRevive)
 	{
 		boolean solo = game.getPlayersInGame().size() == 1;
-		boolean hasQuickRevive = game.perkManager.hasPerk(player, PerkType.QUICK_REVIVE);
 		int max = ConfigManager.getMainConfig().soloQuickReviveUses;
 		int usesRemaining = getSelfReviveUses(player.getUniqueId(), max);
 

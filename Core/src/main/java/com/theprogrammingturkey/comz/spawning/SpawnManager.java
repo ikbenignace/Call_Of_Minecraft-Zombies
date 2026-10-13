@@ -46,6 +46,11 @@ public class SpawnManager
 	private RoundSpawner roundSpawner = new ZombieSpawner();
 	private boolean canSpawn = false;
 	private double spawnInterval;
+
+	private long spawnDelayTicks()
+	{
+		return Math.max(1L, Math.round(spawnInterval * 20));
+	}
 	private final double spawnDelayFactor;
 	private int mobsSpawned = 0;
 	private int mobsToSpawn = 0;
@@ -336,7 +341,7 @@ public class SpawnManager
 		ConfigSetup cfg = ConfigManager.getMainConfig();
 		if(mobs.size() >= maxOnBoard(game.getPlayersInGame().size(), cfg.zombieBoardBase, cfg.zombieBoardPerPlayer))
 		{
-			COMZombies.scheduleTask((int) spawnInterval * 20L, () -> smartSpawn(wave));
+			COMZombies.scheduleTask(spawnDelayTicks(), () -> smartSpawn(wave));
 			return;
 		}
 
@@ -379,22 +384,23 @@ public class SpawnManager
 			// No spawnable point right now (all behind closed doors). Don't end the game — retry
 			// shortly. Players opening a door will free up spawns and spawning will resume. Only
 			// warn once per few seconds to avoid log spam.
-			COMZombies.scheduleTask((int) spawnInterval * 20L, () -> smartSpawn(wave));
+			COMZombies.scheduleTask(spawnDelayTicks(), () -> smartSpawn(wave));
 			return;
 		}
 
 		final SpawnPoint finalPoint = selectPoint;
-		COMZombies.scheduleTask((int) spawnInterval * 20L, () ->
+		COMZombies.scheduleTask(spawnDelayTicks(), () ->
 		{
 			if(!this.canSpawn || wave != game.getWave())
 				return;
 
 			Mob ent = roundSpawner.spawnEntity(game, finalPoint, wave);
-			mobs.add(ent);
-
-			ent.setTarget(getNearestPlayer(ent));
-
-			mobsSpawned++;
+			if(ent != null)
+			{
+				mobs.add(ent);
+				ent.setTarget(getNearestPlayer(ent));
+				mobsSpawned++;
+			}
 			smartSpawn(wave);
 		});
 	}

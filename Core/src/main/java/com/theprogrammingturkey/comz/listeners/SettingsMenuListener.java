@@ -5,6 +5,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
+import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.inventory.InventoryHolder;
 
 /**
@@ -24,6 +25,13 @@ public class SettingsMenuListener implements Listener
 		if(event.getClickedInventory() == null || !(event.getClickedInventory().getHolder() instanceof SettingsMenu))
 			return; // clicked their own inventory
 		((SettingsMenu) holder).handleClick(event.getSlot(), event.getClick());
+	}
+
+	@EventHandler
+	public void onDrag(InventoryDragEvent event)
+	{
+		if(event.getView().getTopInventory().getHolder() instanceof SettingsMenu)
+			event.setCancelled(true);
 	}
 
 	@EventHandler
