@@ -8,6 +8,7 @@ import com.theprogrammingturkey.comz.game.features.Barrier;
 import com.theprogrammingturkey.comz.game.features.DownedPlayer;
 import com.theprogrammingturkey.comz.game.features.PerkType;
 import com.theprogrammingturkey.comz.util.CommandUtil;
+import com.theprogrammingturkey.comz.util.Compat;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.GameMode;
@@ -77,7 +78,7 @@ public class PlayerListener implements Listener
 			Game game = GameManager.INSTANCE.getGame(player);
 			game.removePlayer(player);
 			player.removePotionEffect(PotionEffectType.BLINDNESS);
-			player.removePotionEffect(PotionEffectType.SLOWNESS);
+			player.removePotionEffect(Compat.SLOWNESS);
 		}
 		for(Player pl : Bukkit.getOnlinePlayers())
 		{
@@ -183,11 +184,11 @@ public class PlayerListener implements Listener
 					loc.getWorld().playSound(loc, Sound.ENTITY_GENERIC_EXPLODE, 1, 1);
 					for(int i = 0; i < 30; i++)
 					{
-						float x = COMZombies.rand.nextFloat(2f);
-						float y = COMZombies.rand.nextFloat(2f);
-						float z = COMZombies.rand.nextFloat(2f);
+						float x = (COMZombies.rand.nextFloat() * 2f);
+						float y = (COMZombies.rand.nextFloat() * 2f);
+						float z = (COMZombies.rand.nextFloat() * 2f);
 						player.getWorld().spawnParticle(Particle.LAVA, loc.getX(), loc.getY(), loc.getZ(), 1, x, y, z, 1);
-						player.getWorld().spawnParticle(Particle.FIREWORK, loc.getX(), loc.getY(), loc.getZ(), 1, x, y, z, 1);
+						player.getWorld().spawnParticle(Compat.FIREWORK, loc.getX(), loc.getY(), loc.getZ(), 1, x, y, z, 1);
 					}
 
 					for(Entity e : player.getNearbyEntities(5, 5, 5))

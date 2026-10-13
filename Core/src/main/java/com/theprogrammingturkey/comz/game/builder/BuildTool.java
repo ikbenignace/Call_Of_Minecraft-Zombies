@@ -3,6 +3,7 @@ package com.theprogrammingturkey.comz.game.builder;
 import com.theprogrammingturkey.comz.game.features.PerkType;
 import com.theprogrammingturkey.comz.game.managers.WeaponManager;
 import com.theprogrammingturkey.comz.game.weapons.BaseGun;
+import com.theprogrammingturkey.comz.util.Compat;
 import org.bukkit.Material;
 
 import java.util.ArrayList;
@@ -20,7 +21,7 @@ public enum BuildTool
 {
 	WARP("Warp", Material.BLAZE_ROD),
 	SPAWN("Zombie Spawn", Material.END_PORTAL_FRAME),
-	PERK("Perk Machine", Material.HONEY_BOTTLE),
+	PERK("Perk Machine", Compat.materialOr(Material.POTION, "HONEY_BOTTLE")),
 	WEAPON("Wall Gun", Material.IRON_HOE),
 	MACHINE("Machine", Material.CHEST),
 	FEATURE("Feature", Material.TRIPWIRE_HOOK),

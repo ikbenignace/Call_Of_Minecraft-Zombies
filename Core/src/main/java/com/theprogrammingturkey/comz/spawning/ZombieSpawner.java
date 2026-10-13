@@ -3,6 +3,7 @@ package com.theprogrammingturkey.comz.spawning;
 import com.theprogrammingturkey.comz.COMZombies;
 import com.theprogrammingturkey.comz.config.ConfigManager;
 import com.theprogrammingturkey.comz.game.Game;
+import com.theprogrammingturkey.comz.util.Compat;
 import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.entity.EntityType;
@@ -126,7 +127,7 @@ public class ZombieSpawner extends RoundSpawner
 	{
 		Location loc = mob.getLocation();
 		if(loc.getWorld() != null)
-			loc.getWorld().spawnParticle(Particle.ITEM_SLIME, loc.clone().add(0, 0.5, 0), 12, 0.4, 0.3, 0.4, 0.01);
+			loc.getWorld().spawnParticle(Compat.ITEM_SLIME, loc.clone().add(0, 0.5, 0), 12, 0.4, 0.3, 0.4, 0.01);
 
 		double radius = ConfigManager.getMainConfig().crawlerGasRadius;
 		double radiusSq = radius * radius;

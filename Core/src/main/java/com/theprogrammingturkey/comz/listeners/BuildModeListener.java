@@ -19,6 +19,7 @@ import com.theprogrammingturkey.comz.kits.KitManager;
 import com.theprogrammingturkey.comz.spawning.SpawnPoint;
 import com.theprogrammingturkey.comz.util.BlockUtils;
 import com.theprogrammingturkey.comz.util.CommandUtil;
+import com.theprogrammingturkey.comz.util.Compat;
 import com.theprogrammingturkey.comz.util.PackModels;
 import com.theprogrammingturkey.comz.util.Util;
 import org.bukkit.ChatColor;
@@ -544,7 +545,7 @@ public class BuildModeListener implements Listener
 
 	private void doorFeedback(Player player, Block block, Door door, String what)
 	{
-		block.getWorld().spawnParticle(Particle.HAPPY_VILLAGER, block.getLocation().add(0.5, 0.5, 0.5), 6, 0.3, 0.3, 0.3, 0);
+		block.getWorld().spawnParticle(Compat.HAPPY_VILLAGER, block.getLocation().add(0.5, 0.5, 0.5), 6, 0.3, 0.3, 0.3, 0);
 		manager.actionBar(player, what + ChatColor.GRAY + " — door has " + door.getBlocks().size() + " block(s). Sneak-right-click to finish.");
 	}
 
@@ -734,7 +735,7 @@ public class BuildModeListener implements Listener
 
 		barrier.addBarrierBlock(clicked.getLocation()); // captures real BlockData before we mark it
 		session.addMarker(clicked, Material.ORANGE_STAINED_GLASS);
-		clicked.getWorld().spawnParticle(Particle.HAPPY_VILLAGER, clicked.getLocation().add(0.5, 0.5, 0.5), 6, 0.3, 0.3, 0.3, 0);
+		clicked.getWorld().spawnParticle(Compat.HAPPY_VILLAGER, clicked.getLocation().add(0.5, 0.5, 0.5), 6, 0.3, 0.3, 0.3, 0);
 		manager.actionBar(player, ChatColor.GREEN + "Block added" + ChatColor.GRAY + " — " + barrier.getBlocks().size() + " block(s). Sneak-right to finish.");
 	}
 

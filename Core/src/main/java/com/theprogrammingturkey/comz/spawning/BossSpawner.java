@@ -15,10 +15,10 @@ import org.bukkit.boss.BarStyle;
 import org.bukkit.boss.BossBar;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Mob;
-import org.bukkit.entity.PiglinAbstract;
 import org.bukkit.entity.Player;
 import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.metadata.MetadataValue;
+import com.theprogrammingturkey.comz.util.Compat;
 import com.theprogrammingturkey.comz.util.SoundUtil;
 
 /**
@@ -154,7 +154,7 @@ public class BossSpawner extends RoundSpawner
 			SoundUtil.play(p, loc, "ENTITY_WITHER_SPAWN", SoundCategory.HOSTILE, 1.0f, 0.8f);
 
 		// (b) Health BossBar; max health may have been clamped by the attribute, so re-read it.
-		AttributeInstance maxAttr = boss.getAttribute(Attribute.MAX_HEALTH);
+		AttributeInstance maxAttr = boss.getAttribute(Compat.MAX_HEALTH);
 		final double max = (maxAttr != null) ? maxAttr.getBaseValue() : maxHealth;
 		String title = (type == BossType.GEORGE) ? "George Romero" : "Brutus";
 		final BossBar bar = Bukkit.createBossBar(title, BarColor.RED, BarStyle.SEGMENTED_10);
@@ -193,7 +193,9 @@ public class BossSpawner extends RoundSpawner
 		Mob brutus;
 		try
 		{
-			brutus = (Mob) world.spawnEntity(location, EntityType.PIGLIN_BRUTE);
+			if(Compat.PIGLIN_BRUTE == null)
+				throw new IllegalStateException("No piglin brutes before 1.16.2");
+			brutus = (Mob) world.spawnEntity(location, Compat.PIGLIN_BRUTE);
 		}
 		catch(Throwable t)
 		{
@@ -207,8 +209,7 @@ public class BossSpawner extends RoundSpawner
 		}
 		// Piglin brutes zombify after ~15s outside the Nether, which would silently swap Brutus
 		// for an untracked zombified piglin.
-		if(brutus instanceof PiglinAbstract)
-			((PiglinAbstract) brutus).setImmuneToZombification(true);
+		Compat.invokeIfPresent(brutus, "setImmuneToZombification", new Class<?>[]{boolean.class}, true);
 		brutus.setCustomName("Brutus");
 		brutus.setCustomNameVisible(true);
 		brutus.setMetadata(BRUTUS_META, new FixedMetadataValue(COMZombies.getPlugin(), true));

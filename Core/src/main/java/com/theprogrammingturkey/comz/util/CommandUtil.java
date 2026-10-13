@@ -1,10 +1,10 @@
 package com.theprogrammingturkey.comz.util;
 
 import com.theprogrammingturkey.comz.COMZombies;
+import net.md_5.bungee.api.chat.BaseComponent;
 import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.HoverEvent;
 import net.md_5.bungee.api.chat.TextComponent;
-import net.md_5.bungee.api.chat.hover.content.Text;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 
@@ -30,7 +30,8 @@ public class CommandUtil
 		TextComponent component = new TextComponent(clickMessage);
 		component.setBold(true);
 		component.setColor(net.md_5.bungee.api.ChatColor.GOLD);
-		component.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text("Click to run command")));
+		// The BaseComponent[] constructor is the only one that exists on every server from 1.14 to 26.x.
+		component.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new BaseComponent[]{new TextComponent("Click to run command")}));
 		component.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, command));
 		player.spigot().sendMessage(first, component);
 	}

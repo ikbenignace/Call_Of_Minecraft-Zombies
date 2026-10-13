@@ -1,0 +1,24 @@
+// Adapters for server APIs newer than Core's 1.14 floor. Compiled against the oldest API each one
+// needs and merged into the Core jar; Core only loads them reflectively after checking the server
+// actually has the API, so their classes are never linked on older servers.
+evaluationDependsOn(':Core')
+
+repositories {
+    mavenCentral()
+    maven { url 'https://hub.spigotmc.org/nexus/content/repositories/snapshots/' }
+}
+
+dependencies {
+    compileOnly project(':API')
+    // Core's class output rather than its jar, which in turn bundles this module.
+    compileOnly project(':Core').sourceSets.main.output
+    compileOnly 'org.spigotmc:spigot-api:1.19.4-R0.1-SNAPSHOT'
+}
+
+// Only bundled into the Core jar.
+jar.enabled = false
+
+// 1.19.4 servers already require Java 17.
+tasks.withType(JavaCompile).configureEach {
+    options.release = 17
+}

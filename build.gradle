@@ -15,8 +15,9 @@ allprojects {
 subprojects {
     apply plugin: 'java'
 
-    // spigot-api 26.2 ships Java 17 bytecode. Build with JDK >= 17 and target 17 so
-    // the plugin compiles anywhere and runs on the Java 25 server that 26.2 requires.
+    // API and Core compile against spigot-api 1.14.4 with Java 8 bytecode so one jar loads on every
+    // server from 1.14 (Java 8) up to 26.x (Java 25). Features that need newer server APIs live in
+    // adapter modules with a higher floor and are only loaded when the server supports them.
     java {
         toolchain {
             languageVersion = JavaLanguageVersion.of(21)
@@ -28,6 +29,72 @@ subprojects {
     }
 
     tasks.withType(JavaCompile).configureEach {
-        options.release = 17
+        options.release = 8
+    }
+}
+// Checks the compiled classes against every supported server API, catching what the 1.14 compile
+// classpath can't see: members removed or renamed later, enums that became interfaces (linkage scan),
+// and code that only type-checks while a type is still an enum (bytecode verification).
+// Run with ./gradlew checkApiCompat (needs python3).
+def apiCompatVersions = ['1.14.4', '1.16.5', '1.17.1', '1.18.2', '1.19.4', '1.20.4', '1.20.6', '1.21.1', '1.21.3', '1.21.4', '1.21.11', '26.1.2', '26.2', '26.3']
+def modernFloor = '1.19.4'
+// WeaponMechanics 4.x itself needs a 1.21.4+ server.
+def weaponMechanicsFloor = '1.21.4'
+
+repositories {
+    mavenCentral()
+    maven { url 'https://hub.spigotmc.org/nexus/content/repositories/snapshots/' }
+}
+
+configurations.create('asmVerifier')
+dependencies.add('asmVerifier', 'org.ow2.asm:asm-util:9.7.1')
+
+apiCompatVersions.each { v ->
+    def id = v.replace('.', '_')
+    configurations.create("api_${id}") { transitive = false }
+    dependencies.add("api_${id}", "org.spigotmc:spigot-api:${v}-R0.1-SNAPSHOT")
+    // Full classpath for verification (resolved leniently: only the type hierarchy matters). Old
+    // spigot-api versions depend on an unpublished bungeecord-chat.
+    configurations.create("apiFull_${id}") {
+        attributes {
+            attribute(Usage.USAGE_ATTRIBUTE, objects.named(Usage, Usage.JAVA_RUNTIME))
+            attribute(TargetJvmEnvironment.TARGET_JVM_ENVIRONMENT_ATTRIBUTE, objects.named(TargetJvmEnvironment, TargetJvmEnvironment.STANDARD_JVM))
+        }
+    }
+    dependencies.add("apiFull_${id}", "org.spigotmc:spigot-api:${v}-R0.1-SNAPSHOT") { exclude group: 'net.md-5', module: 'bungeecord-chat' }
+    dependencies.add("apiFull_${id}", 'net.md-5:bungeecord-chat:1.16-R0.4')
+}
+
+tasks.register('checkApiCompat') {
+    dependsOn ':Core:classes', ':Modern:classes'
+    doLast {
+        def id = { String v -> v.replace('.', '_') }
+        def modernVersions = apiCompatVersions.subList(apiCompatVersions.indexOf(modernFloor), apiCompatVersions.size())
+        def coreClasses = project(':Core').file('build/classes/java/main').absolutePath
+        def modernClasses = project(':Modern').file('build/classes/java/main').absolutePath
+        def apiClasses = project(':API').file('build/classes/java/main').absolutePath
+        // WeaponMechanics needs Java 21 and a recent server; it is only loaded when WM is installed, so it
+        // is only scanned against the versions WM itself supports.
+        def wmSkip = 'com/theprogrammingturkey/comz/integration/wm/'
+        def otherDeps = project(':Core').configurations.compileClasspath.files.findAll { !it.name.startsWith('spigot-api') && !it.name.startsWith('bungeecord-chat') }
+
+        def scan = { String classesDir, List<String> versions, List<String> extra ->
+            def jars = versions.collect { configurations.getByName("api_${id(it)}").singleFile.absolutePath }
+            exec { commandLine(['python3', file('tools/api_compat_scan.py').absolutePath, classesDir] + jars + extra) }
+        }
+        scan(coreClasses, apiCompatVersions, ['--skip', wmSkip])
+        scan(coreClasses, apiCompatVersions.subList(apiCompatVersions.indexOf(weaponMechanicsFloor), apiCompatVersions.size()), ['--only', wmSkip])
+        scan(modernClasses, modernVersions, [])
+
+        def java = project(':Core').extensions.getByType(JavaToolchainService).launcherFor { languageVersion = JavaLanguageVersion.of(21) }.get().executablePath.asFile.absolutePath
+        def verify = { String classesDir, String version, List<String> extraClasspath, List<String> skips ->
+            def cp = ([apiClasses] + extraClasspath + configurations.getByName("apiFull_${id(version)}").resolvedConfiguration.lenientConfiguration.files*.absolutePath + otherDeps*.absolutePath).join(File.pathSeparator)
+            logger.lifecycle("Verifying ${file(classesDir).parentFile.parentFile.parentFile.parentFile.name} against ${version}")
+            exec {
+                commandLine([java, '-cp', configurations.asmVerifier.asPath, file('tools/VerifyClasses.java').absolutePath, classesDir, cp] + skips)
+            }
+        }
+        apiCompatVersions.each { verify(coreClasses, it, [modernClasses], [wmSkip]) }
+        modernVersions.each { verify(modernClasses, it, [coreClasses], []) }
     }
 }

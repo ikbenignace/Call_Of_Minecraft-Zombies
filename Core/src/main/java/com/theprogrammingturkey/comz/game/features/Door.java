@@ -152,7 +152,7 @@ public class Door
 			return;
 		Block b = blocks.keySet().toArray(new Block[0])[0];
 		Location loc = b.getLocation();
-		String sound = com.theprogrammingturkey.comz.util.SoundConfig.get("door.open", Sound.BLOCK_WOODEN_DOOR_OPEN.name());
+		String sound = com.theprogrammingturkey.comz.util.SoundConfig.get("door.open", "BLOCK_WOODEN_DOOR_OPEN");
 		for(Player pl : game.getPlayersInGame())
 			com.theprogrammingturkey.comz.util.SoundUtil.play(pl, loc, sound, org.bukkit.SoundCategory.MASTER, 1, 1);
 	}

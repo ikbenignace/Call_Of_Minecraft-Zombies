@@ -4,16 +4,14 @@ import com.theprogrammingturkey.comz.COMZombies;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Sign;
+import org.bukkit.entity.Entity;
 import org.bukkit.block.data.BlockData;
-import org.bukkit.entity.Interaction;
-import org.bukkit.entity.ItemDisplay;
-import org.bukkit.entity.TextDisplay;
 
 /**
  * A physical machine in the world: a solid base block (always visible, even without the pack), an
- * optional 3D {@link ItemDisplay} overlay that covers the block when the pack is on, an invisible
- * {@link Interaction} hitbox that makes it right-clickable (forwarding to the machine's sign logic),
- * and a floating price {@link TextDisplay}. The machine occupies the backing sign's own block, so the
+ * optional 3D item display overlay that covers the block when the pack is on, an invisible
+ * interaction hitbox that makes it right-clickable (forwarding to the machine's sign logic),
+ * and a floating price text. The machine occupies the backing sign's own block, so the
  * sign's material, facing and text are snapshotted here and fully restored on removal. Kept together
  * so the whole machine tears down cleanly.
  */
@@ -30,9 +28,10 @@ public class MachineModel
 	/** The sign's four lines (with color codes), captured before overwrite and restored on removal. */
 	final String[] signLines;
 
-	ItemDisplay model;      // null when the pack isn't guaranteed for all players
-	Interaction interaction;
-	TextDisplay hologram;
+	Entity model;      // null when the pack isn't guaranteed for all players
+	Entity interaction;
+	Entity hologram;
+	String label;
 
 	MachineModel(Location baseLoc, Location signLoc, Material signMaterial, BlockData signData, String[] signLines)
 	{

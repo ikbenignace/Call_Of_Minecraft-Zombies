@@ -25,7 +25,7 @@ public final class ParticleFX
 		if(world == null)
 			return;
 		// ~8 dark-red dust particles with a small (~0.2) spread and ~1.0 size.
-		world.spawnParticle(Particle.DUST, loc, 8, 0.2, 0.2, 0.2, 0, new Particle.DustOptions(Color.fromRGB(120, 0, 0), 1.0f));
+		world.spawnParticle(Compat.DUST, loc, 8, 0.2, 0.2, 0.2, 0, new Particle.DustOptions(Color.fromRGB(120, 0, 0), 1.0f));
 	}
 
 	/**
@@ -37,7 +37,7 @@ public final class ParticleFX
 			return;
 		// ~10 crit + ~10 enchant sparkles in a tight cluster at the hit location.
 		world.spawnParticle(Particle.CRIT, loc, 10, 0.2, 0.2, 0.2, 0);
-		world.spawnParticle(Particle.ENCHANTED_HIT, loc, 10, 0.2, 0.2, 0.2, 0);
+		world.spawnParticle(Compat.ENCHANTED_HIT, loc, 10, 0.2, 0.2, 0.2, 0);
 	}
 
 	/**
@@ -51,7 +51,7 @@ public final class ParticleFX
 		Particle.DustOptions dust = new Particle.DustOptions(color, 1.4f);
 		// One dust particle every ~0.3 blocks up the column.
 		for(double y = 0; y <= height; y += 0.3)
-			world.spawnParticle(Particle.DUST, base.clone().add(0, y, 0), 1, 0, 0, 0, 0, dust);
+			world.spawnParticle(Compat.DUST, base.clone().add(0, y, 0), 1, 0, 0, 0, 0, dust);
 		// A single END_ROD spark marking the top of the beam.
 		world.spawnParticle(Particle.END_ROD, base.clone().add(0, height, 0), 1, 0, 0, 0, 0);
 	}
@@ -64,6 +64,6 @@ public final class ParticleFX
 		if(world == null)
 			return;
 		// 'count' dust particles with a moderate (~0.4) spread and a chunky (~1.5) size.
-		world.spawnParticle(Particle.DUST, loc, count, 0.4, 0.4, 0.4, 0, new Particle.DustOptions(color, 1.5f));
+		world.spawnParticle(Compat.DUST, loc, count, 0.4, 0.4, 0.4, 0, new Particle.DustOptions(color, 1.5f));
 	}
 }

@@ -4,6 +4,7 @@ import com.theprogrammingturkey.comz.COMZombies;
 import com.theprogrammingturkey.comz.game.Game;
 import com.theprogrammingturkey.comz.game.GameManager;
 import com.theprogrammingturkey.comz.util.CommandUtil;
+import com.theprogrammingturkey.comz.util.Compat;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Color;
@@ -111,26 +112,26 @@ public class ArenaSetupAction extends BaseAction
 
 			for(int x = min.getBlockX(); x < max.getBlockX(); x++)
 			{
-				world.spawnParticle(Particle.DUST, x, min.getBlockY(), min.getBlockZ(), 0, 0, 0, 0, 1, new Particle.DustOptions(Color.RED, 1));
-				world.spawnParticle(Particle.DUST, x, max.getBlockY(), min.getBlockZ(), 0, 0, 0, 0, 1, new Particle.DustOptions(Color.RED, 1));
-				world.spawnParticle(Particle.DUST, x, min.getBlockY(), max.getBlockZ(), 0, 0, 0, 0, 1, new Particle.DustOptions(Color.RED, 1));
-				world.spawnParticle(Particle.DUST, x, max.getBlockY(), max.getBlockZ(), 0, 0, 0, 0, 1, new Particle.DustOptions(Color.RED, 1));
+				world.spawnParticle(Compat.DUST, x, min.getBlockY(), min.getBlockZ(), 0, 0, 0, 0, 1, new Particle.DustOptions(Color.RED, 1));
+				world.spawnParticle(Compat.DUST, x, max.getBlockY(), min.getBlockZ(), 0, 0, 0, 0, 1, new Particle.DustOptions(Color.RED, 1));
+				world.spawnParticle(Compat.DUST, x, min.getBlockY(), max.getBlockZ(), 0, 0, 0, 0, 1, new Particle.DustOptions(Color.RED, 1));
+				world.spawnParticle(Compat.DUST, x, max.getBlockY(), max.getBlockZ(), 0, 0, 0, 0, 1, new Particle.DustOptions(Color.RED, 1));
 			}
 
 			for(int y = min.getBlockY(); y <= max.getBlockY(); y++)
 			{
-				world.spawnParticle(Particle.DUST, min.getBlockX(), y, min.getBlockZ(), 0, 0, 0, 0, 1, new Particle.DustOptions(Color.RED, 1));
-				world.spawnParticle(Particle.DUST, max.getBlockX(), y, min.getBlockZ(), 0, 0, 0, 0, 1, new Particle.DustOptions(Color.RED, 1));
-				world.spawnParticle(Particle.DUST, min.getBlockX(), y, max.getBlockZ(), 0, 0, 0, 0, 1, new Particle.DustOptions(Color.RED, 1));
-				world.spawnParticle(Particle.DUST, max.getBlockX(), y, max.getBlockZ(), 0, 0, 0, 0, 1, new Particle.DustOptions(Color.RED, 1));
+				world.spawnParticle(Compat.DUST, min.getBlockX(), y, min.getBlockZ(), 0, 0, 0, 0, 1, new Particle.DustOptions(Color.RED, 1));
+				world.spawnParticle(Compat.DUST, max.getBlockX(), y, min.getBlockZ(), 0, 0, 0, 0, 1, new Particle.DustOptions(Color.RED, 1));
+				world.spawnParticle(Compat.DUST, min.getBlockX(), y, max.getBlockZ(), 0, 0, 0, 0, 1, new Particle.DustOptions(Color.RED, 1));
+				world.spawnParticle(Compat.DUST, max.getBlockX(), y, max.getBlockZ(), 0, 0, 0, 0, 1, new Particle.DustOptions(Color.RED, 1));
 			}
 
 			for(int z = min.getBlockZ(); z < max.getBlockZ(); z++)
 			{
-				world.spawnParticle(Particle.DUST, min.getBlockX(), min.getBlockY(), z, 0, 0, 0, 0, 1, new Particle.DustOptions(Color.RED, 1));
-				world.spawnParticle(Particle.DUST, max.getBlockX(), min.getBlockY(), z, 0, 0, 0, 0, 1, new Particle.DustOptions(Color.RED, 1));
-				world.spawnParticle(Particle.DUST, min.getBlockX(), max.getBlockY(), z, 0, 0, 0, 0, 1, new Particle.DustOptions(Color.RED, 1));
-				world.spawnParticle(Particle.DUST, max.getBlockX(), max.getBlockY(), z, 0, 0, 0, 0, 1, new Particle.DustOptions(Color.RED, 1));
+				world.spawnParticle(Compat.DUST, min.getBlockX(), min.getBlockY(), z, 0, 0, 0, 0, 1, new Particle.DustOptions(Color.RED, 1));
+				world.spawnParticle(Compat.DUST, max.getBlockX(), min.getBlockY(), z, 0, 0, 0, 0, 1, new Particle.DustOptions(Color.RED, 1));
+				world.spawnParticle(Compat.DUST, min.getBlockX(), max.getBlockY(), z, 0, 0, 0, 0, 1, new Particle.DustOptions(Color.RED, 1));
+				world.spawnParticle(Compat.DUST, max.getBlockX(), max.getBlockY(), z, 0, 0, 0, 0, 1, new Particle.DustOptions(Color.RED, 1));
 			}
 		});
 	}

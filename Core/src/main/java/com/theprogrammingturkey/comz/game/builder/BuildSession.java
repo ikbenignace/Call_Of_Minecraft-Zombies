@@ -4,6 +4,7 @@ import com.theprogrammingturkey.comz.game.Game;
 import com.theprogrammingturkey.comz.game.features.Barrier;
 import com.theprogrammingturkey.comz.game.features.Door;
 import com.theprogrammingturkey.comz.spawning.SpawnPoint;
+import com.theprogrammingturkey.comz.util.Compat;
 import com.theprogrammingturkey.comz.util.DisplayEntityUtil;
 import org.bukkit.ChatColor;
 import org.bukkit.GameMode;
@@ -13,9 +14,8 @@ import org.bukkit.Particle;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
-import org.bukkit.entity.ItemDisplay;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
-import org.bukkit.entity.TextDisplay;
 import org.bukkit.inventory.ItemStack;
 
 import java.util.ArrayList;
@@ -41,13 +41,13 @@ public class BuildSession
 	private final int[] variantIndex = new int[BuildTool.values().length];
 
 	/** Preview machine models keyed by the sign location they belong to, for targeted + bulk removal. */
-	private final Map<Location, ItemDisplay> previews = new HashMap<>();
+	private final Map<Location, Entity> previews = new HashMap<>();
 
 	/**
 	 * Floating door-id holograms shown above every registered door's centre block while in build mode,
 	 * so the editor can tell doors apart at a glance. Keyed by door id; despawned on exit.
 	 */
-	private final Map<String, TextDisplay> doorHolograms = new HashMap<>();
+	private final Map<String, Entity> doorHolograms = new HashMap<>();
 
 	/**
 	 * The room whose spawns/barriers new placements are linked to. {@code null} = the starting room
@@ -261,7 +261,7 @@ public class BuildSession
 			Location loc = sp.getLocation();
 			if(loc == null || loc.getWorld() == null)
 				continue;
-			loc.getWorld().spawnParticle(Particle.HAPPY_VILLAGER, loc.clone().add(0.5, 1.2, 0.5), 12, 0.3, 0.3, 0.3, 0);
+			loc.getWorld().spawnParticle(Compat.HAPPY_VILLAGER, loc.clone().add(0.5, 1.2, 0.5), 12, 0.3, 0.3, 0.3, 0);
 		}
 	}
 
@@ -350,7 +350,7 @@ public class BuildSession
 			variantIndex[tool.ordinal()] = 0;
 	}
 
-	public void addPreview(Location signLoc, ItemDisplay display)
+	public void addPreview(Location signLoc, Entity display)
 	{
 		if(display != null)
 			previews.put(signLoc, display);
@@ -358,14 +358,14 @@ public class BuildSession
 
 	public void removePreview(Location signLoc)
 	{
-		ItemDisplay display = previews.remove(signLoc);
+		Entity display = previews.remove(signLoc);
 		if(display != null && !display.isDead())
 			display.remove();
 	}
 
 	public void removeAllPreviews()
 	{
-		for(ItemDisplay display : previews.values())
+		for(Entity display : previews.values())
 			if(display != null && !display.isDead())
 				display.remove();
 		previews.clear();
@@ -401,7 +401,7 @@ public class BuildSession
 			Location at = new Location(world, cx + 0.5, cy + 1.4, cz + 0.5);
 			String label = ChatColor.AQUA + "" + ChatColor.BOLD + "Door " + door.doorID
 					+ (door.isOpened() ? ChatColor.GREEN + " (open)" : "");
-			TextDisplay hologram = DisplayEntityUtil.persistentText(world, at, label);
+			Entity hologram = DisplayEntityUtil.persistentText(world, at, label);
 			if(hologram != null)
 			{
 				hologram.setPersistent(false);
@@ -413,7 +413,7 @@ public class BuildSession
 	/** Despawn every door-id hologram spawned by {@link #refreshDoorHolograms()}. */
 	public void removeDoorHolograms()
 	{
-		for(TextDisplay hologram : doorHolograms.values())
+		for(Entity hologram : doorHolograms.values())
 			if(hologram != null && !hologram.isDead())
 				hologram.remove();
 		doorHolograms.clear();

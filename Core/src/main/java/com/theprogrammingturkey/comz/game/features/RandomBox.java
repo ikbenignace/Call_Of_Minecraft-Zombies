@@ -23,8 +23,8 @@ import org.bukkit.block.data.type.Chest;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Item;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
-import org.bukkit.entity.TextDisplay;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.Vector;
 
@@ -42,7 +42,7 @@ public class RandomBox
 	private final int boxCost;
 
 	/** Floating price hologram spawned in-game above the chest; owned by this box. */
-	private TextDisplay priceHologram;
+	private Entity priceHologram;
 
 	private Player openedBy;
 
@@ -120,7 +120,7 @@ public class RandomBox
 						weapon = WeaponManager.getRandomWeapon(false, boxGame.getPlayersWeapons(player));
 						item.setItemStack(weapon.getStack());
 						namePlate.setCustomName(weapon.getName());
-						com.theprogrammingturkey.comz.util.SoundUtil.play(player.getWorld(), boxLoc, com.theprogrammingturkey.comz.util.SoundConfig.get("box.spin", Sound.BLOCK_NOTE_BLOCK_HARP.name()), org.bukkit.SoundCategory.MASTER, 1f, 1f);
+						com.theprogrammingturkey.comz.util.SoundUtil.play(player.getWorld(), boxLoc, com.theprogrammingturkey.comz.util.SoundConfig.get("box.spin", "BLOCK_NOTE_BLOCK_HARP"), org.bukkit.SoundCategory.MASTER, 1f, 1f);
 					}
 					else if(time == 0)
 					{
@@ -152,7 +152,7 @@ public class RandomBox
 						}
 						else
 						{
-							com.theprogrammingturkey.comz.util.SoundUtil.play(player.getWorld(), boxLoc, com.theprogrammingturkey.comz.util.SoundConfig.get("box.lock", Sound.ENTITY_EXPERIENCE_ORB_PICKUP.name()), org.bukkit.SoundCategory.MASTER, 1f, 1f);
+							com.theprogrammingturkey.comz.util.SoundUtil.play(player.getWorld(), boxLoc, com.theprogrammingturkey.comz.util.SoundConfig.get("box.lock", "ENTITY_EXPERIENCE_ORB_PICKUP"), org.bukkit.SoundCategory.MASTER, 1f, 1f);
 							gunSelected = true;
 						}
 					}
@@ -183,8 +183,9 @@ public class RandomBox
 		Location base = chestLocation.clone();
 		Block chestBlock = chestLocation.getBlock();
 		BlockData data = chestBlock.getBlockData();
-		if(data instanceof Chest chest && chest.getType() != org.bukkit.block.data.type.Chest.Type.SINGLE)
+		if(data instanceof Chest && ((Chest) data).getType() != org.bukkit.block.data.type.Chest.Type.SINGLE)
 		{
+			Chest chest = (Chest) data;
 			// Double chest: step to the other half via the facing direction and average the two centres.
 			BlockFace other = chest.getFacing();
 			// LEFT/RIGHT halves sit relative to the chest's facing; use the type to pick the offset.
@@ -206,26 +207,36 @@ public class RandomBox
 
 	private static BlockFace rotateFaceCW(BlockFace f)
 	{
-		return switch(f)
+		switch(f)
 		{
-			case NORTH -> BlockFace.EAST;
-			case EAST -> BlockFace.SOUTH;
-			case SOUTH -> BlockFace.WEST;
-			case WEST -> BlockFace.NORTH;
-			default -> f;
-		};
+			case NORTH:
+				return BlockFace.EAST;
+			case EAST:
+				return BlockFace.SOUTH;
+			case SOUTH:
+				return BlockFace.WEST;
+			case WEST:
+				return BlockFace.NORTH;
+			default:
+				return f;
+		}
 	}
 
 	private static BlockFace rotateFaceCCW(BlockFace f)
 	{
-		return switch(f)
+		switch(f)
 		{
-			case NORTH -> BlockFace.WEST;
-			case WEST -> BlockFace.SOUTH;
-			case SOUTH -> BlockFace.EAST;
-			case EAST -> BlockFace.NORTH;
-			default -> f;
-		};
+			case NORTH:
+				return BlockFace.WEST;
+			case WEST:
+				return BlockFace.SOUTH;
+			case SOUTH:
+				return BlockFace.EAST;
+			case EAST:
+				return BlockFace.NORTH;
+			default:
+				return f;
+		}
 	}
 
 	public boolean canActivate()
@@ -241,7 +252,7 @@ public class RandomBox
 	public void pickUpWeapon(Player player)
 	{
 		boxGame.getPlayersWeapons(player).addWeapon(weapon);
-		com.theprogrammingturkey.comz.util.SoundUtil.play(player.getWorld(), player.getLocation(), com.theprogrammingturkey.comz.util.SoundConfig.get("box.pickup", Sound.BLOCK_LAVA_POP.name()), org.bukkit.SoundCategory.MASTER, 1, 1);
+		com.theprogrammingturkey.comz.util.SoundUtil.play(player.getWorld(), player.getLocation(), com.theprogrammingturkey.comz.util.SoundConfig.get("box.pickup", "BLOCK_LAVA_POP"), org.bukkit.SoundCategory.MASTER, 1, 1);
 		reset();
 	}
 
@@ -366,7 +377,7 @@ public class RandomBox
 			}
 			Start(player, getCost());
 			com.theprogrammingturkey.comz.util.SoundUtil.play(player.getWorld(), player.getLocation(),
-					com.theprogrammingturkey.comz.util.SoundConfig.get("box.open", Sound.BLOCK_CHEST_OPEN.name()),
+					com.theprogrammingturkey.comz.util.SoundConfig.get("box.open", "BLOCK_CHEST_OPEN"),
 					org.bukkit.SoundCategory.MASTER, 1, 1);
 		}
 		else if(canPickWeapon(player))

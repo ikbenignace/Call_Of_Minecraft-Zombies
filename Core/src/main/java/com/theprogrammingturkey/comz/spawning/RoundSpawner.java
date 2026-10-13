@@ -1,6 +1,7 @@
 package com.theprogrammingturkey.comz.spawning;
 
 import com.theprogrammingturkey.comz.game.Game;
+import com.theprogrammingturkey.comz.util.Compat;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.entity.Mob;
@@ -39,14 +40,14 @@ public abstract class RoundSpawner
 
 	public void setFollowDistance(Mob mob, int dist)
 	{
-		AttributeInstance attr = mob.getAttribute(Attribute.FOLLOW_RANGE);
+		AttributeInstance attr = mob.getAttribute(Compat.FOLLOW_RANGE);
 		if(attr != null)
 			attr.setBaseValue(dist);
 	}
 
 	public void setSpeed(Mob mob, float mult)
 	{
-		AttributeInstance attr = mob.getAttribute(Attribute.MOVEMENT_SPEED);
+		AttributeInstance attr = mob.getAttribute(Compat.MOVEMENT_SPEED);
 		if(attr != null)
 		{
 			// Multiply from the entity's CURRENT value (which for a freshly spawned mob equals its
@@ -62,7 +63,7 @@ public abstract class RoundSpawner
 
 	public void setMaxHealth(Mob mob, float strength)
 	{
-		AttributeInstance attr = mob.getAttribute(Attribute.MAX_HEALTH);
+		AttributeInstance attr = mob.getAttribute(Compat.MAX_HEALTH);
 		if(attr != null)
 			attr.setBaseValue(strength);
 	}
@@ -73,7 +74,9 @@ public abstract class RoundSpawner
 	 */
 	public void setScale(Mob mob, double scale)
 	{
-		AttributeInstance attr = mob.getAttribute(Attribute.SCALE);
+		if(Compat.SCALE == null)
+			return;
+		AttributeInstance attr = mob.getAttribute(Compat.SCALE);
 		if(attr != null)
 			attr.setBaseValue(scale);
 	}
@@ -84,7 +87,9 @@ public abstract class RoundSpawner
 	 */
 	public void setJumpStrength(Mob mob, double strength)
 	{
-		AttributeInstance attr = mob.getAttribute(Attribute.JUMP_STRENGTH);
+		if(Compat.JUMP_STRENGTH == null)
+			return;
+		AttributeInstance attr = mob.getAttribute(Compat.JUMP_STRENGTH);
 		if(attr != null)
 			attr.setBaseValue(strength);
 	}

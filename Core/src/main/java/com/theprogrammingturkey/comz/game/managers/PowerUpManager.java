@@ -7,6 +7,7 @@ import com.theprogrammingturkey.comz.config.CustomConfig;
 import com.theprogrammingturkey.comz.game.Game;
 import com.theprogrammingturkey.comz.game.GameManager;
 import com.theprogrammingturkey.comz.game.features.PowerUp;
+import com.theprogrammingturkey.comz.util.Compat;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Particle;
@@ -217,7 +218,7 @@ public class PowerUpManager
 				{
 					Particle.DustOptions dust = new Particle.DustOptions(beamColor, 1.5F);
 					for(double y = 0.1; y <= 1.8; y += 0.3)
-						world.spawnParticle(Particle.DUST, base.clone().add(0, y, 0), 2, 0.07, 0.07, 0.07, dust);
+						world.spawnParticle(Compat.DUST, base.clone().add(0, y, 0), 2, 0.07, 0.07, 0.07, dust);
 					world.spawnParticle(Particle.END_ROD, base.clone().add(0, 2.0, 0), 1, 0.03, 0.03, 0.03, 0.0);
 				}
 

@@ -11,7 +11,10 @@ import com.theprogrammingturkey.comz.game.weapons.WeaponInstance;
 import com.theprogrammingturkey.comz.leaderboards.Leaderboard;
 import com.theprogrammingturkey.comz.leaderboards.PlayerStats;
 import com.theprogrammingturkey.comz.listeners.PowerUpDropListener;
+import com.theprogrammingturkey.comz.util.Compat;
+import com.theprogrammingturkey.comz.util.EntitySpawner;
 import com.theprogrammingturkey.comz.util.PackModels;
+import com.theprogrammingturkey.comz.util.display.Displays;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Color;
@@ -25,16 +28,13 @@ import org.bukkit.boss.BarColor;
 import org.bukkit.boss.BarStyle;
 import org.bukkit.boss.BossBar;
 import org.bukkit.entity.ArmorStand;
-import org.bukkit.entity.Display;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Firework;
-import org.bukkit.entity.ItemDisplay;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Listener;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.FireworkMeta;
-import org.bukkit.util.Transformation;
-import org.joml.Vector3f;
 
 public class DownedPlayer implements Listener
 {
@@ -65,7 +65,7 @@ public class DownedPlayer implements Listener
 
 	/** Down-state visuals: the invisible seat the player rides (sit pose) + the floating revive icon. */
 	private ArmorStand seat;
-	private ItemDisplay reviveIcon;
+	private Entity reviveIcon;
 	/** Progress bar shown during a revive (co-op revive timer or the solo self-revive countdown). */
 	private BossBar reviveBar;
 
@@ -157,9 +157,9 @@ public class DownedPlayer implements Listener
 		if(world == null)
 			return;
 
-		seat = world.spawn(loc, ArmorStand.class, as ->
+		seat = EntitySpawner.spawn(world, loc, ArmorStand.class, as ->
 		{
-			as.setInvisible(true);
+			as.setVisible(false);
 			as.setGravity(false);
 			as.setInvulnerable(true);
 			as.setMarker(false);
@@ -173,15 +173,12 @@ public class DownedPlayer implements Listener
 
 		ItemStack iconStack = new ItemStack(Material.PAPER);
 		PackModels.applyFull(iconStack, "misc/revive");
-		reviveIcon = world.spawn(loc, ItemDisplay.class, disp ->
+		reviveIcon = Displays.spawnItem(loc, iconStack, 0.85f, 0f, 1.6f, true);
+		if(reviveIcon != null)
 		{
-			disp.setItemStack(iconStack);
-			disp.setBillboard(Display.Billboard.CENTER);
-			disp.setPersistent(false);
-			Transformation t = disp.getTransformation();
-			disp.setTransformation(new Transformation(new Vector3f(0f, 1.6f, 0f), t.getLeftRotation(), new Vector3f(0.85f, 0.85f, 0.85f), t.getRightRotation()));
-		});
-		player.addPassenger(reviveIcon);
+			reviveIcon.setPersistent(false);
+			player.addPassenger(reviveIcon);
+		}
 	}
 
 	/** Removes the seat + revive icon and clears any active revive progress bar. Idempotent. */
@@ -382,7 +379,7 @@ public class DownedPlayer implements Listener
 
 	private void displayDown()
 	{
-		Firework f = (Firework) player.getWorld().spawnEntity(player.getLocation(), EntityType.FIREWORK_ROCKET);
+		Firework f = (Firework) player.getWorld().spawnEntity(player.getLocation(), Compat.FIREWORK_ROCKET);
 		FireworkMeta meta = f.getFireworkMeta();
 		meta.setPower(1);
 		meta.addEffect(getRandomFireworkEffect());

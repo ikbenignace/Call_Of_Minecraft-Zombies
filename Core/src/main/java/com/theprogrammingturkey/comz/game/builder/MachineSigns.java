@@ -12,7 +12,7 @@ import org.bukkit.block.BlockFace;
 import org.bukkit.block.Sign;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.Directional;
-import org.bukkit.entity.ItemDisplay;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.block.SignChangeEvent;
 
@@ -72,7 +72,7 @@ public final class MachineSigns
 	 * {@code MachineModelManager}'s in-game spawn (perk machines + Pack-a-Punch carry an ItemDisplay).
 	 * Returns the spawned display, or null when the sign type has no model or the pack is disabled.
 	 */
-	public static ItemDisplay previewModel(Sign sign)
+	public static Entity previewModel(Sign sign)
 	{
 		String type = ChatColor.stripColor(sign.getLine(1)).trim().toLowerCase();
 		String modelKey;
@@ -101,7 +101,7 @@ public final class MachineSigns
 		// Preview sits at the centre of the sign's own block, matching the in-game placement (the machine
 		// occupies the sign block, not the block in front of it).
 		org.bukkit.Location at = sign.getLocation().clone().add(0.5, 0.0, 0.5);
-		ItemDisplay preview = ModelDisplay.spawnModel(sign.getLocation().getWorld(), at, modelKey, 1.0f, yaw);
+		Entity preview = ModelDisplay.spawnModel(sign.getLocation().getWorld(), at, modelKey, 1.0f, yaw);
 		if(preview != null)
 			preview.setPersistent(false);
 		return preview;

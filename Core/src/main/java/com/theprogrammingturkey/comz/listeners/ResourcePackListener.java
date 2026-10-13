@@ -42,19 +42,23 @@ public class ResourcePackListener implements Listener
 	public void onStatus(PlayerResourcePackStatusEvent event)
 	{
 		// Only react to our own pack, not other plugins'/server packs.
-		if(event.getID() != null && !event.getID().equals(ResourcePackUtil.PACK_ID))
+		// The pack is only sent on 1.21.4+, where every status carries its pack id; a missing id means an
+		// older server and another plugin's or the server's own pack.
+		UUID packId = packId(event);
+		if(packId == null || !packId.equals(ResourcePackUtil.PACK_ID))
 			return;
 
 		Player player = event.getPlayer();
-		switch(event.getStatus())
+		// Matched by name: INVALID_URL and FAILED_RELOAD don't exist before 1.20.3.
+		switch(event.getStatus().name())
 		{
-			case SUCCESSFULLY_LOADED:
+			case "SUCCESSFULLY_LOADED":
 				packLoaded.add(player.getUniqueId());
 				break;
-			case DECLINED:
-			case FAILED_DOWNLOAD:
-			case INVALID_URL:
-			case FAILED_RELOAD:
+			case "DECLINED":
+			case "FAILED_DOWNLOAD":
+			case "INVALID_URL":
+			case "FAILED_RELOAD":
 				packLoaded.remove(player.getUniqueId());
 				if(ConfigManager.getMainConfig().resourcePackForce && ConfigManager.getMainConfig().resourcePackKickOnDecline)
 				{
@@ -74,6 +78,18 @@ public class ResourcePackListener implements Listener
 			default:
 				// ACCEPTED / DOWNLOADED / DISCARDED are intermediate — ignore.
 				break;
+		}
+	}
+
+	/** PlayerResourcePackStatusEvent#getID only exists from 1.20.3, when multiple packs were added. */
+	private static UUID packId(PlayerResourcePackStatusEvent event)
+	{
+		try
+		{
+			return (UUID) PlayerResourcePackStatusEvent.class.getMethod("getID").invoke(event);
+		} catch(ReflectiveOperationException e)
+		{
+			return null;
 		}
 	}
 }

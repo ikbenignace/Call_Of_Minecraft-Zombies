@@ -10,8 +10,10 @@ import com.theprogrammingturkey.comz.game.managers.WeaponManager;
 import com.theprogrammingturkey.comz.integration.WeaponBackends;
 import com.theprogrammingturkey.comz.kits.KitManager;
 import com.theprogrammingturkey.comz.listeners.*;
-import com.theprogrammingturkey.comz.support.NMSUtil_Modern;
+import com.theprogrammingturkey.comz.support.NMSUtil_Bukkit;
 import com.theprogrammingturkey.comz.util.PlaceholderHook;
+import com.theprogrammingturkey.comz.util.ServerFeatures;
+import com.theprogrammingturkey.comz.util.display.Displays;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
@@ -108,14 +110,13 @@ public class COMZombies extends JavaPlugin
 
 		log.info(COMZombies.CONSOLE_PREFIX + "Version info | MC: " + version + " | Bukkit: " + Bukkit.getVersion() + " & " + Bukkit.getBukkitVersion() + " | CB: " + Bukkit.getServer().getClass().getPackage().getName());
 
-		// COM:Z talks to the server only through INMSUtil. NMSUtil_Modern is a single
-		// pure-Bukkit implementation (Lidded + Player#sendBlockDamage) that works on every
-		// modern server (1.17+, including 26.2 and future releases), so there is no longer a
-		// per-version module to pick.
-		//
-		// To support a server too old for those Bukkit APIs, implement INMSUtil in a dedicated
-		// NMS module and dispatch to it here based on `version` (the seam is intentionally kept).
-		nmsUtil = new NMSUtil_Modern();
+		// Every version-specific feature is detected by probing the server API (see ServerFeatures), so
+		// one jar covers 1.14 through 26.x. Features the server lacks degrade with a single warning.
+		nmsUtil = new NMSUtil_Bukkit();
+		if(!NMSUtil_Bukkit.isFullySupported())
+			log.warning(COMZombies.CONSOLE_PREFIX + "Disabled on this server version: chest lid animation and barrier crack overlay (needs 1.16+)");
+		Displays.init();
+		ServerFeatures.logDegradedFeatures();
 	}
 
 	/**

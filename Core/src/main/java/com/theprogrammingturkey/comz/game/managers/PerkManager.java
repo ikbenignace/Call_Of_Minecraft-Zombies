@@ -4,6 +4,7 @@ import com.theprogrammingturkey.comz.config.ConfigManager;
 import com.theprogrammingturkey.comz.game.Game;
 import com.theprogrammingturkey.comz.game.features.PerkType;
 import com.theprogrammingturkey.comz.util.CommandUtil;
+import com.theprogrammingturkey.comz.util.Compat;
 
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
@@ -26,7 +27,7 @@ public class PerkManager
 	public void applyPerkEffect(Player player, PerkType perk)
 	{
 		if(perk.getIconEffect() != null)
-			player.addPotionEffect(new PotionEffect(perk.getIconEffect(), PotionEffect.INFINITE_DURATION, perk.getAmplifier(), false, false, true));
+			player.addPotionEffect(new PotionEffect(perk.getIconEffect(), Compat.INFINITE_DURATION, perk.getAmplifier(), false, false, true));
 		// STAMIN_UP: real move boost via walk-speed (SPEED potion would widen FOV).
 		if(perk == PerkType.STAMIN_UP)
 			player.setWalkSpeed(STAMIN_UP_WALK_SPEED);

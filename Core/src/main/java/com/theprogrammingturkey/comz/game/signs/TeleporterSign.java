@@ -8,6 +8,7 @@ import com.theprogrammingturkey.comz.game.Game;
 import com.theprogrammingturkey.comz.game.GameManager;
 import com.theprogrammingturkey.comz.game.features.PerkType;
 import com.theprogrammingturkey.comz.util.CommandUtil;
+import com.theprogrammingturkey.comz.util.Compat;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Particle;
@@ -88,7 +89,7 @@ public class TeleporterSign implements IGameSign
 
 					// 0k — sound + brief blindness now, then the actual teleport after the charge-up delay.
 					if(cfg.teleporterSound)
-						com.theprogrammingturkey.comz.util.SoundUtil.play(origin.getWorld(), origin, com.theprogrammingturkey.comz.util.SoundConfig.get("teleporter", Sound.ENTITY_ENDERMAN_TELEPORT.name()), org.bukkit.SoundCategory.MASTER, 1.0f, 1.0f);
+						com.theprogrammingturkey.comz.util.SoundUtil.play(origin.getWorld(), origin, com.theprogrammingturkey.comz.util.SoundConfig.get("teleporter", "ENTITY_ENDERMAN_TELEPORT"), org.bukkit.SoundCategory.MASTER, 1.0f, 1.0f);
 					player.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, cfg.teleporterChargeUpTicks + 30, 30));
 
 						// Tier 2 — capture opt-in before the deferred task; lines is stable here.
@@ -118,7 +119,7 @@ public class TeleporterSign implements IGameSign
 						for(int i = 0; i < 50; i++)
 						{
 							Location loc = player.getLocation();
-							player.getWorld().spawnParticle(Particle.WITCH, loc.getX(), loc.getY(), loc.getZ(), 1, COMZombies.rand.nextFloat(), COMZombies.rand.nextFloat(), COMZombies.rand.nextFloat(), 1);
+							player.getWorld().spawnParticle(Compat.WITCH, loc.getX(), loc.getY(), loc.getZ(), 1, COMZombies.rand.nextFloat(), COMZombies.rand.nextFloat(), COMZombies.rand.nextFloat(), 1);
 						}
 					});
 				}

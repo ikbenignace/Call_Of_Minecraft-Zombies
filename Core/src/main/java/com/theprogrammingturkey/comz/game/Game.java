@@ -30,6 +30,7 @@ import com.theprogrammingturkey.comz.spawning.SpawnManager;
 import com.theprogrammingturkey.comz.spawning.SpawnPoint;
 import com.theprogrammingturkey.comz.util.BlockUtils;
 import com.theprogrammingturkey.comz.util.CommandUtil;
+import com.theprogrammingturkey.comz.util.Compat;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.EntityEffect;
@@ -626,7 +627,7 @@ public class Game
 			KitManager.giveOutKitRoundRewards(this);
 			for(Player pl : getPlayersAndSpectators())
 			{
-				com.theprogrammingturkey.comz.util.SoundUtil.play(pl, pl.getLocation(), com.theprogrammingturkey.comz.util.SoundConfig.get("round.start", Sound.BLOCK_PORTAL_AMBIENT.name()), org.bukkit.SoundCategory.MASTER, ConfigManager.getMainConfig().roundSoundVolume, 1);
+				com.theprogrammingturkey.comz.util.SoundUtil.play(pl, pl.getLocation(), com.theprogrammingturkey.comz.util.SoundConfig.get("round.start", "BLOCK_PORTAL_AMBIENT"), org.bukkit.SoundCategory.MASTER, ConfigManager.getMainConfig().roundSoundVolume, 1);
 				pl.sendTitle(ChatColor.RED + "Round " + waveNumber, ChatColor.GRAY + "starting in 10 seconds", 10, 60, 10);
 			}
 			delay = 200;
@@ -645,18 +646,19 @@ public class Game
 				if(ConfigManager.getMainConfig().visualsRoundAmbience)
 				{
 					// Low-pitched vanilla stinger for a dramatic round-start cue (per-player, matching the title sends above).
-					com.theprogrammingturkey.comz.util.SoundUtil.play(pl, pl.getLocation(), Sound.ENTITY_WITHER_SPAWN.name(), org.bukkit.SoundCategory.MASTER, 0.7f, 0.6f);
+					com.theprogrammingturkey.comz.util.SoundUtil.play(pl, pl.getLocation(), "ENTITY_WITHER_SPAWN", org.bukkit.SoundCategory.MASTER, 0.7f, 0.6f);
 					// Short DARKNESS effect (~40 ticks) to sell the eerie buildup; weather is intentionally left untouched.
-					pl.addPotionEffect(new org.bukkit.potion.PotionEffect(PotionEffectType.DARKNESS, 40, 0, false, false, false));
+					if(Compat.DARKNESS != null)
+						pl.addPotionEffect(new org.bukkit.potion.PotionEffect(Compat.DARKNESS, 40, 0, false, false, false));
 				}
 
 				switch(spawnType)
 				{
 					case REGULAR:
-						com.theprogrammingturkey.comz.util.SoundUtil.play(pl, pl.getLocation(), com.theprogrammingturkey.comz.util.SoundConfig.get("round.regular", Sound.BLOCK_PORTAL_TRAVEL.name()), org.bukkit.SoundCategory.MASTER, ConfigManager.getMainConfig().roundSoundVolume, 1);
+						com.theprogrammingturkey.comz.util.SoundUtil.play(pl, pl.getLocation(), com.theprogrammingturkey.comz.util.SoundConfig.get("round.regular", "BLOCK_PORTAL_TRAVEL"), org.bukkit.SoundCategory.MASTER, ConfigManager.getMainConfig().roundSoundVolume, 1);
 						break;
 					case HELL_HOUNDS:
-						com.theprogrammingturkey.comz.util.SoundUtil.play(pl, pl.getLocation(), com.theprogrammingturkey.comz.util.SoundConfig.get("round.dogs", Sound.ENTITY_ENDER_DRAGON_GROWL.name()), org.bukkit.SoundCategory.MASTER, ConfigManager.getMainConfig().roundSoundVolume, 1);
+						com.theprogrammingturkey.comz.util.SoundUtil.play(pl, pl.getLocation(), com.theprogrammingturkey.comz.util.SoundConfig.get("round.dogs", "ENTITY_ENDER_DRAGON_GROWL"), org.bukkit.SoundCategory.MASTER, ConfigManager.getMainConfig().roundSoundVolume, 1);
 						break;
 				}
 			}
@@ -913,7 +915,9 @@ public class Game
 			COMZombies.log.log(Level.WARNING, "forceNight(): arena '" + arena.getName() + "' has no world yet; skipping.");
 			return;
 		}
-		setGameRuleByName(world, "advance_time", "false");
+		// "advance_time" replaced "doDaylightCycle" in 26.x.
+		if(!setGameRuleByName(world, "advance_time", "false"))
+			setGameRuleByName(world, "doDaylightCycle", "false");
 		world.setTime(18000L);
 	}
 
@@ -1471,7 +1475,7 @@ public class Game
 		if(world != null)
 		{
 			world.playSound(player.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 0.6f, 1.4f);
-			world.spawnParticle(org.bukkit.Particle.HAPPY_VILLAGER, player.getLocation().add(0, 1, 0), 6, 0.3, 0.5, 0.3);
+			world.spawnParticle(Compat.HAPPY_VILLAGER, player.getLocation().add(0, 1, 0), 6, 0.3, 0.5, 0.3);
 		}
 	}
 

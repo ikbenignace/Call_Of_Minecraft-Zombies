@@ -30,7 +30,7 @@ public class SettingsMenuListener implements Listener
 	@EventHandler
 	public void onDrag(InventoryDragEvent event)
 	{
-		if(event.getView().getTopInventory().getHolder() instanceof SettingsMenu)
+		if(event.getInventory().getHolder() instanceof SettingsMenu)
 			event.setCancelled(true);
 	}
 

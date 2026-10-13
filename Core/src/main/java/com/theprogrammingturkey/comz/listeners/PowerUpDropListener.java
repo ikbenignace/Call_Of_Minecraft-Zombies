@@ -14,6 +14,7 @@ import com.theprogrammingturkey.comz.game.managers.PowerUpManager;
 import com.theprogrammingturkey.comz.game.managers.WeaponManager;
 import com.theprogrammingturkey.comz.game.weapons.BaseGun;
 import com.theprogrammingturkey.comz.game.weapons.WeaponInstance;
+import com.theprogrammingturkey.comz.util.Compat;
 import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.Bukkit;
@@ -186,7 +187,7 @@ public class PowerUpDropListener implements Listener
 					{
 						World zw = z.getWorld();
 						if(zw != null)
-							zw.spawnParticle(Particle.DUST, z.getLocation().add(0, 1, 0), 12, 0.4, 0.6, 0.4, new Particle.DustOptions(Color.fromRGB(0x66, 0xFF, 0x33), 1.8F));
+							zw.spawnParticle(Compat.DUST, z.getLocation().add(0, 1, 0), 12, 0.4, 0.6, 0.4, new Particle.DustOptions(Color.fromRGB(0x66, 0xFF, 0x33), 1.8F));
 					}
 					for(Player pl : game.getPlayersInGame())
 					{
@@ -195,8 +196,8 @@ public class PowerUpDropListener implements Listener
 						World w = pl.getWorld();
 						if(w != null)
 						{
-							w.spawnParticle(Particle.EXPLOSION_EMITTER, pl.getLocation().add(0, 1, 0), 1);
-							w.spawnParticle(Particle.DUST, pl.getLocation().add(0, 1, 0), 40, 1.0, 1.0, 1.0, new Particle.DustOptions(Color.fromRGB(0x88, 0xFF, 0x44), 2.0F));
+							w.spawnParticle(Compat.EXPLOSION_EMITTER, pl.getLocation().add(0, 1, 0), 1);
+							w.spawnParticle(Compat.DUST, pl.getLocation().add(0, 1, 0), 40, 1.0, 1.0, 1.0, new Particle.DustOptions(Color.fromRGB(0x88, 0xFF, 0x44), 2.0F));
 						}
 						pl.sendTitle(ChatColor.GREEN + "" + ChatColor.BOLD + "NUKE", ChatColor.GRAY + "All zombies eliminated", 5, 30, 15);
 					}
@@ -398,7 +399,7 @@ public class PowerUpDropListener implements Listener
 		for(Player pl : game.getPlayersInGame())
 		{
 			pl.sendMessage(ChatColor.RED + "" + ChatColor.BOLD + powerUp.getDisplay() + "!");
-			String sound = com.theprogrammingturkey.comz.util.SoundConfig.get("powerup." + powerUp.name(), powerUp.getSound().name());
+			String sound = com.theprogrammingturkey.comz.util.SoundConfig.get("powerup." + powerUp.name(), com.theprogrammingturkey.comz.util.Compat.soundName(powerUp.getSound()));
 			com.theprogrammingturkey.comz.util.SoundUtil.play(pl, pl.getLocation(), sound, org.bukkit.SoundCategory.MASTER, 1, 1);
 		}
 	}

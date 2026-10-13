@@ -12,6 +12,7 @@ import com.theprogrammingturkey.comz.integration.WeaponBackends;
 import com.theprogrammingturkey.comz.game.weapons.GunInstance;
 import com.theprogrammingturkey.comz.game.weapons.WeaponType;
 import com.theprogrammingturkey.comz.util.BlockUtils;
+import com.theprogrammingturkey.comz.util.Compat;
 import com.theprogrammingturkey.comz.util.DisplayEntityUtil;
 import com.theprogrammingturkey.comz.util.ParticleFX;
 import com.theprogrammingturkey.comz.util.RayTrace;
@@ -135,7 +136,7 @@ public class WeaponListener implements Listener
 							Vector dirVec = event.getPlayer().getEyeLocation().getDirection();
 
 							if(shots > 1)
-								dirVec.add(new Vector(COMZombies.rand.nextDouble(0.5) - 0.25, COMZombies.rand.nextDouble(0.5) - 0.25, COMZombies.rand.nextDouble(0.5) - 0.25));
+								dirVec.add(new Vector((COMZombies.rand.nextDouble() * 0.5) - 0.25, (COMZombies.rand.nextDouble() * 0.5) - 0.25, (COMZombies.rand.nextDouble() * 0.5) - 0.25));
 
 							RayTrace rayTrace = new RayTrace(event.getPlayer().getEyeLocation().toVector(), dirVec);
 							double distance = gun.getType().distance;
@@ -203,7 +204,7 @@ public class WeaponListener implements Listener
 										if(game.perkManager.hasPerk(player, PerkType.DEADSHOT_DAIQ))
 											damage *= (float) ConfigManager.getMainConfig().deadshotHeadshotMultiplier;
 										for(int i = 0; i < 20; i++)
-											event.getPlayer().getWorld().spawnParticle(Particle.ENCHANTED_HIT, entToDamage.getLocation().getX(), entToDamage.getLocation().getY() + eyeHeight, entToDamage.getLocation().getZ(), 0, COMZombies.rand.nextDouble(2d) - 1d, COMZombies.rand.nextDouble(2d) - 1d, COMZombies.rand.nextDouble(2d) - 1d, 1);
+											event.getPlayer().getWorld().spawnParticle(Compat.ENCHANTED_HIT, entToDamage.getLocation().getX(), entToDamage.getLocation().getY() + eyeHeight, entToDamage.getLocation().getZ(), 0, (COMZombies.rand.nextDouble() * 2d) - 1d, (COMZombies.rand.nextDouble() * 2d) - 1d, (COMZombies.rand.nextDouble() * 2d) - 1d, 1);
 									}
 
 									// BO2-fidelity hit feedback: blood at every hit, plus a crit sparkle and a
@@ -272,8 +273,8 @@ public class WeaponListener implements Listener
 				if(mob.getLocation().distanceSquared(impact) <= radiusSq)
 					game.damageMob(mob, player, splashDmg, false, false);
 			}
-			world.spawnParticle(Particle.EXPLOSION, impact, 2, 0.4, 0.4, 0.4, 0);
-			world.spawnParticle(Particle.DUST, impact, 30, splashRadius / 2, splashRadius / 2, splashRadius / 2, new Particle.DustOptions(gun.getType().particleColor, 1.6F));
+			world.spawnParticle(Compat.EXPLOSION, impact, 2, 0.4, 0.4, 0.4, 0);
+			world.spawnParticle(Compat.DUST, impact, 30, splashRadius / 2, splashRadius / 2, splashRadius / 2, new Particle.DustOptions(gun.getType().particleColor, 1.6F));
 			world.playSound(impact, Sound.ENTITY_GENERIC_EXPLODE, 0.8F, 1.4F);
 		}
 
@@ -293,7 +294,7 @@ public class WeaponListener implements Listener
 
 			Location origin = player.getLocation();
 			world.playSound(origin, Sound.ENTITY_LIGHTNING_BOLT_THUNDER, 1.4F, 0.6F);
-			world.spawnParticle(Particle.EXPLOSION, player.getEyeLocation().add(dirVec.clone().normalize()), 3, 0.5, 0.5, 0.5, 0);
+			world.spawnParticle(Compat.EXPLOSION, player.getEyeLocation().add(dirVec.clone().normalize()), 3, 0.5, 0.5, 0.5, 0);
 		}
 		else if(name.equalsIgnoreCase(WUNDERWAFFE) || name.equalsIgnoreCase(WUNDERWAFFE_PAP))
 		{
@@ -423,7 +424,7 @@ public class WeaponListener implements Listener
 					player.getWorld().createExplosion(loc.getX(), loc.getY(), loc.getZ(), 0.0F, false, false);
 					List<Mob> ents = game.spawnManager.getEntities();
 					int ticker = COMZombies.scheduleTask(0, 5, () ->
-							item.getWorld().spawnParticle(Particle.SMOKE, item.getLocation().clone(), 0, COMZombies.rand.nextDouble() - 0.5, 0.5, COMZombies.rand.nextDouble() - 0.5, 0.05));
+							item.getWorld().spawnParticle(Compat.SMOKE, item.getLocation().clone(), 0, COMZombies.rand.nextDouble() - 0.5, 0.5, COMZombies.rand.nextDouble() - 0.5, 0.05));
 
 					for(int i = ents.size() - 1; i >= 0; i--)
 					{
@@ -479,7 +480,7 @@ public class WeaponListener implements Listener
 						return;
 					}
 
-					item.getWorld().spawnParticle(Particle.SMOKE, item.getLocation().clone(), 0, COMZombies.rand.nextDouble() - 0.5, 0.5, COMZombies.rand.nextDouble() - 0.5, 0.05);
+					item.getWorld().spawnParticle(Compat.SMOKE, item.getLocation().clone(), 0, COMZombies.rand.nextDouble() - 0.5, 0.5, COMZombies.rand.nextDouble() - 0.5, 0.05);
 					for(Mob e : game.spawnManager.getEntities())
 						e.setTarget(attackEnt);
 
@@ -489,7 +490,7 @@ public class WeaponListener implements Listener
 						Location loc = item.getLocation();
 						SoundUtil.play(item.getWorld(), loc, "custom.monkeybomb.exploding", SoundCategory.PLAYERS, 1.4F, 1.0F);
 						item.getWorld().createExplosion(loc.getX(), loc.getY(), loc.getZ(), 0.0F, false, false);
-						item.getWorld().spawnParticle(Particle.EXPLOSION, loc, 3, 0.5, 0.5, 0.5, 0);
+						item.getWorld().spawnParticle(Compat.EXPLOSION, loc, 3, 0.5, 0.5, 0.5, 0);
 						List<Mob> ents = game.spawnManager.getEntities();
 						for(int i = ents.size() - 1; i >= 0; i--)
 						{

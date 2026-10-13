@@ -6,9 +6,11 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
+import java.lang.reflect.Method;
+
 /**
  * Applies the COM:Z custom resource pack's item models to item stacks via the modern
- * {@code minecraft:item_model} data component ({@link ItemMeta#setItemModel}).
+ * {@code minecraft:item_model} data component ({@code ItemMeta#setItemModel}, 1.21.4+).
  * <p>
  * A model key is the pack-relative path under {@code assets/comz/items/} (without the
  * {@code .json}), e.g. {@code "gun/python"} resolves to {@code comz:gun/python} →
@@ -20,6 +22,9 @@ public final class PackModels
 {
 	/** Resource-pack namespace; all custom item models live under {@code assets/comz/}. */
 	public static final String NAMESPACE = "comz";
+
+	/** ItemMeta#setItemModel only exists from 1.21.4; Core is compiled against 1.14. */
+	private static final Method SET_ITEM_MODEL = findSetItemModel();
 
 	private PackModels()
 	{
@@ -33,7 +38,33 @@ public final class PackModels
 	public static boolean isPackEnabled()
 	{
 		ConfigSetup cfg = ConfigManager.getMainConfig();
-		return cfg != null && cfg.resourcePackEnabled;
+		return cfg != null && cfg.resourcePackEnabled && SET_ITEM_MODEL != null;
+	}
+
+	private static Method findSetItemModel()
+	{
+		try
+		{
+			return ItemMeta.class.getMethod("setItemModel", NamespacedKey.class);
+		} catch(NoSuchMethodException e)
+		{
+			return null;
+		}
+	}
+
+	private static void setItemModel(ItemStack stack, NamespacedKey key)
+	{
+		ItemMeta meta = stack.getItemMeta();
+		if(meta == null)
+			return;
+		try
+		{
+			SET_ITEM_MODEL.invoke(meta, key);
+		} catch(ReflectiveOperationException e)
+		{
+			return;
+		}
+		stack.setItemMeta(meta);
 	}
 
 	/**
@@ -44,11 +75,7 @@ public final class PackModels
 	{
 		if(stack == null || key == null || key.isEmpty() || !isPackEnabled())
 			return;
-		ItemMeta meta = stack.getItemMeta();
-		if(meta == null)
-			return;
-		meta.setItemModel(new NamespacedKey(NAMESPACE, key));
-		stack.setItemMeta(meta);
+		setItemModel(stack, new NamespacedKey(NAMESPACE, key));
 	}
 
 	/**
@@ -60,13 +87,15 @@ public final class PackModels
 	{
 		if(stack == null || fullKey == null || fullKey.isEmpty() || !isPackEnabled())
 			return;
-		NamespacedKey nk = fullKey.indexOf(':') >= 0 ? NamespacedKey.fromString(fullKey) : new NamespacedKey(NAMESPACE, fullKey);
-		if(nk == null)
+		int colon = fullKey.indexOf(':');
+		NamespacedKey nk;
+		try
+		{
+			nk = colon >= 0 ? new NamespacedKey(fullKey.substring(0, colon), fullKey.substring(colon + 1)) : new NamespacedKey(NAMESPACE, fullKey);
+		} catch(IllegalArgumentException e)
+		{
 			return;
-		ItemMeta meta = stack.getItemMeta();
-		if(meta == null)
-			return;
-		meta.setItemModel(nk);
-		stack.setItemMeta(meta);
+		}
+		setItemModel(stack, nk);
 	}
 }

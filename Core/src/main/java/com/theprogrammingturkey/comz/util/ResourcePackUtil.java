@@ -33,16 +33,18 @@ public final class ResourcePackUtil
 	public static void apply(Player player)
 	{
 		ConfigSetup cfg = ConfigManager.getMainConfig();
-		if(!cfg.resourcePackEnabled || cfg.resourcePackUrl == null || cfg.resourcePackUrl.isEmpty())
+		// The pack's item definitions need 1.21.4+, and PackModels.isPackEnabled() is false below that.
+		if(!PackModels.isPackEnabled() || cfg.resourcePackUrl == null || cfg.resourcePackUrl.isEmpty())
 			return;
 
 		byte[] hash = hexToBytes(cfg.resourcePackSha1);
 		try
 		{
-			player.addResourcePack(PACK_ID, cfg.resourcePackUrl, hash, cfg.resourcePackPrompt, cfg.resourcePackForce);
+			Player.class.getMethod("addResourcePack", UUID.class, String.class, byte[].class, String.class, boolean.class)
+					.invoke(player, PACK_ID, cfg.resourcePackUrl, hash, cfg.resourcePackPrompt, cfg.resourcePackForce);
 		} catch(Exception e)
 		{
-			COMZombies.getPlugin().getLogger().warning("Failed to send resource pack to " + player.getName() + ": " + e.getMessage());
+			COMZombies.getPlugin().getLogger().warning("Failed to send resource pack to " + player.getName() + ": " + e);
 		}
 	}
 

@@ -1,40 +1,33 @@
 package com.theprogrammingturkey.comz.util;
 
 import com.theprogrammingturkey.comz.COMZombies;
+import com.theprogrammingturkey.comz.util.display.Displays;
 import org.bukkit.Location;
 import org.bukkit.World;
-import org.bukkit.entity.Display;
-import org.bukkit.entity.TextDisplay;
+import org.bukkit.entity.Entity;
 
 /**
- * Helpers for the modern TextDisplay-based floating text used by the BO2-fidelity
- * visual feedback layer (e.g. "+60" point pop-ups, round/perk callouts).
+ * Floating text used by the BO2-fidelity visual feedback layer (e.g. "+60" point pop-ups, round/perk
+ * callouts, price holograms). Text displays on 1.19.4+, name-tagged armour stands before that.
  */
 public final class DisplayEntityUtil
 {
-	// Utility class: never instantiated.
 	private DisplayEntityUtil()
 	{
 	}
 
 	/**
-	 * Spawns a center-billboarded, background-less floating text at {@code loc} that auto-removes
-	 * after {@code lifeTicks} ticks. Returns the spawned TextDisplay (null if the world is null).
+	 * Spawns a see-through floating text at {@code loc} that auto-removes after {@code lifeTicks} ticks.
+	 * Null if the world is null.
 	 */
-	public static TextDisplay floatingText(World world, Location loc, String text, int lifeTicks)
+	public static Entity floatingText(World world, Location loc, String text, int lifeTicks)
 	{
 		if(world == null)
 			return null;
-		// Spawn a billboard text display that always faces the player, sees through blocks and has no background.
-		TextDisplay td = world.spawn(loc, TextDisplay.class, display ->
-		{
-			display.setText(text);
-			display.setBillboard(Display.Billboard.CENTER);
-			display.setSeeThrough(true);
-			display.setDefaultBackground(false);
-			display.setPersistent(false);
-		});
-		// Schedule self-removal after its lifetime, guarding against an already-dead entity.
+		Entity td = Displays.spawnText(loc, text, true);
+		if(td == null)
+			return null;
+		td.setPersistent(false);
 		COMZombies.scheduleTask(lifeTicks, () ->
 		{
 			if(!td.isDead())
@@ -44,19 +37,13 @@ public final class DisplayEntityUtil
 	}
 
 	/**
-	 * Spawns a persistent (non-expiring) center-billboarded floating text — used for machine price
-	 * holograms. The caller owns its lifetime and must {@code remove()} it. Null if the world is null.
+	 * Spawns a non-expiring floating text — used for machine price holograms. The caller owns its
+	 * lifetime and must {@code remove()} it. Null if the world is null.
 	 */
-	public static TextDisplay persistentText(World world, Location loc, String text)
+	public static Entity persistentText(World world, Location loc, String text)
 	{
 		if(world == null)
 			return null;
-		return world.spawn(loc, TextDisplay.class, display ->
-		{
-			display.setText(text);
-			display.setBillboard(Display.Billboard.CENTER);
-			display.setSeeThrough(false);
-			display.setDefaultBackground(false);
-		});
+		return Displays.spawnText(loc, text, false);
 	}
 }

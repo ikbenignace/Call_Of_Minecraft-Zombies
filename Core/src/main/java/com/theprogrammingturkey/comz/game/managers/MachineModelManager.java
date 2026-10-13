@@ -6,9 +6,11 @@ import com.theprogrammingturkey.comz.game.Game;
 import com.theprogrammingturkey.comz.game.features.PerkType;
 import com.theprogrammingturkey.comz.game.signs.IGameSign;
 import com.theprogrammingturkey.comz.listeners.SignListener;
+import com.theprogrammingturkey.comz.util.Compat;
 import com.theprogrammingturkey.comz.util.DisplayEntityUtil;
 import com.theprogrammingturkey.comz.util.ModelDisplay;
 import com.theprogrammingturkey.comz.util.PackModels;
+import com.theprogrammingturkey.comz.util.display.Displays;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -19,10 +21,7 @@ import org.bukkit.block.Sign;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.Directional;
 import org.bukkit.entity.Entity;
-import org.bukkit.entity.Interaction;
-import org.bukkit.entity.ItemDisplay;
 import org.bukkit.entity.Player;
-import org.bukkit.entity.TextDisplay;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -32,10 +31,10 @@ import java.util.UUID;
 
 /**
  * BO2-fidelity machines. Each perk / Pack-a-Punch sign becomes a physical machine occupying the sign's
- * own block: a solid base block (always visible, even without the pack), a 3D {@link ItemDisplay}
+ * own block: a solid base block (always visible, even without the pack), a 3D item display
  * overlay that covers the block when the pack is guaranteed for all players, an invisible
- * {@link Interaction} hitbox so the machine is right-clickable, and a floating price
- * {@link TextDisplay}. Right-clicking the interaction forwards to the backing sign's buy logic (the
+ * interaction hitbox so the machine is right-clickable, and a floating price
+ * text. Right-clicking the interaction forwards to the backing sign's buy logic (the
  * sign's lines are snapshotted at spawn so buying works while the sign is hidden, and the sign is
  * rebuilt on teardown).
  *
@@ -60,6 +59,10 @@ public class MachineModelManager
 
 		World world = game.arena.getWorld();
 		if(world == null || !game.arena.areMinAndMaxSet())
+			return;
+		// Without a clickable hitbox the machine block couldn't be bought, so pre-1.19.4 servers keep
+		// the plain signs.
+		if(!Displays.supportsHitboxes())
 			return;
 
 		Location min = game.arena.getMin();
@@ -94,7 +97,7 @@ public class MachineModelManager
 		if(type.equals("pack-a-punch"))
 		{
 			modelKey = "machine/pap";
-			base = Material.LODESTONE;
+			base = Compat.materialOr(Material.OBSIDIAN, "LODESTONE");
 			label = ChatColor.LIGHT_PURPLE + "Pack-a-Punch " + ChatColor.YELLOW + "$" + ChatColor.stripColor(sign.getLine(2));
 		}
 		else if(type.equals("perk machine"))
@@ -142,23 +145,19 @@ public class MachineModelManager
 		// >1 so it fully covers the base block.
 		if(PackModels.isPackEnabled() && ConfigManager.getMainConfig().resourcePackForce)
 		{
-			ItemDisplay model = ModelDisplay.spawnModel(world, centre, modelKey, 1.01f, yaw);
+			Entity model = ModelDisplay.spawnModel(world, centre, modelKey, 1.01f, yaw);
 			machine.model = model;
 		}
 
 		// Invisible clickable hitbox covering the block.
-		Interaction interaction = world.spawn(baseLoc.clone().add(0.5, 0.0, 0.5), Interaction.class, i ->
-		{
-			i.setInteractionWidth(1.0f);
-			i.setInteractionHeight(1.0f);
-			i.setResponsive(true);
-		});
+		Entity interaction = Displays.spawnHitbox(baseLoc.clone().add(0.5, 0.0, 0.5), 1.0f, 1.0f);
 		machine.interaction = interaction;
 		byInteraction.put(interaction.getUniqueId(), machine);
 
 		// Floating price above the machine.
-		TextDisplay hologram = DisplayEntityUtil.persistentText(world, baseLoc.clone().add(0.5, 1.4, 0.5), label);
+		Entity hologram = DisplayEntityUtil.persistentText(world, baseLoc.clone().add(0.5, 1.4, 0.5), label);
 		machine.hologram = hologram;
+		machine.label = label;
 
 		machines.add(machine);
 	}
@@ -270,8 +269,8 @@ public class MachineModelManager
 
 	private String labelFor(MachineModel m)
 	{
-		if(m.hologram != null)
-			return m.hologram.getText(); // already formatted, e.g. "§bJuggernog §e$2500"
+		if(m.label != null)
+			return m.label; // already formatted, e.g. "§bJuggernog §e$2500"
 		// Fallback when the hologram was never created (pack-less servers): rebuild from the snapshotted
 		// sign lines (the world block is the machine's base block during play, not the sign).
 		String[] lines = m.signLines;

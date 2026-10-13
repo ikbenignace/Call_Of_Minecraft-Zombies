@@ -1,6 +1,7 @@
 package com.theprogrammingturkey.comz.game.features;
 
 import com.theprogrammingturkey.comz.COMZombies;
+import com.theprogrammingturkey.comz.util.Compat;
 import org.bukkit.ChatColor;
 import org.bukkit.Effect;
 import org.bukkit.Location;
@@ -28,14 +29,14 @@ public enum PerkType
 	SPEED_COLA(PotionEffectType.LUCK, 0, "speed_cola"),
 	QUICK_REVIVE(PotionEffectType.UNLUCK, 0, "quick_revive"),
 	DOUBLE_TAP(PotionEffectType.DOLPHINS_GRACE, 0, "double_tap"),
-	STAMIN_UP(PotionEffectType.TRIAL_OMEN, 0, "stamina_up"),
+	STAMIN_UP(Compat.potionEffect("TRIAL_OMEN"), 0, "stamina_up"),
 	PHD_FLOPPER(PotionEffectType.FIRE_RESISTANCE, 0, "phd_flopper"),
 	DEADSHOT_DAIQ(PotionEffectType.SATURATION, 0, "deadshot"),
 	MULE_KICK(PotionEffectType.BAD_OMEN, 0, "mule_kick"),
 	ELECTRIC_C(PotionEffectType.CONDUIT_POWER, 0, "electric_cherry"),
 	VULTURE_AID(PotionEffectType.WATER_BREATHING, 0, "vulture_aid"),
-	TOMBSTONE_SODA(PotionEffectType.WIND_CHARGED, 0, "tombstone"),
-	WHOS_WHO(PotionEffectType.RAID_OMEN, 0, "whos_who"),
+	TOMBSTONE_SODA(Compat.potionEffect("WIND_CHARGED"), 0, "tombstone"),
+	WHOS_WHO(Compat.potionEffect("RAID_OMEN"), 0, "whos_who"),
 	DER_WUNDERFIZZ(null, 0, null);
 
 	/**
@@ -119,7 +120,7 @@ public enum PerkType
 		}
 		else
 		{
-			String drink = com.theprogrammingturkey.comz.util.SoundConfig.get("perk.buy", Sound.ENTITY_GENERIC_DRINK.name());
+			String drink = com.theprogrammingturkey.comz.util.SoundConfig.get("perk.buy", "ENTITY_GENERIC_DRINK");
 			COMZombies.scheduleTask(5, () -> com.theprogrammingturkey.comz.util.SoundUtil.play(world, player.getLocation(), drink, org.bukkit.SoundCategory.MASTER, 1, 1));
 			COMZombies.scheduleTask(10, () -> com.theprogrammingturkey.comz.util.SoundUtil.play(world, player.getLocation(), drink, org.bukkit.SoundCategory.MASTER, 1, 1));
 		}
@@ -138,8 +139,8 @@ public enum PerkType
 		if(!com.theprogrammingturkey.comz.config.ConfigManager.getMainConfig().visualsPerkFeedback)
 			return;
 		// Level-up chord then a chime, for a satisfying "got the perk" cue.
-		com.theprogrammingturkey.comz.util.SoundUtil.play(world, player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP.name(), org.bukkit.SoundCategory.MASTER, 1, 1);
-		COMZombies.scheduleTask(4, () -> com.theprogrammingturkey.comz.util.SoundUtil.play(world, player.getLocation(), Sound.BLOCK_NOTE_BLOCK_CHIME.name(), org.bukkit.SoundCategory.MASTER, 1, 1.4f));
+		com.theprogrammingturkey.comz.util.SoundUtil.play(world, player.getLocation(), "ENTITY_PLAYER_LEVELUP", org.bukkit.SoundCategory.MASTER, 1, 1);
+		COMZombies.scheduleTask(4, () -> com.theprogrammingturkey.comz.util.SoundUtil.play(world, player.getLocation(), "BLOCK_NOTE_BLOCK_CHIME", org.bukkit.SoundCategory.MASTER, 1, 1.4f));
 		// Brief golden burst at the player's feet.
 		com.theprogrammingturkey.comz.util.ParticleFX.burst(world, player.getLocation(), org.bukkit.Color.YELLOW, 16);
 	}
@@ -167,14 +168,14 @@ public enum PerkType
 		// Spawn the bottle just in front of the player's face, scaled small, facing roughly the player.
 		Location eye = player.getEyeLocation();
 		Location at = eye.clone().add(eye.getDirection().multiply(0.4)).add(0, -0.25, 0);
-		final org.bukkit.entity.ItemDisplay bottle =
+		final org.bukkit.entity.Entity bottle =
 				com.theprogrammingturkey.comz.util.ModelDisplay.spawnModel(world, at, bottleKey, 0.45f, -player.getLocation().getYaw());
 		if(bottle == null)
 			return;
 
 		// A couple of arm swings + a small bubble puff sell the "gulp"; remove the bottle after ~1.6s.
-		player.swingMainHand();
-		COMZombies.scheduleTask(16, player::swingMainHand);
+		Compat.swingMainHand(player);
+		COMZombies.scheduleTask(16, () -> Compat.swingMainHand(player));
 		COMZombies.scheduleTask(8, () -> world.spawnParticle(org.bukkit.Particle.BUBBLE_POP, player.getEyeLocation(), 8, 0.2, 0.2, 0.2, 0));
 		COMZombies.scheduleTask(32, () ->
 		{
@@ -186,7 +187,7 @@ public enum PerkType
 	public static void noPower(Player player)
 	{
 		World world = player.getLocation().getWorld();
-		String noPower = com.theprogrammingturkey.comz.util.SoundConfig.get("perk.noPower", Sound.ENTITY_GHAST_AMBIENT.name());
+		String noPower = com.theprogrammingturkey.comz.util.SoundConfig.get("perk.noPower", "ENTITY_GHAST_AMBIENT");
 		com.theprogrammingturkey.comz.util.SoundUtil.play(world, player.getLocation(), noPower, org.bukkit.SoundCategory.MASTER, 1, 1);
 	}
 
