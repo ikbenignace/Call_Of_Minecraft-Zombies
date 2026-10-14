@@ -227,6 +227,7 @@ public class Game
 	public boolean changingRound = false;
 
 	private int roundStartTask = -1;
+	private int roundTitleTask = -1;
 
 	/**
 	 * Creates a game based off of the parameters and arena configuration file.
@@ -628,6 +629,7 @@ public class Game
 		}
 
 		waveNumber++;
+		barrierManager.resetRepairEarnings();
 
 		// Re-arm the per-round power-up drop cap for the new round.
 		powerUpManager.resetRoundDrops();
@@ -687,8 +689,9 @@ public class Game
 			}
 
 			final int announcedRound = waveNumber;
-			COMZombies.scheduleTask(ROUND_TITLE_RED_DELAY_TICKS, () ->
+			roundTitleTask = COMZombies.scheduleTask(ROUND_TITLE_RED_DELAY_TICKS, () ->
 			{
+				roundTitleTask = -1;
 				if(status != GameStatus.INGAME || waveNumber != announcedRound)
 					return;
 				for(Player pl : getPlayersAndSpectators())
@@ -699,7 +702,6 @@ public class Game
 			signManager.updateGame();
 			changingRound = false;
 			scoreboard.update();
-			barrierManager.resetRepairEarnings();
 		});
 
 	}
@@ -1111,6 +1113,11 @@ public class Game
 			}
 		}
 
+		if(roundTitleTask != -1)
+		{
+			Bukkit.getScheduler().cancelTask(roundTitleTask);
+			roundTitleTask = -1;
+		}
 		if(roundStartTask != -1)
 		{
 			Bukkit.getScheduler().cancelTask(roundStartTask);

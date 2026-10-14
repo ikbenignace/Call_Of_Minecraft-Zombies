@@ -77,6 +77,7 @@ public class RandomBox
 	private int teddyLeaveTaskId = -1;
 	private int teddyRiseTaskId = -1;
 	private int teddyFinishTaskId = -1;
+	private int riseTaskId = -1;
 	private int sinkTaskId = -1;
 
 
@@ -278,7 +279,7 @@ public class RandomBox
 			return;
 		Displays.setBrightness(display, 12, 15);
 		final Entity rising = display;
-		COMZombies.scheduleTask(2, () -> Displays.animate(rising, 0f, HIDDEN_OFFSET + RISE_BLOCKS + displayLift(), 0f, DISPLAY_SCALE, displayYaw(), Math.max(1, rollTicks)));
+		riseTaskId = COMZombies.scheduleTask(2, () -> Displays.animate(rising, 0f, HIDDEN_OFFSET + RISE_BLOCKS + displayLift(), 0f, DISPLAY_SCALE, displayYaw(), Math.max(1, rollTicks)));
 	}
 
 	private void showStack(ItemStack stack)
@@ -429,7 +430,10 @@ public class RandomBox
 			Bukkit.getScheduler().cancelTask(teddyFinishTaskId);
 		if(sinkTaskId != -1)
 			Bukkit.getScheduler().cancelTask(sinkTaskId);
+		if(riseTaskId != -1)
+			Bukkit.getScheduler().cancelTask(riseTaskId);
 		sinkTaskId = -1;
+		riseTaskId = -1;
 		teddyLeaveTaskId = -1;
 		teddyRiseTaskId = -1;
 		teddyFinishTaskId = -1;
