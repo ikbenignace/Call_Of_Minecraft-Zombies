@@ -19,7 +19,12 @@ public class DoorSign implements IGameSign
 	@Override
 	public void onInteract(Game game, Player player, Location location, String[] lines)
 	{
-		Door door = game.doorManager.getDoorFromSign(location);
+		tryOpen(game, player, game.doorManager.getDoorFromSign(location));
+	}
+
+	/** Buy path shared by the sign, the proximity key and the door hitbox. */
+	public static void tryOpen(Game game, Player player, Door door)
+	{
 		if(door == null)
 		{
 			CommandUtil.sendMessageToPlayer(player, ChatColor.RED + "An error occured when trying to open this door! Leave the game an contact an admin please.");
@@ -43,6 +48,7 @@ public class DoorSign implements IGameSign
 			com.theprogrammingturkey.comz.util.SoundUtil.playKey(player, player.getLocation(), "door.buy", "ENTITY_EXPERIENCE_ORB_PICKUP", org.bukkit.SoundCategory.PLAYERS, 1f, 1f);
 			PointManager.INSTANCE.takePoints(player, door.getCost());
 			PointManager.INSTANCE.notifyPlayer(player);
+			game.signPropManager.onDoorOpened(door);
 			CommandUtil.sendMessageToPlayer(player, ChatColor.GREEN + "Door opened!");
 		}
 	}

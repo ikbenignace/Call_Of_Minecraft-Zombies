@@ -257,6 +257,8 @@ public class PowerUpDropListener implements Listener
 					}
 					else
 					{
+						// The sale flag must be on first: FireSale() reads it to decide whether to show every box.
+						game.setFireSale(true);
 						game.boxManager.FireSale();
 					}
 					game.setFireSale(true);
@@ -282,6 +284,8 @@ public class PowerUpDropListener implements Listener
 					}
 					else
 					{
+						// The sale flag must be on first: FireSale() reads it to decide whether to show every box.
+						game.setFireSale(true);
 						game.boxManager.FireSale();
 					}
 					game.setFireSale(true);

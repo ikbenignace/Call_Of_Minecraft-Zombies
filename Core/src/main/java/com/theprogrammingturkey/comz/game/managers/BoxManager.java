@@ -212,7 +212,10 @@ public class BoxManager
 		else
 		{
 			unloadAllBoxes();
-			currentBox.loadBox();
+			if(currentBox != null)
+				currentBox.loadBox();
+			else
+				loadAllBoxes();
 		}
 	}
 

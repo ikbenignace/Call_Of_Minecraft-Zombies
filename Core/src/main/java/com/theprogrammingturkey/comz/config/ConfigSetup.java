@@ -224,6 +224,10 @@ public class ConfigSetup
 	public int wallAmmoPriceDivisor;
 	/** Wall-buy ammo price for the Pack-a-Punched version of the wall gun. */
 	public int wallAmmoPackAPunchCost;
+	/** Ammo crate price for a held gun that is not a wall gun of the arena. */
+	public int ammoCrateDefaultCost;
+	/** Ammo crate price for a Pack-a-Punched held gun. */
+	public int ammoCratePackAPunchCost;
 
 	/**
 	 * 0k — Teleporter recharge/cooldown in seconds before it can be used again.
@@ -581,6 +585,8 @@ public class ConfigSetup
 		boxFireSaleCost = plugin.getConfig().getInt("config.gameSettings.boxFireSaleCost", 10);
 		wallAmmoPriceDivisor = plugin.getConfig().getInt("config.gameSettings.wallAmmoPriceDivisor", 2);
 		wallAmmoPackAPunchCost = plugin.getConfig().getInt("config.gameSettings.wallAmmoPackAPunchCost", 4500);
+		ammoCrateDefaultCost = plugin.getConfig().getInt("config.gameSettings.ammoCrateDefaultCost", 1000);
+		ammoCratePackAPunchCost = plugin.getConfig().getInt("config.gameSettings.ammoCratePackAPunchCost", 4500);
 		teleporterCooldownSeconds = plugin.getConfig().getInt("config.teleporter.cooldownSeconds", 30);
 		teleporterChargeUpTicks = plugin.getConfig().getInt("config.teleporter.chargeUpTicks", 40);
 		teleporterPadKillRadius = plugin.getConfig().getDouble("config.teleporter.padKillRadius", 3.0);

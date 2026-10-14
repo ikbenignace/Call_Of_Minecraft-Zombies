@@ -200,6 +200,8 @@ public class Game
 	 */
 	public MachineModelManager machineModelManager;
 	public WallGunManager wallGunManager;
+	/** Hides the doors', traps', teleporters' and other remaining feature signs during play, restoring them on teardown. */
+	public SignPropManager signPropManager;
 
 	/**
 	 * Alternative-interaction layer — proximity scan + F-to-buy for doors / machines (replaces the
@@ -251,6 +253,7 @@ public class Game
 		signManager = new SignManager(this);
 		machineModelManager = new MachineModelManager(this);
 		wallGunManager = new WallGunManager(this);
+		signPropManager = new SignPropManager(this);
 		proximityBuyManager = new ProximityBuyManager(this);
 
 		scoreboard = new GameScoreboard(this);
@@ -589,6 +592,7 @@ public class Game
 		// BO2-fidelity: stand up the 3D machine models next to their signs (pack-gated, no-op otherwise).
 		machineModelManager.spawnAll();
 		wallGunManager.spawnAll();
+		signPropManager.spawnAll();
 		// Start the proximity-buy scan so doors/machines can be bought with F (config-gated, no-op off).
 		proximityBuyManager.start();
 		KitManager.giveOutKits(this);
@@ -1124,7 +1128,7 @@ public class Game
 
 		boxManager.resetBoxes();
 		proximityBuyManager.stop();
-		machineModelManager.removeAll();
+		restoreHiddenSigns();
 		perkManager.clearPerks();
 		// Full reset (not just clearDownedPlayers): also wipes per-session solo self-revive uses,
 		// tombstone snapshots and any lingering Who's Who ghost so a re-used Game object starts the
@@ -1160,6 +1164,17 @@ public class Game
 		}
 
 		signManager.updateGame();
+	}
+
+	/**
+	 * Despawns the machine, wall gun and sign prop visuals and rebuilds every sign they replaced. Must run
+	 * after the doors are closed so signs mounted on door blocks come back last.
+	 */
+	public void restoreHiddenSigns()
+	{
+		machineModelManager.removeAll();
+		wallGunManager.removeAll();
+		signPropManager.removeAll();
 	}
 
 	public enum GameStatus

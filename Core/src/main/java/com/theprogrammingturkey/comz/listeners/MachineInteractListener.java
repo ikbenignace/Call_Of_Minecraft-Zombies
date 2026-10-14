@@ -4,15 +4,18 @@ import com.theprogrammingturkey.comz.game.Game;
 import com.theprogrammingturkey.comz.game.GameManager;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
+import org.bukkit.event.block.Action;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.EquipmentSlot;
 
 /**
  * Right-clicking a machine's invisible {@link org.bukkit.entity.Interaction} hitbox forwards to the
  * backing feature sign's buy logic (via {@link com.theprogrammingturkey.comz.game.managers.MachineModelManager}).
  * This is what makes the 3D machines clickable now that the model/base block occupies the sign's own
- * block during play.
+ * block during play. Right-clicking a block of a closed door buys it too.
  */
 public class MachineInteractListener implements Listener
 {
@@ -33,7 +36,21 @@ public class MachineInteractListener implements Listener
 		if(game == null)
 			return;
 		if(game.machineModelManager.handleInteract(player, event.getRightClicked())
-				|| game.wallGunManager.handleInteract(player, event.getRightClicked()))
+				|| game.wallGunManager.handleInteract(player, event.getRightClicked())
+				|| game.signPropManager.handleInteract(player, event.getRightClicked()))
+			event.setCancelled(true);
+	}
+
+	@EventHandler(priority = EventPriority.HIGH)
+	public void onInteractBlock(PlayerInteractEvent event)
+	{
+		if(event.getAction() != Action.RIGHT_CLICK_BLOCK || event.getClickedBlock() == null || event.getHand() != EquipmentSlot.HAND)
+			return;
+		Player player = event.getPlayer();
+		if(!GameManager.INSTANCE.isPlayerInGame(player))
+			return;
+		Game game = GameManager.INSTANCE.getGame(player);
+		if(game != null && game.signPropManager.handleBlockClick(player, event.getClickedBlock()))
 			event.setCancelled(true);
 	}
 }

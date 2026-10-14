@@ -50,6 +50,7 @@ public class RandomBox
 
 	/** Floating price hologram spawned in-game above the chest; owned by this box. */
 	private Entity priceHologram;
+	private String priceLabel;
 
 	/** Pack model or block look-alike drawn around the chest in-game; owned by this box. */
 	private final List<Entity> visuals = new ArrayList<>();
@@ -429,18 +430,24 @@ public class RandomBox
 		if(Displays.supportsHitboxes() && !MachineVisuals.anyAlive(hitboxes))
 			spawnHitboxes();
 
-		if(priceHologram == null || priceHologram.isDead())
-		{
-			World world = boxLoc.getWorld();
-			if(world != null)
-			{
-				String label = ChatColor.AQUA + "Mystery Box " + ChatColor.YELLOW + "$" + getCost();
-				priceHologram = com.theprogrammingturkey.comz.util.DisplayEntityUtil.persistentText(
-						world, boxLoc.clone().add(0.5, MachineLooks.BOX.hologramY, 0.5), label);
-				if(priceHologram != null)
-					priceHologram.setPersistent(false);
-			}
-		}
+		refreshPriceHologram();
+	}
+
+	/** Re-spawns the price text whenever the price changed, e.g. when Fire Sale starts or ends. */
+	private void refreshPriceHologram()
+	{
+		World world = boxLoc.getWorld();
+		if(world == null)
+			return;
+		String label = ChatColor.AQUA + "Mystery Box " + ChatColor.YELLOW + "[" + getCost() + "]";
+		if(priceHologram != null && !priceHologram.isDead() && label.equals(priceLabel))
+			return;
+		removePriceHologram();
+		priceLabel = label;
+		priceHologram = com.theprogrammingturkey.comz.util.DisplayEntityUtil.persistentText(
+				world, boxLoc.clone().add(0.5, MachineLooks.BOX.hologramY, 0.5), label);
+		if(priceHologram != null)
+			priceHologram.setPersistent(false);
 	}
 
 	private void spawnVisuals(boolean usePack)

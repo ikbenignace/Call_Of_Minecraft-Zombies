@@ -154,6 +154,10 @@ config:
     wallAmmoPriceDivisor: 2
     #Wall-buy ammo price when holding the Pack-a-Punched version of the wall gun.
     wallAmmoPackAPunchCost: 4500
+    #Ammo crate price for a held gun that is not sold on a wall in this arena (wall guns cost like wall ammo).
+    ammoCrateDefaultCost: 1000
+    #Ammo crate price when holding a Pack-a-Punched gun.
+    ammoCratePackAPunchCost: 4500
     #Seconds the Death Machine power-up minigun is held before it is removed (BO2 ~30s).
     deathMachineDurationSeconds: 30
     #Pack-a-Punch first-pack cost while Bonfire Sale is active (also triggers a Fire Sale). BO2 ~1000.

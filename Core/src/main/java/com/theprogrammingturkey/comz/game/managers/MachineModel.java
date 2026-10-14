@@ -90,6 +90,7 @@ public class MachineModel
 						sign.update(true);
 					}
 				}
+				HiddenSignJournal.clear(baseLoc);
 			}
 		}
 		catch(Exception e)

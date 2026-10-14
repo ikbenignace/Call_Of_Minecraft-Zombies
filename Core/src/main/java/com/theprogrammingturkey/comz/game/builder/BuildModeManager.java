@@ -57,6 +57,7 @@ public final class BuildModeManager
 	/** Enter build mode for {@code game}: stash the real inventory, switch to a safe gamemode, hand over the toolbox. */
 	public void enter(Player player, Game game)
 	{
+		game.restoreHiddenSigns();
 		BuildSession session = new BuildSession(player, game);
 		sessions.put(player.getUniqueId(), session);
 

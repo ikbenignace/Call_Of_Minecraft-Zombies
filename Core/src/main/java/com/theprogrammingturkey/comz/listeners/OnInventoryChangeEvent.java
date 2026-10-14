@@ -59,9 +59,11 @@ public class OnInventoryChangeEvent implements Listener
 		{
 			if(target.type == ProximityBuyManager.TargetType.DOOR)
 			{
-				com.theprogrammingturkey.comz.game.signs.IGameSign doorHandler = SignListener.getSignHandler("door");
-				if(doorHandler != null && target.location != null)
-					doorHandler.onInteract(game, player, target.location, new String[0]);
+				game.signPropManager.buyDoor(player, target.door);
+			}
+			else if(target.type == ProximityBuyManager.TargetType.PROP)
+			{
+				game.signPropManager.buy(player, target.prop);
 			}
 			else if(target.type == ProximityBuyManager.TargetType.MACHINE && target.location != null)
 			{

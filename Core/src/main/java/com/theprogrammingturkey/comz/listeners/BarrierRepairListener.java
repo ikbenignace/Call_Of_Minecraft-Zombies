@@ -113,7 +113,7 @@ public class BarrierRepairListener implements Listener
 		return null;
 	}
 
-	private boolean isInRange(Barrier barrier, Player player)
+	public static boolean isInRange(Barrier barrier, Player player)
 	{
 		Location signLoc = barrier.getRepairLoc();
 		if(signLoc == null || signLoc.getWorld() == null || !signLoc.getWorld().equals(player.getWorld()))

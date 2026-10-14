@@ -5,9 +5,12 @@ import com.theprogrammingturkey.comz.config.ConfigManager;
 import com.theprogrammingturkey.comz.economy.PointManager;
 import com.theprogrammingturkey.comz.game.Game;
 import com.theprogrammingturkey.comz.game.GameManager;
+import com.theprogrammingturkey.comz.game.features.Barrier;
 import com.theprogrammingturkey.comz.game.features.Door;
 import com.theprogrammingturkey.comz.game.features.PerkType;
+import com.theprogrammingturkey.comz.game.signs.AmmoCrateSign;
 import com.theprogrammingturkey.comz.game.signs.PackAPunchSign;
+import com.theprogrammingturkey.comz.listeners.BarrierRepairListener;
 import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.Bukkit;
@@ -15,6 +18,7 @@ import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.util.BoundingBox;
+import org.bukkit.util.RayTraceResult;
 import org.bukkit.util.Vector;
 
 import java.util.HashMap;
@@ -27,8 +31,8 @@ import java.util.UUID;
  * (swap hands), instead of clicking a world sign.
  *
  * <p>A repeating task (every {@link #SCAN_PERIOD_TICKS}) scans each in-game player against the
- * arena's closed doors and spawned machines. The nearest in-range buyable becomes that player's
- * "active target" — an action-bar prompt is shown ({@code [F] Open Door — $750}, colored by
+ * arena's closed doors, machines, wall guns, boxes and sign props. The buyable the player is looking
+ * at (else the nearest one that needs no aim) becomes that player's "active target" — an action-bar prompt is shown ({@code [F] Open Door — $750}, colored by
  * affordability / power state) and the target is remembered so the F-key listener
  * ({@code OnInventoryChangeEvent}) can route the press to the right buy logic without re-scanning.
  *
@@ -51,6 +55,10 @@ public class ProximityBuyManager
 	private static final double MACHINE_REACH = 2.5D;
 	/** Max distance (blocks, centre-to-centre) from a mystery box's chest at which F will trigger it. */
 	private static final double BOX_REACH = 2.5D;
+	/** Max vertical offset between a player and a sign prop for F to reach it. */
+	private static final double PROP_REACH_Y = 2.5D;
+	/** How far a crosshair ray counts as looking at something. */
+	private static final double LOOK_RANGE = 6.0D;
 
 	private final Game game;
 	private int taskId = -1;
@@ -73,10 +81,9 @@ public class ProximityBuyManager
 		if(!ConfigManager.getMainConfig().proximityBuy)
 			return;
 
-		// When door signs are hidden, clear any physical sign blocks left in the world from map
-		// authoring (the Door keeps the buy-point Location + saved BlockData in data, so removing the
-		// block here doesn't lose anything). Done once at start; Door.closeDoor handles it on teardown.
-		if(!ConfigManager.getMainConfig().useDoorSigns)
+		// Door signs are hidden (and later restored) by SignPropManager. Without it the plain signs of
+		// a sign-free setup are cleared here; Door.closeDoor handles it on teardown.
+		if(!ConfigManager.getMainConfig().useDoorSigns && !game.signPropManager.isActive())
 		{
 			for(Door door : game.doorManager.getDoors())
 			{
@@ -135,6 +142,11 @@ public class ProximityBuyManager
 			if(player == null || !player.isOnline())
 				continue;
 			seen.add(player.getUniqueId());
+			if(game.downedPlayerManager.isDownedPlayer(player) || game.downedPlayerManager.isGhost(player))
+			{
+				activeTargets.remove(player.getUniqueId());
+				continue;
+			}
 
 			BuyTarget target = findNearestTarget(player, machines);
 			if(target != null)
@@ -145,6 +157,9 @@ public class ProximityBuyManager
 			else
 			{
 				activeTargets.remove(player.getUniqueId());
+				String barrierPrompt = barrierPrompt(player);
+				if(barrierPrompt != null)
+					sendPrompt(player, barrierPrompt);
 			}
 		}
 
@@ -152,48 +167,54 @@ public class ProximityBuyManager
 		activeTargets.keySet().retainAll(seen);
 	}
 
+	/** A buyable in range of the player, with the box a crosshair must hit for it to count as looked at. */
+	private static final class Candidate
+	{
+		final BuyTarget target;
+		final double distSq;
+		final BoundingBox aim;
+		final boolean requiresLook;
+
+		Candidate(BuyTarget target, double distSq, BoundingBox aim, boolean requiresLook)
+		{
+			this.target = target;
+			this.distSq = distSq;
+			this.aim = aim;
+			this.requiresLook = requiresLook;
+		}
+	}
+
+	private static BoundingBox aimBox(Location centre, double halfWidth, double halfHeight)
+	{
+		return BoundingBox.of(centre.toVector(), centre.toVector()).expand(halfWidth, halfHeight, halfWidth);
+	}
+
 	private BuyTarget findNearestTarget(Player player, java.util.List<MachineModelManager.MachineTarget> machines)
 	{
-		BuyTarget best = null;
-		double bestDistSq = Double.MAX_VALUE;
+		java.util.List<Candidate> candidates = new java.util.ArrayList<>();
 
-		// Doors: in range when the player's bounding box overlaps the door's block region expanded
-		// by DOOR_REACH. Pick the nearest such door by region-centre distance.
+		// Doors: in range when the player's bounding box overlaps the door's block region expanded by
+		// DOOR_REACH, and only offered while the door is looked at (a door is a big thing to be near).
 		for(Door door : game.doorManager.getDoors())
 		{
 			if(door.isOpened())
 				continue;
 			BoundingBox zone = doorRegionBox(door, DOOR_REACH);
-			if(zone == null)
-				continue;
-			if(!zone.overlaps(player.getBoundingBox()))
+			BoundingBox region = doorRegionBox(door, 0.0D);
+			if(zone == null || region == null || !zone.overlaps(player.getBoundingBox()))
 				continue;
 			Vector centre = zone.getCenter();
-			double dSq = distanceSqXZ(player.getLocation(), centre.getX(), centre.getZ());
-			if(dSq < bestDistSq)
-			{
-				bestDistSq = dSq;
-				// Buy point = the door's first sign location (preserved in data even when the sign
-				// block is hidden); DoorManager.getDoorFromSign looks it up by this location.
-				Location signLoc = door.getSignsLocations().isEmpty() ? null : door.getSignsLocations().get(0);
-				best = new BuyTarget(TargetType.DOOR, signLoc, doorPrompt(door, player), null);
-			}
+			candidates.add(new Candidate(new BuyTarget(TargetType.DOOR, null, doorPrompt(door, player), null, door, null),
+					distanceSqXZ(player.getLocation(), centre.getX(), centre.getZ()), region, true));
 		}
 
-		// Machines: nearest by centre distance within MACHINE_REACH. Doors take precedence when tied
-		// (a door in front of a machine is the more specific intent), handled by the strict < below.
 		for(MachineModelManager.MachineTarget m : machines)
 		{
 			if(m.centre == null || m.centre.getWorld() == null || !m.centre.getWorld().equals(player.getWorld()))
 				continue;
 			double dSq = distanceSqXZ(player.getLocation(), m.centre.getX(), m.centre.getZ());
-			if(dSq > MACHINE_REACH * MACHINE_REACH)
-				continue;
-			if(dSq < bestDistSq)
-			{
-				bestDistSq = dSq;
-				best = new BuyTarget(TargetType.MACHINE, m.centre.clone(), machinePrompt(m, player), m.label);
-			}
+			if(dSq <= MACHINE_REACH * MACHINE_REACH)
+				candidates.add(new Candidate(new BuyTarget(TargetType.MACHINE, m.centre.clone(), machinePrompt(m, player), m.label), dSq, aimBox(m.centre, 0.7, 1.0), false));
 		}
 
 		for(MachineModelManager.MachineTarget wallGun : game.wallGunManager.getTargets())
@@ -201,11 +222,8 @@ public class ProximityBuyManager
 			if(wallGun.centre.getWorld() == null || !wallGun.centre.getWorld().equals(player.getWorld()))
 				continue;
 			double dSq = distanceSqXZ(player.getLocation(), wallGun.centre.getX(), wallGun.centre.getZ());
-			if(dSq <= MACHINE_REACH * MACHINE_REACH && dSq < bestDistSq)
-			{
-				bestDistSq = dSq;
-				best = new BuyTarget(TargetType.WALL_GUN, wallGun.centre.clone(), com.theprogrammingturkey.comz.game.signs.GunSign.prompt(game, player, wallGun.signLines), wallGun.label);
-			}
+			if(dSq <= MACHINE_REACH * MACHINE_REACH)
+				candidates.add(new Candidate(new BuyTarget(TargetType.WALL_GUN, wallGun.centre.clone(), com.theprogrammingturkey.comz.game.signs.GunSign.prompt(game, player, wallGun.signLines), wallGun.label), dSq, aimBox(wallGun.centre, 0.7, 0.6), false));
 		}
 
 		// Mystery boxes: in-game they're a chest at boxLoc. Within BOX_REACH, F starts/picks the box.
@@ -215,16 +233,76 @@ public class ProximityBuyManager
 			if(loc == null || loc.getWorld() == null || !loc.getWorld().equals(player.getWorld()))
 				continue;
 			double dSq = distanceSqXZ(player.getLocation(), loc.getX() + 0.5, loc.getZ() + 0.5);
-			if(dSq > BOX_REACH * BOX_REACH)
-				continue;
-			if(dSq < bestDistSq)
-			{
-				bestDistSq = dSq;
-				best = new BuyTarget(TargetType.BOX, loc.clone(), boxPrompt(box, player), null);
-			}
+			if(dSq <= BOX_REACH * BOX_REACH)
+				candidates.add(new Candidate(new BuyTarget(TargetType.BOX, loc.clone(), boxPrompt(box, player), null), dSq, aimBox(loc.clone().add(0.5, 0.5, 0.5), 1.0, 0.6), false));
 		}
 
-		return best;
+		for(SignPropManager.Prop prop : game.signPropManager.getProps())
+		{
+			if(prop.getType() == SignPropManager.PropType.DOOR)
+				continue;
+			Location centre = prop.getCentre();
+			if(centre.getWorld() == null || !centre.getWorld().equals(player.getWorld()))
+				continue;
+			double dSq = distanceSqXZ(player.getLocation(), centre.getX(), centre.getZ());
+			if(dSq > MACHINE_REACH * MACHINE_REACH || Math.abs(player.getLocation().getY() - centre.getY()) > PROP_REACH_Y)
+				continue;
+			String prompt = game.signPropManager.promptFor(prop, player);
+			if(prompt != null)
+				candidates.add(new Candidate(new BuyTarget(TargetType.PROP, centre, prompt, null, null, prop), dSq, aimBox(centre, 0.6, 0.7), false));
+		}
+
+		return choose(player, candidates);
+	}
+
+	/**
+	 * What the player is looking at wins; with nothing in the crosshair the nearest candidate that does not
+	 * need to be looked at is picked.
+	 */
+	private static BuyTarget choose(Player player, java.util.List<Candidate> candidates)
+	{
+		Location eye = player.getEyeLocation();
+		Vector origin = eye.toVector();
+		Vector direction = eye.getDirection();
+
+		Candidate looked = null;
+		double lookedDist = Double.MAX_VALUE;
+		Candidate nearest = null;
+		double nearestSq = Double.MAX_VALUE;
+		for(Candidate candidate : candidates)
+		{
+			RayTraceResult hit = candidate.aim.rayTrace(origin, direction, LOOK_RANGE);
+			if(hit != null)
+			{
+				double dist = hit.getHitPosition().distance(origin);
+				if(dist < lookedDist)
+				{
+					lookedDist = dist;
+					looked = candidate;
+				}
+			}
+			if(!candidate.requiresLook && candidate.distSq < nearestSq)
+			{
+				nearestSq = candidate.distSq;
+				nearest = candidate;
+			}
+		}
+		Candidate chosen = looked != null ? looked : nearest;
+		return chosen == null ? null : chosen.target;
+	}
+
+	/** Repairing is hold-to-rebuild (sneak), not a buy, so it only shows a prompt and never becomes a target. */
+	private String barrierPrompt(Player player)
+	{
+		for(Barrier barrier : game.barrierManager.getBarriers())
+		{
+			if(barrier.getStage() == -1 || !BarrierRepairListener.isInRange(barrier, player))
+				continue;
+			if(barrier.isBreaking())
+				return ChatColor.GRAY + "Barrier under attack";
+			return (player.isSneaking() ? ChatColor.GREEN : ChatColor.YELLOW) + "Hold SHIFT to Rebuild";
+		}
+		return null;
 	}
 
 	private String boxPrompt(com.theprogrammingturkey.comz.game.features.RandomBox box, Player player)
@@ -256,11 +334,19 @@ public class ProximityBuyManager
 				return ChatColor.GREEN + "[F] " + ChatColor.RESET + PackAPunchSign.prompt(game, player, m.base, lines);
 			if(type.equals("perk machine"))
 				return perkPrompt(lines, player);
+			if(type.equals("ammo crate"))
+				return AmmoCrateSign.prompt(game, player);
+			if(type.equals("power"))
+				return game.isPowered() ? ChatColor.GRAY + "Power is on" : ChatColor.GREEN + "[F] Turn on Power";
+			if(type.equals("bank"))
+				return ChatColor.GREEN + "[F] Deposit " + ChatColor.GRAY + "| Sneak + F Withdraw";
+			if(type.equals("fridge"))
+				return ChatColor.GREEN + "[F] Store gun " + ChatColor.GRAY + "| Sneak + F Retrieve";
 		}
 		return ChatColor.GREEN + "[F] " + ChatColor.RESET + m.label;
 	}
 
-	private String perkPrompt(String[] lines, Player player)
+	public String perkPrompt(String[] lines, Player player)
 	{
 		PerkType perk = PerkType.getPerkType(ChatColor.stripColor(lines[2]));
 		if(perk == null)
@@ -291,29 +377,9 @@ public class ProximityBuyManager
 	static String doorPromptText(boolean powerLocked, boolean canAfford, int cost)
 	{
 		if(powerLocked)
-			return ChatColor.RED + "[F] " + ChatColor.GRAY + "Locked — Power required";
+			return ChatColor.RED + "[F] " + ChatColor.GRAY + "Requires Power";
 		ChatColor color = canAfford ? ChatColor.GREEN : ChatColor.RED;
 		return color + "[F] Open Door " + ChatColor.YELLOW + "[" + cost + "]";
-	}
-
-	/**
-	 * Pure nearest-target decision: given the squared distance to the nearest in-range door (or
-	 * {@code Double.MAX_VALUE} when none is in range) and the squared distance to the nearest
-	 * in-range machine (same convention), returns which one wins. A tie favors the DOOR (more
-	 * specific intent). Returns null when neither is in range.
-	 */
-	static TargetType selectNearestTarget(double doorDistSq, double machineDistSq)
-	{
-		boolean doorInRange = doorDistSq != Double.MAX_VALUE;
-		boolean machineInRange = machineDistSq != Double.MAX_VALUE;
-		if(!doorInRange && !machineInRange)
-			return null;
-		if(doorInRange && !machineInRange)
-			return TargetType.DOOR;
-		if(!doorInRange) // machine in range only
-			return TargetType.MACHINE;
-		// both in range: nearest wins, tie → door
-		return machineDistSq < doorDistSq ? TargetType.MACHINE : TargetType.DOOR;
 	}
 
 	private static void sendPrompt(Player player, String text)
@@ -357,24 +423,33 @@ public class ProximityBuyManager
 	}
 
 	/** What kind of buyable the player is standing next to. Determines which buy path F triggers. */
-	public enum TargetType { DOOR, MACHINE, WALL_GUN, BOX }
+	public enum TargetType { DOOR, MACHINE, WALL_GUN, BOX, PROP }
 
 	/** A resolved buy target: its kind, the location to route the buy to, and the prompt text. */
 	public static final class BuyTarget
 	{
 		public final TargetType type;
-		/** Door: a sign location on the door (looked up via DoorManager). Machine: its base centre. */
+		/** Machine, wall gun and box: where to route the buy. Null for doors and props. */
 		public final Location location;
 		public final String prompt;
-		/** Machine price label (already formatted); null for doors. */
+		/** Machine price label (already formatted); null otherwise. */
 		public final String machineLabel;
+		public final Door door;
+		public final SignPropManager.Prop prop;
 
-		BuyTarget(TargetType type, Location location, String prompt, String machineLabel)
+		BuyTarget(TargetType type, Location location, String prompt, String machineLabel, Door door, SignPropManager.Prop prop)
 		{
 			this.type = type;
 			this.location = location;
 			this.prompt = prompt;
 			this.machineLabel = machineLabel;
+			this.door = door;
+			this.prop = prop;
+		}
+
+		BuyTarget(TargetType type, Location location, String prompt, String machineLabel)
+		{
+			this(type, location, prompt, machineLabel, null, null);
 		}
 	}
 }

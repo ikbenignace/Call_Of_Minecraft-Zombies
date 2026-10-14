@@ -5,6 +5,7 @@ import com.theprogrammingturkey.comz.commands.CommandManager;
 import com.theprogrammingturkey.comz.config.ConfigManager;
 import com.theprogrammingturkey.comz.economy.PointManager;
 import com.theprogrammingturkey.comz.game.GameManager;
+import com.theprogrammingturkey.comz.game.managers.HiddenSignJournal;
 import com.theprogrammingturkey.comz.game.actions.BaseAction;
 import com.theprogrammingturkey.comz.game.managers.WeaponManager;
 import com.theprogrammingturkey.comz.integration.WeaponBackends;
@@ -90,6 +91,7 @@ public class COMZombies extends JavaPlugin
 
 		log.info(COMZombies.CONSOLE_PREFIX + "has been enabled!");
 
+		HiddenSignJournal.restoreAll();
 		GameManager.INSTANCE.loadAllGames();
 	}
 

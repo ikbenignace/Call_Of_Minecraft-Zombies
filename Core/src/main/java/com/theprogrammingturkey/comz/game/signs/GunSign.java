@@ -35,7 +35,7 @@ public class GunSign implements IGameSign
 		}
 	}
 
-	private static int ammoCost(boolean basicOwned, int buyPoints, int refillPoints)
+	public static int ammoCost(boolean basicOwned, int buyPoints, int refillPoints)
 	{
 		if(!basicOwned)
 			return ConfigManager.getMainConfig().wallAmmoPackAPunchCost;

@@ -96,7 +96,7 @@ public class MachineModelManager
 		else if(type.equals("ammo crate"))
 		{
 			base = Material.BARRIER;
-			label = ChatColor.AQUA + "Ammo Crate " + ChatColor.YELLOW + "[" + ChatColor.stripColor(sign.getLine(2)) + "]";
+			label = ChatColor.AQUA + "Ammo Crate";
 		}
 		else if(type.equals("power"))
 		{
@@ -144,6 +144,7 @@ public class MachineModelManager
 		Entity interaction = Displays.spawnHitbox(baseLoc.clone().add(0.5, 0.0, 0.5), look.hitWidth, look.hitHeight);
 		if(interaction == null)
 			return;
+		HiddenSignJournal.record(sign, base);
 		MachineModel machine = new MachineModel(baseLoc, signLoc, sign.getType(), data, signLines, facing, look);
 		machine.interaction = interaction;
 

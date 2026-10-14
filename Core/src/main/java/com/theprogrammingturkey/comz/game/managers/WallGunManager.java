@@ -41,6 +41,7 @@ public class WallGunManager
 	private final Game game;
 	private final List<WallGun> wallGuns = new ArrayList<>();
 	private final Map<UUID, WallGun> byInteraction = new HashMap<>();
+	private final Map<String, int[]> pricesByGun = new HashMap<>();
 	private int taskId = -1;
 
 	public WallGunManager(Game game)
@@ -51,7 +52,11 @@ public class WallGunManager
 	public void spawnAll()
 	{
 		removeAll();
-		if(game.arena.getWorld() == null || !game.arena.areMinAndMaxSet() || !Displays.supportsHitboxes())
+		if(game.arena.getWorld() == null || !game.arena.areMinAndMaxSet())
+			return;
+
+		MachineSigns.forEachArenaSign(game, this::recordPrices);
+		if(!Displays.supportsHitboxes())
 			return;
 
 		MachineSigns.forEachArenaSign(game, this::trySpawn);
@@ -68,6 +73,22 @@ public class WallGunManager
 			for(WallGun wallGun : wallGuns)
 				WallGunVisuals.sparkle(wallGun.model);
 		});
+	}
+
+	private void recordPrices(Sign sign)
+	{
+		if(!MachineSigns.isWallGun(sign))
+			return;
+		String[] lines = sign.getLines();
+		int[] prices = GunSign.parsePrices(lines);
+		if(prices != null)
+			pricesByGun.put(ChatColor.stripColor(lines[2]).trim().toLowerCase(), prices);
+	}
+
+	/** {buy price, refill price} of the wall gun selling this gun in the arena, or null when it is not a wall gun. */
+	public int[] getWallPrices(BaseGun gun)
+	{
+		return gun == null ? null : pricesByGun.get(gun.getName().trim().toLowerCase());
 	}
 
 	private void trySpawn(Sign sign)
@@ -97,6 +118,7 @@ public class WallGunManager
 		}
 		WallGun wallGun = new WallGun(blockLoc, sign.getType(), data, lines, model);
 		wallGun.interaction = interaction;
+		HiddenSignJournal.record(sign, Material.AIR);
 		blockLoc.getBlock().setType(Material.AIR, false);
 		byInteraction.put(wallGun.interaction.getUniqueId(), wallGun);
 		wallGun.label = ChatColor.AQUA + gun.getName() + ChatColor.YELLOW + " [" + prices[0] + "]";
@@ -158,6 +180,7 @@ public class WallGunManager
 			wallGun.remove();
 		wallGuns.clear();
 		byInteraction.clear();
+		pricesByGun.clear();
 	}
 
 	private static final class WallGun
@@ -199,6 +222,7 @@ public class WallGunManager
 						sign.setLine(i, signLines[i]);
 					sign.update(true);
 				}
+				HiddenSignJournal.clear(blockLoc);
 			} catch(RuntimeException e)
 			{
 				COMZombies.log.warning("Failed to restore a wall gun sign: " + e.getMessage());
