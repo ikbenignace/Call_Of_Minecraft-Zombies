@@ -1,0 +1,10 @@
+{
+ "parent": "minecraft:custom/item/3d_guns/sten",
+ "textures": {
+  "0": "custom/custom/sten_pap_0",
+  "1": "custom/custom/sten_pap_1",
+  "2": "custom/custom/sten_pap_2",
+  "3": "custom/custom/sten_pap_3",
+  "particle": "custom/custom/sten_pap_0"
+ }
+}

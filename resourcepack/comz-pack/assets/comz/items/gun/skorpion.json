@@ -1,6 +1,6 @@
 {
   "model": {
     "type": "minecraft:model",
-    "model": "minecraft:custom/item/3d_guns/skorpion"
+    "model": "minecraft:custom/item/3d_guns/skorpion_v3"
   }
 }

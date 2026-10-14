@@ -1,0 +1,7 @@
+{
+ "parent": "minecraft:custom/item/3d_guns/b23r_v3",
+ "textures": {
+  "0": "custom/custom/b23r_v3_pap",
+  "particle": "custom/custom/b23r_v3_pap"
+ }
+}

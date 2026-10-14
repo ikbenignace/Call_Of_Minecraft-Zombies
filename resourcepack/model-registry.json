@@ -1,0 +1,460 @@
+{
+  "_doc": "Per 3D gun model: where it came from and its review status. status: pending | approved | rejected | rebuilding. Read by tools/model_catalog.py. origin user-import = .bbmodel supplied by the user, converted with tools/bbconvert.py.",
+  "models": {
+    "m1911_v2": {
+      "origin": "source-pack",
+      "status": "pending"
+    },
+    "cz75": {
+      "origin": "source-pack",
+      "status": "rebuilding",
+      "notes": "good base, needs more structure and detail"
+    },
+    "python": {
+      "origin": "source-pack",
+      "status": "pending"
+    },
+    "fal": {
+      "origin": "source-pack",
+      "status": "rebuilding",
+      "notes": "good base, needs more structure and detail"
+    },
+    "famas": {
+      "origin": "source-pack",
+      "status": "rebuilding",
+      "notes": "good base, needs more structure and detail"
+    },
+    "aug": {
+      "origin": "source-pack",
+      "status": "approved"
+    },
+    "spectre": {
+      "origin": "source-pack",
+      "status": "pending"
+    },
+    "raygun_v2": {
+      "origin": "source-pack",
+      "status": "approved",
+      "notes": "superseded by raygun_v3, kept as base"
+    },
+    "bal_knife": {
+      "origin": "source-pack",
+      "status": "pending"
+    },
+    "an94": {
+      "origin": "tacz-conversion",
+      "status": "rejected",
+      "notes": "detached floating parts in preview"
+    },
+    "m14": {
+      "origin": "tacz-conversion",
+      "status": "rejected",
+      "notes": "detached floating parts in preview"
+    },
+    "smr": {
+      "origin": "tacz-conversion",
+      "status": "rejected",
+      "notes": "detached floating parts in preview; near-identical to m14"
+    },
+    "rpd": {
+      "origin": "tacz-conversion",
+      "status": "rejected",
+      "notes": "detached floating parts in preview"
+    },
+    "peacekeeper": {
+      "origin": "tacz-conversion",
+      "status": "rejected"
+    },
+    "r870": {
+      "origin": "tacz-conversion",
+      "status": "rejected",
+      "notes": "only 34 elements"
+    },
+    "barret": {
+      "origin": "modelkit",
+      "status": "rejected"
+    },
+    "chicom": {
+      "origin": "modelkit",
+      "status": "rejected"
+    },
+    "dsr50": {
+      "origin": "modelkit",
+      "status": "rejected"
+    },
+    "executioner": {
+      "origin": "modelkit",
+      "status": "rejected"
+    },
+    "hamr": {
+      "origin": "modelkit",
+      "status": "rejected"
+    },
+    "lsat": {
+      "origin": "modelkit",
+      "status": "rejected"
+    },
+    "m1216": {
+      "origin": "modelkit",
+      "status": "rejected"
+    },
+    "m16": {
+      "origin": "user-import",
+      "status": "approved",
+      "notes": "m16.bbmodel; overlay keeps exact angles"
+    },
+    "m27": {
+      "origin": "modelkit",
+      "status": "rejected"
+    },
+    "mk48": {
+      "origin": "modelkit",
+      "status": "rejected"
+    },
+    "mp5": {
+      "origin": "gunkit",
+      "status": "approved",
+      "notes": "rebuilt from BO2 refs via Blockbench MCP"
+    },
+    "msmc": {
+      "origin": "modelkit",
+      "status": "rejected"
+    },
+    "olympia": {
+      "origin": "modelkit",
+      "status": "rejected"
+    },
+    "s12": {
+      "origin": "modelkit",
+      "status": "rejected"
+    },
+    "skorpion": {
+      "origin": "modelkit",
+      "status": "rejected"
+    },
+    "svu": {
+      "origin": "modelkit",
+      "status": "rejected"
+    },
+    "thundergun": {
+      "origin": "modelkit",
+      "status": "rejected"
+    },
+    "type25": {
+      "origin": "modelkit",
+      "status": "rejected"
+    },
+    "wunderwaffe": {
+      "origin": "modelkit",
+      "status": "rejected"
+    },
+    "death_machine": {
+      "origin": "user-import",
+      "status": "approved",
+      "notes": "minigun.bbmodel; Death Machine held gun"
+    },
+    "ar": {
+      "origin": "user-import",
+      "status": "approved",
+      "notes": "ar.bbmodel (TaCZ-style rig); pack only"
+    },
+    "ar15": {
+      "origin": "user-import",
+      "status": "approved",
+      "notes": "survival-ar-15.bbmodel; pack only"
+    },
+    "sten": {
+      "origin": "user-import",
+      "status": "approved",
+      "notes": "sten-mk2-apocalypse.bbmodel; pack only"
+    },
+    "breda": {
+      "origin": "user-import",
+      "status": "approved",
+      "notes": "breda-m1935pg.bbmodel; pack only"
+    },
+    "mauser": {
+      "origin": "gunkit",
+      "status": "pending",
+      "notes": "rebuilt in cubes from the mesh-only mauser-c96 model; pack only"
+    },
+    "raygun_v3": {
+      "origin": "gunkit",
+      "status": "approved",
+      "notes": "v2 silhouette + repaint 4x, gauge, louvres; now the Ray Gun item model"
+    },
+    "m1911_v3": {
+      "origin": "repaint",
+      "status": "review",
+      "notes": "m1911_v2 geometry, tools/repaint.py finish (gunsteel, checkered walnut)"
+    },
+    "fal_v3": {
+      "origin": "gunkit",
+      "status": "review"
+    },
+    "famas_v3": {
+      "origin": "gunkit",
+      "status": "review"
+    },
+    "cz75_v3": {
+      "origin": "gunkit",
+      "status": "review"
+    },
+    "python_v3": {
+      "origin": "gunkit",
+      "status": "review"
+    },
+    "spectre_v3": {
+      "origin": "gunkit",
+      "status": "review"
+    },
+    "m14_v3": {
+      "origin": "gunkit",
+      "status": "review"
+    },
+    "galil_v3": {
+      "origin": "gunkit",
+      "status": "review"
+    },
+    "commando_v3": {
+      "origin": "gunkit",
+      "status": "review"
+    },
+    "g11_v3": {
+      "origin": "gunkit",
+      "status": "review"
+    },
+    "mp5k": {
+      "origin": "gunkit",
+      "status": "review"
+    },
+    "ak74u_v3": {
+      "origin": "gunkit",
+      "status": "review"
+    },
+    "pm63_v3": {
+      "origin": "gunkit",
+      "status": "review"
+    },
+    "mpl_v3": {
+      "origin": "gunkit",
+      "status": "review"
+    },
+    "mp40_v3": {
+      "origin": "gunkit",
+      "status": "review"
+    },
+    "olympia_v3": {
+      "origin": "gunkit",
+      "status": "review"
+    },
+    "stakeout_v3": {
+      "origin": "gunkit",
+      "status": "review"
+    },
+    "spas12_v3": {
+      "origin": "gunkit",
+      "status": "review"
+    },
+    "hs10_v3": {
+      "origin": "gunkit",
+      "status": "review"
+    },
+    "rpk_v3": {
+      "origin": "gunkit",
+      "status": "review"
+    },
+    "hk21_v3": {
+      "origin": "gunkit",
+      "status": "review"
+    },
+    "m60_v3": {
+      "origin": "gunkit",
+      "status": "review"
+    },
+    "dragunov_v3": {
+      "origin": "gunkit",
+      "status": "review"
+    },
+    "l96a1_v3": {
+      "origin": "gunkit",
+      "status": "review"
+    },
+    "makarov_v3": {
+      "origin": "gunkit",
+      "status": "review"
+    },
+    "asp_v3": {
+      "origin": "gunkit",
+      "status": "review"
+    },
+    "m72law_v3": {
+      "origin": "gunkit",
+      "status": "review"
+    },
+    "chinalake_v3": {
+      "origin": "gunkit",
+      "status": "review"
+    },
+    "crossbow_v3": {
+      "origin": "gunkit",
+      "status": "review"
+    },
+    "bal_knife_v3": {
+      "origin": "gunkit",
+      "status": "review"
+    },
+    "frag_v3": {
+      "origin": "gunkit",
+      "status": "review"
+    },
+    "semtex_v3": {
+      "origin": "gunkit",
+      "status": "review"
+    },
+    "claymore_v3": {
+      "origin": "gunkit",
+      "status": "review"
+    },
+    "monkey_bomb_v3": {
+      "origin": "gunkit",
+      "status": "review"
+    },
+    "gersh_v3": {
+      "origin": "gunkit",
+      "status": "review"
+    },
+    "thundergun_v3": {
+      "origin": "gunkit",
+      "status": "review"
+    },
+    "wunderwaffe_v3": {
+      "origin": "gunkit",
+      "status": "review"
+    },
+    "winters_howl_v3": {
+      "origin": "gunkit",
+      "status": "review"
+    },
+    "scavenger_v3": {
+      "origin": "gunkit",
+      "status": "review"
+    },
+    "vr11_v3": {
+      "origin": "gunkit",
+      "status": "review"
+    },
+    "wave_gun_v3": {
+      "origin": "gunkit",
+      "status": "review"
+    },
+    "baby_gun_v3": {
+      "origin": "gunkit",
+      "status": "review"
+    },
+    "b23r_v3": {
+      "origin": "gunkit",
+      "status": "review"
+    },
+    "executioner_v3": {
+      "origin": "gunkit",
+      "status": "review"
+    },
+    "five_seven_v3": {
+      "origin": "gunkit",
+      "status": "review"
+    },
+    "kap40_v3": {
+      "origin": "gunkit",
+      "status": "review"
+    },
+    "m1216_v3": {
+      "origin": "gunkit",
+      "status": "review"
+    },
+    "r870_v3": {
+      "origin": "gunkit",
+      "status": "review"
+    },
+    "s12_v3": {
+      "origin": "gunkit",
+      "status": "review"
+    },
+    "an94_v3": {
+      "origin": "gunkit",
+      "status": "review"
+    },
+    "m8a1_v3": {
+      "origin": "gunkit",
+      "status": "review"
+    },
+    "m27_v3": {
+      "origin": "gunkit",
+      "status": "review"
+    },
+    "mtar_v3": {
+      "origin": "gunkit",
+      "status": "review"
+    },
+    "smr_v3": {
+      "origin": "gunkit",
+      "status": "review"
+    },
+    "type25_v3": {
+      "origin": "gunkit",
+      "status": "review"
+    },
+    "hamr_v3": {
+      "origin": "gunkit",
+      "status": "review"
+    },
+    "lsat_v3": {
+      "origin": "gunkit",
+      "status": "review"
+    },
+    "rpd_v3": {
+      "origin": "gunkit",
+      "status": "review"
+    },
+    "mk48_v3": {
+      "origin": "gunkit",
+      "status": "review"
+    },
+    "chicom_v3": {
+      "origin": "gunkit",
+      "status": "review"
+    },
+    "pdw57_v3": {
+      "origin": "gunkit",
+      "status": "review"
+    },
+    "msmc_v3": {
+      "origin": "gunkit",
+      "status": "review"
+    },
+    "skorpion_v3": {
+      "origin": "gunkit",
+      "status": "review"
+    },
+    "vector_v3": {
+      "origin": "gunkit",
+      "status": "review"
+    },
+    "peacekeeper_v3": {
+      "origin": "gunkit",
+      "status": "review"
+    },
+    "barret_v3": {
+      "origin": "gunkit",
+      "status": "review"
+    },
+    "dsr50_v3": {
+      "origin": "gunkit",
+      "status": "review"
+    },
+    "svu_v3": {
+      "origin": "gunkit",
+      "status": "review"
+    }
+  }
+}

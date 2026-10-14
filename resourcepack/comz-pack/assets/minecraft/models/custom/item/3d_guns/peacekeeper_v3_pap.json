@@ -1,0 +1,7 @@
+{
+ "parent": "minecraft:custom/item/3d_guns/peacekeeper_v3",
+ "textures": {
+  "0": "custom/custom/peacekeeper_v3_pap",
+  "particle": "custom/custom/peacekeeper_v3_pap"
+ }
+}

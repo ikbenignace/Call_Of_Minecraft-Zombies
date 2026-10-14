@@ -1,0 +1,7 @@
+{
+ "parent": "minecraft:custom/item/3d_guns/olympia_v3",
+ "textures": {
+  "0": "custom/custom/olympia_v3_pap",
+  "particle": "custom/custom/olympia_v3_pap"
+ }
+}

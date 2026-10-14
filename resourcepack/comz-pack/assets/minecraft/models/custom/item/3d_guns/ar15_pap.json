@@ -1,0 +1,10 @@
+{
+ "parent": "minecraft:custom/item/3d_guns/ar15",
+ "textures": {
+  "0": "custom/custom/ar15_pap_0",
+  "1": "custom/custom/ar15_pap_1",
+  "2": "custom/custom/ar15_pap_2",
+  "3": "custom/custom/ar15_pap_3",
+  "particle": "custom/custom/ar15_pap_0"
+ }
+}

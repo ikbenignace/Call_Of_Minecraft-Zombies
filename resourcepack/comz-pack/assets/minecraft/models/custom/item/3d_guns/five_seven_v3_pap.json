@@ -1,0 +1,7 @@
+{
+ "parent": "minecraft:custom/item/3d_guns/five_seven_v3",
+ "textures": {
+  "0": "custom/custom/five_seven_v3_pap",
+  "particle": "custom/custom/five_seven_v3_pap"
+ }
+}

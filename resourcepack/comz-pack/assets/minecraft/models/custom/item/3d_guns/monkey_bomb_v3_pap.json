@@ -1,0 +1,7 @@
+{
+ "parent": "minecraft:custom/item/3d_guns/monkey_bomb_v3",
+ "textures": {
+  "0": "custom/custom/monkey_bomb_v3_pap",
+  "particle": "custom/custom/monkey_bomb_v3_pap"
+ }
+}

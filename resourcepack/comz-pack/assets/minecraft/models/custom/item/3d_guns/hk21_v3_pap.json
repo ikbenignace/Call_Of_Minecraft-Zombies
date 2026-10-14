@@ -1,0 +1,7 @@
+{
+ "parent": "minecraft:custom/item/3d_guns/hk21_v3",
+ "textures": {
+  "0": "custom/custom/hk21_v3_pap",
+  "particle": "custom/custom/hk21_v3_pap"
+ }
+}

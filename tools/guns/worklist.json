@@ -1,0 +1,509 @@
+{
+ "_doc": "Model worklist for the BO-style roster. key = pack model key (3d_guns/<key>), page = callofduty.fandom.com article for references, base = existing model to upgrade (raygun_v3 approach) or null to build from scratch, status: todo | wip | review | approved.",
+ "weapons": [
+  {
+   "key": "m1911",
+   "name": "M1911 (Mustang & Sally PaP)",
+   "page": "M1911",
+   "base": "m1911_v2",
+   "status": "review"
+  },
+  {
+   "key": "m14",
+   "name": "M14",
+   "page": "M14",
+   "base": null,
+   "status": "review"
+  },
+  {
+   "key": "m16",
+   "name": "M16",
+   "page": "M16",
+   "base": "m16",
+   "status": "approved"
+  },
+  {
+   "key": "famas",
+   "name": "FAMAS",
+   "page": "FAMAS",
+   "base": "famas",
+   "status": "review"
+  },
+  {
+   "key": "galil",
+   "name": "Galil",
+   "page": "Galil",
+   "base": null,
+   "status": "review"
+  },
+  {
+   "key": "aug",
+   "name": "AUG",
+   "page": "AUG",
+   "base": "aug",
+   "status": "approved"
+  },
+  {
+   "key": "fal",
+   "name": "FN FAL",
+   "page": "FN FAL",
+   "base": "fal",
+   "status": "review"
+  },
+  {
+   "key": "commando",
+   "name": "Commando",
+   "page": "Commando",
+   "base": null,
+   "status": "review"
+  },
+  {
+   "key": "g11",
+   "name": "G11",
+   "page": "G11",
+   "base": null,
+   "status": "review"
+  },
+  {
+   "key": "mp5k",
+   "name": "MP5K",
+   "page": "MP5K",
+   "base": "mp5",
+   "status": "review"
+  },
+  {
+   "key": "ak74u",
+   "name": "AK-74u",
+   "page": "AK-74u",
+   "base": null,
+   "status": "review"
+  },
+  {
+   "key": "pm63",
+   "name": "PM63",
+   "page": "PM63",
+   "base": null,
+   "status": "review"
+  },
+  {
+   "key": "mpl",
+   "name": "MPL",
+   "page": "MPL",
+   "base": null,
+   "status": "review"
+  },
+  {
+   "key": "spectre",
+   "name": "Spectre",
+   "page": "Spectre",
+   "base": "spectre",
+   "status": "review"
+  },
+  {
+   "key": "mp40",
+   "name": "MP40",
+   "page": "MP40",
+   "base": null,
+   "status": "review"
+  },
+  {
+   "key": "olympia",
+   "name": "Olympia",
+   "page": "Olympia",
+   "base": null,
+   "status": "review"
+  },
+  {
+   "key": "stakeout",
+   "name": "Stakeout",
+   "page": "Stakeout",
+   "base": null,
+   "status": "review"
+  },
+  {
+   "key": "spas12",
+   "name": "SPAS-12",
+   "page": "SPAS-12",
+   "base": null,
+   "status": "review"
+  },
+  {
+   "key": "hs10",
+   "name": "HS-10",
+   "page": "HS-10",
+   "base": null,
+   "status": "review"
+  },
+  {
+   "key": "rpk",
+   "name": "RPK",
+   "page": "RPK",
+   "base": null,
+   "status": "review"
+  },
+  {
+   "key": "hk21",
+   "name": "HK21",
+   "page": "HK21",
+   "base": null,
+   "status": "review"
+  },
+  {
+   "key": "m60",
+   "name": "M60",
+   "page": "M60",
+   "base": null,
+   "status": "review"
+  },
+  {
+   "key": "dragunov",
+   "name": "Dragunov",
+   "page": "Dragunov",
+   "base": null,
+   "status": "review"
+  },
+  {
+   "key": "l96a1",
+   "name": "L96A1",
+   "page": "L96A1",
+   "base": null,
+   "status": "review"
+  },
+  {
+   "key": "python",
+   "name": "Python",
+   "page": "Python",
+   "base": "python",
+   "status": "review"
+  },
+  {
+   "key": "makarov",
+   "name": "Makarov",
+   "page": "Makarov",
+   "base": null,
+   "status": "review"
+  },
+  {
+   "key": "asp",
+   "name": "ASP",
+   "page": "ASP",
+   "base": null,
+   "status": "review"
+  },
+  {
+   "key": "cz75",
+   "name": "CZ75",
+   "page": "CZ75",
+   "base": "cz75",
+   "status": "review"
+  },
+  {
+   "key": "m72law",
+   "name": "M72 LAW",
+   "page": "M72 LAW",
+   "base": null,
+   "status": "review"
+  },
+  {
+   "key": "chinalake",
+   "name": "China Lake",
+   "page": "China Lake",
+   "base": null,
+   "status": "review"
+  },
+  {
+   "key": "crossbow",
+   "name": "Crossbow",
+   "page": "Crossbow",
+   "base": null,
+   "status": "review"
+  },
+  {
+   "key": "bal_knife",
+   "name": "Ballistic Knife",
+   "page": "Ballistic Knife",
+   "base": "bal_knife",
+   "status": "review"
+  },
+  {
+   "key": "frag",
+   "name": "Frag Grenade",
+   "page": "Frag Grenade",
+   "base": null,
+   "status": "review"
+  },
+  {
+   "key": "semtex",
+   "name": "Semtex",
+   "page": "Semtex",
+   "base": null,
+   "status": "review"
+  },
+  {
+   "key": "claymore",
+   "name": "Claymore",
+   "page": "Claymore",
+   "base": null,
+   "status": "review"
+  },
+  {
+   "key": "monkey_bomb",
+   "name": "Monkey Bomb",
+   "page": "Cymbal Monkey",
+   "base": null,
+   "status": "review"
+  },
+  {
+   "key": "gersh",
+   "name": "Gersh Device",
+   "page": "Gersh Device",
+   "base": null,
+   "status": "review"
+  },
+  {
+   "key": "raygun_v3",
+   "name": "Ray Gun",
+   "page": "Ray Gun",
+   "base": "raygun_v2",
+   "status": "approved"
+  },
+  {
+   "key": "thundergun",
+   "name": "Thundergun",
+   "page": "Thundergun",
+   "base": null,
+   "status": "review"
+  },
+  {
+   "key": "winters_howl",
+   "name": "Winter's Howl",
+   "page": "Winter's Howl",
+   "base": null,
+   "status": "review"
+  },
+  {
+   "key": "scavenger",
+   "name": "Scavenger",
+   "page": "Scavenger",
+   "base": null,
+   "status": "review"
+  },
+  {
+   "key": "vr11",
+   "name": "V-R11",
+   "page": "V-R11",
+   "base": null,
+   "status": "review"
+  },
+  {
+   "key": "baby_gun",
+   "name": "31-79 JGb215",
+   "page": "31-79 JGb215",
+   "base": null,
+   "status": "review"
+  },
+  {
+   "key": "wave_gun",
+   "name": "Wave Gun / Zap Guns",
+   "page": "Wave Gun",
+   "base": null,
+   "status": "review"
+  },
+  {
+   "key": "wunderwaffe",
+   "name": "Wunderwaffe DG-2",
+   "page": "Wunderwaffe DG-2",
+   "base": null,
+   "status": "review"
+  },
+  {
+   "key": "mp5",
+   "name": "MP5 (BO2 roster)",
+   "page": "MP5",
+   "base": "mp5",
+   "status": "approved"
+  },
+  {
+   "key": "b23r",
+   "name": "B23R",
+   "page": "B23R",
+   "base": null,
+   "status": "review"
+  },
+  {
+   "key": "executioner",
+   "name": "Executioner",
+   "page": "Executioner",
+   "base": null,
+   "status": "review"
+  },
+  {
+   "key": "five_seven",
+   "name": "Five-Seven",
+   "page": "Five-seveN",
+   "base": null,
+   "status": "review"
+  },
+  {
+   "key": "kap40",
+   "name": "KAP-40",
+   "page": "KAP-40",
+   "base": null,
+   "status": "review"
+  },
+  {
+   "key": "m1216",
+   "name": "M1216",
+   "page": "M1216",
+   "base": null,
+   "status": "review"
+  },
+  {
+   "key": "r870",
+   "name": "R870 MCS",
+   "page": "R870 MCS",
+   "base": null,
+   "status": "review"
+  },
+  {
+   "key": "s12",
+   "name": "S12",
+   "page": "S12",
+   "base": null,
+   "status": "review"
+  },
+  {
+   "key": "an94",
+   "name": "AN-94",
+   "page": "AN-94",
+   "base": null,
+   "status": "review"
+  },
+  {
+   "key": "m8a1",
+   "name": "M8A1",
+   "page": "M8A1",
+   "base": null,
+   "status": "review"
+  },
+  {
+   "key": "m27",
+   "name": "M27",
+   "page": "M27",
+   "base": null,
+   "status": "review"
+  },
+  {
+   "key": "mtar",
+   "name": "MTAR",
+   "page": "MTAR",
+   "base": null,
+   "status": "review"
+  },
+  {
+   "key": "smr",
+   "name": "SMR",
+   "page": "SMR",
+   "base": null,
+   "status": "review"
+  },
+  {
+   "key": "type25",
+   "name": "Type 25",
+   "page": "Type 25",
+   "base": null,
+   "status": "review"
+  },
+  {
+   "key": "hamr",
+   "name": "HAMR",
+   "page": "HAMR",
+   "base": null,
+   "status": "review"
+  },
+  {
+   "key": "lsat",
+   "name": "LSAT",
+   "page": "LSAT",
+   "base": null,
+   "status": "review"
+  },
+  {
+   "key": "rpd",
+   "name": "RPD",
+   "page": "RPD",
+   "base": null,
+   "status": "review"
+  },
+  {
+   "key": "mk48",
+   "name": "Mk 48",
+   "page": "Mk 48",
+   "base": null,
+   "status": "review"
+  },
+  {
+   "key": "chicom",
+   "name": "Chicom CQB",
+   "page": "Chicom CQB",
+   "base": null,
+   "status": "review"
+  },
+  {
+   "key": "pdw57",
+   "name": "PDW-57",
+   "page": "PDW-57",
+   "base": null,
+   "status": "review"
+  },
+  {
+   "key": "msmc",
+   "name": "MSMC",
+   "page": "MSMC",
+   "base": null,
+   "status": "review"
+  },
+  {
+   "key": "skorpion",
+   "name": "Skorpion EVO",
+   "page": "Skorpion EVO",
+   "base": null,
+   "status": "review"
+  },
+  {
+   "key": "vector",
+   "name": "Vector K10",
+   "page": "Vector K10",
+   "base": null,
+   "status": "review"
+  },
+  {
+   "key": "peacekeeper",
+   "name": "Peacekeeper",
+   "page": "Peacekeeper",
+   "base": null,
+   "status": "review"
+  },
+  {
+   "key": "barret",
+   "name": "Barrett M82A1 / 50 cal",
+   "page": "Barrett .50cal",
+   "base": null,
+   "status": "review"
+  },
+  {
+   "key": "dsr50",
+   "name": "DSR 50",
+   "page": "DSR 50",
+   "base": null,
+   "status": "review"
+  },
+  {
+   "key": "svu",
+   "name": "SVU-AS",
+   "page": "SVU-AS",
+   "base": null,
+   "status": "review"
+  }
+ ]
+}

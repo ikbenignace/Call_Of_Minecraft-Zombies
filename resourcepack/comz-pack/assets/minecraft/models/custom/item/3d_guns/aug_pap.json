@@ -1,0 +1,7 @@
+{
+ "parent": "minecraft:custom/item/3d_guns/aug",
+ "textures": {
+  "0": "custom/custom/aug_pap",
+  "particle": "custom/custom/aug_pap"
+ }
+}

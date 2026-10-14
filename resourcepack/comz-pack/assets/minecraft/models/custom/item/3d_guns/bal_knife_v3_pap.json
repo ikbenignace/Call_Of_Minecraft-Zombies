@@ -1,0 +1,7 @@
+{
+ "parent": "minecraft:custom/item/3d_guns/bal_knife_v3",
+ "textures": {
+  "0": "custom/custom/bal_knife_v3_pap",
+  "particle": "custom/custom/bal_knife_v3_pap"
+ }
+}

@@ -1,0 +1,7 @@
+{
+ "parent": "minecraft:custom/item/3d_guns/fal_v3",
+ "textures": {
+  "0": "custom/custom/fal_v3_pap",
+  "particle": "custom/custom/fal_v3_pap"
+ }
+}

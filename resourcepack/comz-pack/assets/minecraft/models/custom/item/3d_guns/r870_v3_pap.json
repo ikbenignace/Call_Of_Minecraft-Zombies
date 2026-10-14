@@ -1,0 +1,7 @@
+{
+ "parent": "minecraft:custom/item/3d_guns/r870_v3",
+ "textures": {
+  "0": "custom/custom/r870_v3_pap",
+  "particle": "custom/custom/r870_v3_pap"
+ }
+}

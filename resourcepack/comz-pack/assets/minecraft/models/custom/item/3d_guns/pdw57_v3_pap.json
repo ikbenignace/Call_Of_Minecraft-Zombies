@@ -1,0 +1,7 @@
+{
+ "parent": "minecraft:custom/item/3d_guns/pdw57_v3",
+ "textures": {
+  "0": "custom/custom/pdw57_v3_pap",
+  "particle": "custom/custom/pdw57_v3_pap"
+ }
+}

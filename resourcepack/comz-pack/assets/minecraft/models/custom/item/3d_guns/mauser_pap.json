@@ -1,0 +1,7 @@
+{
+ "parent": "minecraft:custom/item/3d_guns/mauser",
+ "textures": {
+  "0": "custom/custom/mauser_pap",
+  "particle": "custom/custom/mauser_pap"
+ }
+}

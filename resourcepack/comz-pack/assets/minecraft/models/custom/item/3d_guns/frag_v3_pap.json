@@ -1,0 +1,7 @@
+{
+ "parent": "minecraft:custom/item/3d_guns/frag_v3",
+ "textures": {
+  "0": "custom/custom/frag_v3_pap",
+  "particle": "custom/custom/frag_v3_pap"
+ }
+}

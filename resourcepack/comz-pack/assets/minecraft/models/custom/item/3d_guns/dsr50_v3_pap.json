@@ -1,0 +1,7 @@
+{
+ "parent": "minecraft:custom/item/3d_guns/dsr50_v3",
+ "textures": {
+  "0": "custom/custom/dsr50_v3_pap",
+  "particle": "custom/custom/dsr50_v3_pap"
+ }
+}

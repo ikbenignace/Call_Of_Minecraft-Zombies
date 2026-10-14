@@ -1,0 +1,7 @@
+{
+ "parent": "minecraft:custom/item/3d_guns/hamr_v3",
+ "textures": {
+  "0": "custom/custom/hamr_v3_pap",
+  "particle": "custom/custom/hamr_v3_pap"
+ }
+}

@@ -1,0 +1,97 @@
+{
+ "_doc": "Side-view reference image per gunkit model (paths relative to $COMZ_REFS, default /tmp/comz-refs). Used by gunkit to photo-texture side faces when the image is available; references are not committed. Keys listed in _shape_only are used by silhouette.py for shape checks but not for texturing. An entry may be [path, flip] to force the orientation. Since 2026-10-14 photo texturing is opt-in: only keys in _photo_texture get the photo projected (blind A/B: clean materials won 5/6); all refs are still used by silhouette.py.",
+ "ak74u": "bo/AK-74u/AK-74u_Menu_Icon_BOII.jpg",
+ "an94": "bo2/an94.jpg",
+ "asp": "bo/ASP/ASP_menu_icon_BO_side.png",
+ "b23r": "bo2/b23r.jpg",
+ "baby_gun": "bo/31-79/31-79_JGb215_3rd_person_BO.jpg",
+ "barret": "bo2/barret.jpg",
+ "chicom": "bo2/chicom.jpg",
+ "chinalake": [
+  "bo/China_Lake/cl_side.png",
+  false
+ ],
+ "cz75": "bo/CZ75/CZ75_menu_icon_BO_side.png",
+ "dragunov": "bo/Dragunov/Dragunov_menu_icon_BOII.jpg",
+ "dsr50": "bo2/dsr50.jpg",
+ "executioner": "bo2/executioner.jpg",
+ "fal": "bo/FAL/FAL_menu_icon_BOII.jpg",
+ "famas": "bo/Famas/Famas_3rd_person_BO.jpg",
+ "five_seven": "bo2/five_seven.jpg",
+ "g11": "bo/G11/G11_menu_icon_BO.jpg",
+ "galil": "bo/Galil/Galil_menu_icon_BOII.jpg",
+ "hamr": "bo2/hamr.jpg",
+ "hk21": "bo/HK21/HK21_Menu_Icon_BO.jpg",
+ "hs10": "bo/HS10/HS10_menu_icon_BO.jpg",
+ "kap40": "bo2/kap40.jpg",
+ "lsat": "bo2/lsat.jpg",
+ "m1216": "bo2/m1216.jpg",
+ "m14": "bo/M14/M14_menu_icon_BOII.jpg",
+ "m27": "bo2/m27.jpg",
+ "m60": "bo/M60/M60_menu_icon_BO.jpg",
+ "m72law": "bo/M72_LAW/M72_LAW_menu_icon_BO.jpg",
+ "m8a1": "bo2/m8a1.jpg",
+ "makarov": "bo/Makarov/Makarov_menu_icon_BO_side.png",
+ "mk48": "bo2/mk48.jpg",
+ "mp40": "bo/MP40/MP40_3rd_person_WaWFF.jpg",
+ "msmc": "bo2/msmc.jpg",
+ "mtar": "bo2/mtar.jpg",
+ "olympia": "bo/Olympia/Olympia_menu_icon_BO.jpg",
+ "pdw57": "bo2/pdw57.jpg",
+ "peacekeeper": "bo2/peacekeeper.jpg",
+ "r870": "bo2/r870.jpg",
+ "rpd": "bo2/rpd.jpg",
+ "rpk": "bo/RPK/RPK_menu_icon_BO.jpg",
+ "s12": "bo2/s12.jpg",
+ "scavenger": "bo/Scavenger/Scavenger_Weapon.jpg",
+ "skorpion": "bo2/skorpion.jpg",
+ "smr": "bo2/smr.jpg",
+ "spas12": "bo/SPAS-12/SPAS-12_menu_icon_BO.jpg",
+ "stakeout": "bo/Stakeout/Stakeout_menu_icon_BO.jpg",
+ "svu": "bo2/svu.jpg",
+ "thundergun": "bo/Thundergun/Thundergun_3rd_Person_BO.jpg",
+ "type25": "bo2/type25.jpg",
+ "vector": "bo2/vector.jpg",
+ "winters_howl": "bo/Winter's_Howl/Winter's_Howl_model_BO.jpg",
+ "_shape_only": [
+  "bal_knife",
+  "mp40",
+  "peacekeeper",
+  "wave_gun",
+  "wunderwaffe"
+ ],
+ "bal_knife": "bo/Ballistic Knife/Ballistic_Knife_Pick-Up_Icon_BOII_side.png",
+ "commando": "bo/Commando/Commando_menu_icon_BO_side.png",
+ "m1911": "bo/M1911/M1911_menu_icon_BOII_side.png",
+ "pm63": "bo/PM63/PM63_menu_icon_BO_side.png",
+ "python": "bo/Python/Python_menu_icon_BO_side.png",
+ "spectre": "bo/Spectre/Spectre_Menu_Icon_Black_Ops_side.png",
+ "mp5k": "bo/MP5K/MP5K_menu_icon_side.png",
+ "l96a1": [
+  "bo/L96/L96A1_TPV_side.png",
+  false
+ ],
+ "crossbow": [
+  "bo/Crossbow/Crossbow_menu_icon_BO_side.png",
+  false
+ ],
+ "mpl": [
+  "bo/MPL/MPL_menu_icon_BO_side.png",
+  false
+ ],
+ "wunderwaffe": [
+  "bo/Wunderwaffe/Wunderwaffe_DG-2_3rd_Person_BO.jpg",
+  false
+ ],
+ "vr11": [
+  "bo/V-R11/V-R11_Drop_Shadow.jpg",
+  true
+ ],
+ "wave_gun": [
+  "bo/Wave_Gun/wave_gun_side_flat.png",
+  true
+ ],
+ "_photo_texture": [
+  "olympia"
+ ]
+}

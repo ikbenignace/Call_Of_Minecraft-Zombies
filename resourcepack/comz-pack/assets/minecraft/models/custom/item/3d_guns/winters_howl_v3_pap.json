@@ -1,0 +1,7 @@
+{
+ "parent": "minecraft:custom/item/3d_guns/winters_howl_v3",
+ "textures": {
+  "0": "custom/custom/winters_howl_v3_pap",
+  "particle": "custom/custom/winters_howl_v3_pap"
+ }
+}

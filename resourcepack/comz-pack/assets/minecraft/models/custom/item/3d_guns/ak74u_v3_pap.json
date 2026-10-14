@@ -1,0 +1,7 @@
+{
+ "parent": "minecraft:custom/item/3d_guns/ak74u_v3",
+ "textures": {
+  "0": "custom/custom/ak74u_v3_pap",
+  "particle": "custom/custom/ak74u_v3_pap"
+ }
+}

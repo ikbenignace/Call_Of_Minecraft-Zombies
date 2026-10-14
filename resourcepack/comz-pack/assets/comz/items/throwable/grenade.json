@@ -1,6 +1,6 @@
 {
   "model": {
     "type": "minecraft:model",
-    "model": "comz:item/grenade"
+    "model": "minecraft:custom/item/3d_guns/frag_v3"
   }
 }

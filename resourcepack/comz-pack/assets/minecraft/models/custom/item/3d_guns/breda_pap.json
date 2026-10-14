@@ -1,0 +1,7 @@
+{
+ "parent": "minecraft:custom/item/3d_guns/breda",
+ "textures": {
+  "0": "custom/custom/breda_pap_0",
+  "particle": "custom/custom/breda_pap_0"
+ }
+}

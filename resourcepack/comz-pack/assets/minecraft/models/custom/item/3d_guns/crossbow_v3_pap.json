@@ -1,0 +1,7 @@
+{
+ "parent": "minecraft:custom/item/3d_guns/crossbow_v3",
+ "textures": {
+  "0": "custom/custom/crossbow_v3_pap",
+  "particle": "custom/custom/crossbow_v3_pap"
+ }
+}

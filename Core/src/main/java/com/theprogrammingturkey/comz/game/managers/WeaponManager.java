@@ -47,7 +47,7 @@ public class WeaponManager
 		BasicGun gun = new BasicGun(DEATH_MACHINE_NAME, WeaponType.SPECIAL);
 		gun.material = org.bukkit.Material.IRON_BLOCK;
 		gun.modelData = -1;
-		gun.itemModel = "powerup/death_machine";
+		gun.itemModel = "gun/death_machine";
 		gun.damage = 1000;
 		gun.fireDelay = 1;
 		gun.clipAmmo = 999;

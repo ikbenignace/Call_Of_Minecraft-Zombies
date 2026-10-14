@@ -1,0 +1,7 @@
+{
+ "parent": "minecraft:custom/item/3d_guns/stakeout_v3",
+ "textures": {
+  "0": "custom/custom/stakeout_v3_pap",
+  "particle": "custom/custom/stakeout_v3_pap"
+ }
+}

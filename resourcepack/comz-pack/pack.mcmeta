@@ -4,5 +4,18 @@
     "min_format": 34,
     "max_format": 99,
     "description": "§cCall of Minecraft: §6Zombies §7custom pack"
+  },
+  "overlays": {
+    "entries": [
+      {
+        "formats": [
+          63,
+          999
+        ],
+        "min_format": 63,
+        "max_format": 999,
+        "directory": "overlay_exact_angles"
+      }
+    ]
   }
 }

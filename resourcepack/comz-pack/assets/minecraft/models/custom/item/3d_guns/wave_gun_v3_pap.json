@@ -1,0 +1,7 @@
+{
+ "parent": "minecraft:custom/item/3d_guns/wave_gun_v3",
+ "textures": {
+  "0": "custom/custom/wave_gun_v3_pap",
+  "particle": "custom/custom/wave_gun_v3_pap"
+ }
+}
