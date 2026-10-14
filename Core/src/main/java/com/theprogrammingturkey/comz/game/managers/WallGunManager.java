@@ -102,7 +102,7 @@ public class WallGunManager
 			return;
 
 		BlockData data = sign.getBlockData();
-		BlockFace facing = data instanceof Directional ? ((Directional) data).getFacing() : BlockFace.NORTH;
+		BlockFace facing = com.theprogrammingturkey.comz.util.Compat.facingOf(data);
 		boolean usePack = PackModels.isPackEnabled() && ConfigManager.getMainConfig().resourcePackForce;
 
 		Location blockLoc = sign.getLocation();
@@ -150,6 +150,8 @@ public class WallGunManager
 	{
 		if(game.getStatus() != Game.GameStatus.INGAME || !game.getLivingPlayers().contains(player)
 				|| game.downedPlayerManager.isDownedPlayer(player) || game.downedPlayerManager.isGhost(player))
+			return;
+		if(!BuyDebounce.tryAcquire(player))
 			return;
 		new GunSign().onInteract(game, player, wallGun.blockLoc, wallGun.signLines);
 	}

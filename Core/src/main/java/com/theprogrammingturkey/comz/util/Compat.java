@@ -5,6 +5,10 @@ import org.bukkit.Material;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.attribute.Attribute;
+import org.bukkit.block.BlockFace;
+import org.bukkit.block.data.BlockData;
+import org.bukkit.block.data.Directional;
+import org.bukkit.block.data.Rotatable;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.potion.PotionEffect;
@@ -29,6 +33,26 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public final class Compat
 {
+	/**
+	 * Cardinal facing of a wall sign (Directional) or standing sign (Rotatable, snapped to the nearest
+	 * cardinal face); NORTH when the data has neither.
+	 */
+	public static BlockFace facingOf(BlockData data)
+	{
+		if(data instanceof Directional)
+			return ((Directional) data).getFacing();
+		if(data instanceof Rotatable)
+		{
+			BlockFace rotation = ((Rotatable) data).getRotation();
+			int x = rotation.getModX();
+			int z = rotation.getModZ();
+			if(Math.abs(x) > Math.abs(z))
+				return x > 0 ? BlockFace.EAST : BlockFace.WEST;
+			return z > 0 ? BlockFace.SOUTH : BlockFace.NORTH;
+		}
+		return BlockFace.NORTH;
+	}
+
 	// Resolved once: these are used on hot paths (per-shot particles, per-spawn attributes).
 	public static final Particle BLOCK = particle("BLOCK", "BLOCK_CRACK");
 	public static final Particle DUST = particle("DUST", "REDSTONE");

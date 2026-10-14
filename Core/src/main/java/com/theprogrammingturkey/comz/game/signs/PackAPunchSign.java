@@ -15,6 +15,8 @@ import com.theprogrammingturkey.comz.util.ParticleFX;
 import com.theprogrammingturkey.comz.util.SoundConfig;
 import com.theprogrammingturkey.comz.util.SoundUtil;
 import com.theprogrammingturkey.comz.util.display.Displays;
+import net.md_5.bungee.api.ChatMessageType;
+import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
@@ -295,7 +297,7 @@ public class PackAPunchSign implements IGameSign
 		if(registered != null)
 			return registered;
 		BlockData data = location.getBlock().getBlockData();
-		return data instanceof Directional ? ((Directional) data).getFacing() : BlockFace.NORTH;
+		return com.theprogrammingturkey.comz.util.Compat.facingOf(data);
 	}
 
 	private static void showGunInside(Session session, ItemStack stack)
@@ -318,6 +320,8 @@ public class PackAPunchSign implements IGameSign
 
 		Player owner = Bukkit.getPlayer(session.owner);
 		SoundUtil.play(session.center.getWorld(), session.center, SoundConfig.get("pap.ready", "ENTITY_PLAYER_LEVELUP"), SoundCategory.MASTER, 1, 1);
+
+		session.pickupTicksLeft = ticks(ConfigManager.getMainConfig().packAPunchPickupSeconds);
 
 		if(session.display == null)
 		{
@@ -356,8 +360,6 @@ public class PackAPunchSign implements IGameSign
 			up[0] = !up[0];
 			Displays.animate(display, fx, up[0] ? 1.12f : 1.0f, fz, 0.7f, spin[0], 20);
 		});
-
-		session.pickupTicksLeft = ticks(ConfigManager.getMainConfig().packAPunchPickupSeconds);
 	}
 
 	private static boolean isIncapacitated(Game game, Player player)
@@ -383,31 +385,28 @@ public class PackAPunchSign implements IGameSign
 		Player owner = Bukkit.getPlayer(session.owner);
 		if(ownerGone(session, owner))
 		{
-			if(owner != null)
+			if(refund(session) && owner != null)
 				CommandUtil.sendMessageToPlayer(owner, ChatColor.YELLOW + "Your Pack-a-Punch was cancelled and " + session.cost + " points were refunded.");
-			refund(session);
 			end(key, session);
 			return;
 		}
 		if(!session.ready || isIncapacitated(session.game, owner))
 			return;
-		if(session.display == null)
-		{
-			collect(key, session, owner);
+		if(session.display == null && collect(key, session, owner))
 			return;
-		}
 		session.pickupTicksLeft -= WATCH_TICKS;
 		if(session.pickupTicksLeft <= 0)
 			expire(key, session);
 	}
 
-	private static void refund(Session session)
+	private static boolean refund(Session session)
 	{
 		if(session.refunded || session.cost <= 0 || !session.game.wasDisconnected(session.ownerRef))
-			return;
+			return false;
 		session.refunded = true;
 		PointManager.INSTANCE.addPoints(session.ownerRef, session.cost);
 		PointManager.INSTANCE.notifyPlayer(session.ownerRef);
+		return true;
 	}
 
 	private static void expire(String key, Session session)
@@ -421,34 +420,32 @@ public class PackAPunchSign implements IGameSign
 		end(key, session);
 	}
 
-	private static void collect(String key, Session session, Player player)
+	/** Returns true when the session was resolved; false when the gun stays in the machine. */
+	private static boolean collect(String key, Session session, Player player)
 	{
 		Game game = session.game;
 		if(game.getStatus() != Game.GameStatus.INGAME || !GameManager.INSTANCE.isPlayerInGame(player) || GameManager.INSTANCE.getGame(player) != game)
 		{
 			refund(session);
 			end(key, session);
-			return;
+			return true;
 		}
 		if(isIncapacitated(game, player))
-			return;
+			return false;
 
 		PlayerWeaponManager manager = game.getPlayersWeapons(player);
+		int slot = freeSlot(manager, game, player, session.slot);
+		if(slot < 0)
+		{
+			player.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(ChatColor.RED + "No free weapon slot"));
+			return false;
+		}
+
 		GunInstance gun = session.gun;
 		if(session.refill)
 			gun.maxAmmo();
 		else
 			gun.setPackOfPunch();
-
-		int slot = freeSlot(manager, game, player, session.slot);
-		WeaponInstance occupant = manager.getWeapon(slot);
-		if(occupant != null && PowerUpDropListener.isDeathMachine(occupant))
-		{
-			PowerUpDropListener.revertDeathMachine(game, player);
-			occupant = manager.getWeapon(slot);
-		}
-		if(occupant != null)
-			manager.removeWeapon(occupant);
 		gun.setSlot(slot);
 		manager.addWeapon(gun);
 		player.getInventory().setHeldItemSlot(slot);
@@ -458,12 +455,12 @@ public class PackAPunchSign implements IGameSign
 		if(ConfigManager.getMainConfig().visualsPapFeedback)
 			player.sendTitle(ChatColor.GOLD + "" + ChatColor.BOLD + (session.refill ? "REFILLED!" : "UPGRADED!"), ChatColor.GRAY + gun.getType().getName(), 5, 40, 10);
 		end(key, session);
+		return true;
 	}
 
 	/**
-	 * The slot the gun came from when it is still free; otherwise another free gun slot; otherwise the
-	 * original. A slot holding an active Death Machine counts as occupied; the caller reverts it only
-	 * when every slot is taken.
+	 * The slot the gun came from when it is still free, otherwise another free gun slot, otherwise -1.
+	 * A slot holding an active Death Machine counts as occupied.
 	 */
 	private static int freeSlot(PlayerWeaponManager manager, Game game, Player player, int preferred)
 	{
@@ -473,7 +470,7 @@ public class PackAPunchSign implements IGameSign
 		for(int slot = 1; slot <= gunSlots; slot++)
 			if(manager.getWeapon(slot) == null)
 				return slot;
-		return preferred;
+		return -1;
 	}
 
 	private static void end(String key, Session session)

@@ -194,12 +194,15 @@ public class Tombstone
 				continue;
 			gun.setSlot(reclaimSlot(owner, manager, gun));
 			WeaponInstance occupant = manager.getWeapon(gun.getSlot());
-			if(occupant != null)
+			if(occupant != null && PowerUpDropListener.isDeathMachine(occupant))
 			{
-				if(PowerUpDropListener.isDeathMachine(occupant))
-					PowerUpDropListener.revertDeathMachine(game, owner);
-				manager.removeWeapon(gun.getSlot());
+				PowerUpDropListener.revertDeathMachine(game, owner);
+				occupant = manager.getWeapon(gun.getSlot());
+				if(occupant != null && PowerUpDropListener.isDeathMachine(occupant))
+					continue;
 			}
+			if(occupant != null)
+				manager.removeWeapon(gun.getSlot());
 			manager.addWeapon(gun);
 		}
 		owner.sendMessage(ChatColor.GREEN + "You reclaimed your tombstone.");

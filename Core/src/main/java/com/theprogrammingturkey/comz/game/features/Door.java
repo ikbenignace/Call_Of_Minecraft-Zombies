@@ -44,6 +44,7 @@ public class Door
 	private final Map<Location, BlockData> signs = new LinkedHashMap<>();
 	private List<SpawnPoint> spawnsInRoomDoorLeadsTo = new ArrayList<>();
 	private boolean isOpened = false;
+	private final List<Integer> pendingRemovalTasks = new ArrayList<>();
 	private boolean powerRequired = false;
 
 	public Door(Game game, String id, boolean powerRequired)
@@ -225,6 +226,7 @@ public class Door
 
 	public void openDoor()
 	{
+		cancelPendingRemovals();
 		int interval = 1;
 		for(final Block block : blocks.keySet())
 		{
@@ -232,14 +234,25 @@ public class Door
 				continue;
 
 			final BlockData data = block.getBlockData();
-			COMZombies.scheduleTask(interval, () ->
+			int taskId = COMZombies.scheduleTask(interval, () ->
 			{
+				if(!isOpened)
+					return;
 				com.theprogrammingturkey.comz.util.ParticleFX.blockVanish(block.getWorld(), block.getLocation(), data);
 				BlockUtils.setBlockToAir(block);
 			});
+			if(taskId != -1)
+				pendingRemovalTasks.add(taskId);
 			interval += 1;
 		}
 		isOpened = true;
+	}
+
+	private void cancelPendingRemovals()
+	{
+		for(int taskId : pendingRemovalTasks)
+			Bukkit.getScheduler().cancelTask(taskId);
+		pendingRemovalTasks.clear();
 	}
 
 	public boolean isOpened()
@@ -249,6 +262,7 @@ public class Door
 
 	public void closeDoor()
 	{
+		cancelPendingRemovals();
 		// Restore door blocks to their EXACT saved state (no physics, so fence/pane/stair
 		// connections are exactly as authored rather than recomputed against half-restored
 		// neighbours). Blocks first so wall signs have their support back.

@@ -129,10 +129,7 @@ public class MachineModelManager
 	{
 		Location signLoc = sign.getLocation();
 		World world = signLoc.getWorld();
-		BlockFace facing = BlockFace.NORTH;
-		BlockData data = sign.getBlockData();
-		if(data instanceof Directional)
-			facing = ((Directional) data).getFacing();
+		BlockFace facing = com.theprogrammingturkey.comz.util.Compat.facingOf(sign.getBlockData());
 
 		// The machine occupies the sign's own block (the sign's material/facing/text are snapshotted into
 		// the MachineModel and fully rebuilt on teardown).
@@ -145,7 +142,7 @@ public class MachineModelManager
 		if(interaction == null)
 			return;
 		HiddenSignJournal.record(sign, base);
-		MachineModel machine = new MachineModel(baseLoc, signLoc, sign.getType(), data, signLines, facing, look);
+		MachineModel machine = new MachineModel(baseLoc, signLoc, sign.getType(), sign.getBlockData(), signLines, facing, look);
 		machine.interaction = interaction;
 
 		try
@@ -201,7 +198,8 @@ public class MachineModelManager
 		if(box != null)
 		{
 			if(game.getStatus() == Game.GameStatus.INGAME && game.getLivingPlayers().contains(player)
-					&& !game.downedPlayerManager.isDownedPlayer(player) && !game.downedPlayerManager.isGhost(player))
+					&& !game.downedPlayerManager.isDownedPlayer(player) && !game.downedPlayerManager.isGhost(player)
+					&& BuyDebounce.tryAcquire(player))
 				box.interact(player);
 			return true;
 		}
@@ -233,6 +231,8 @@ public class MachineModelManager
 		if(game.getStatus() != Game.GameStatus.INGAME)
 			return true; // it's ours, but nothing to do outside a running game
 		if(!game.getLivingPlayers().contains(player) || game.downedPlayerManager.isDownedPlayer(player) || game.downedPlayerManager.isGhost(player))
+			return true;
+		if(!BuyDebounce.tryAcquire(player))
 			return true;
 
 		// The backing sign has been overwritten by the machine's base block during play, so the buy path

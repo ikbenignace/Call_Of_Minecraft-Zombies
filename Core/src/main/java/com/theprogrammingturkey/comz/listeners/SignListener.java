@@ -225,6 +225,11 @@ public class SignListener implements Listener
 							event.setCancelled(true);
 							return;
 						}
+						if(!com.theprogrammingturkey.comz.game.managers.BuyDebounce.tryAcquire(player))
+						{
+							event.setCancelled(true);
+							return;
+						}
 					}
 
 					signLogic.onInteract(game, player, sign.getLocation(), sign.getLines());

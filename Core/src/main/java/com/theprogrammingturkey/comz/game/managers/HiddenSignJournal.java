@@ -14,6 +14,9 @@ import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Sign;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import org.bukkit.event.world.WorldLoadEvent;
 
 import java.io.File;
 import java.io.IOException;
@@ -22,9 +25,8 @@ import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
-import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -36,6 +38,7 @@ public final class HiddenSignJournal
 {
 	private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 	private static final Map<String, JsonObject> ENTRIES = new LinkedHashMap<>();
+	private static final Map<String, JsonObject> PENDING = new LinkedHashMap<>();
 
 	private HiddenSignJournal()
 	{
@@ -64,6 +67,7 @@ public final class HiddenSignJournal
 		String key = key(loc);
 		if(ENTRIES.containsKey(key))
 			return;
+		PENDING.remove(key);
 
 		JsonObject json = new JsonObject();
 		json.addProperty("world", loc.getWorld().getName());
@@ -101,6 +105,8 @@ public final class HiddenSignJournal
 			JsonArray array = new JsonArray();
 			for(JsonObject entry : ENTRIES.values())
 				array.add(entry);
+			for(JsonObject entry : PENDING.values())
+				array.add(entry);
 			try(Writer writer = Files.newBufferedWriter(temp.toPath(), StandardCharsets.UTF_8))
 			{
 				GSON.toJson(array, writer);
@@ -113,41 +119,57 @@ public final class HiddenSignJournal
 	}
 
 	/**
-	 * Rebuilds every sign a previous run left hidden, overwriting whatever replaced it, then forgets the
-	 * entry. Entries for worlds that are not loaded yet are kept for a later run.
+	 * Loads the entries a previous run left behind and rebuilds the ones whose world is loaded, overwriting
+	 * whatever replaced them. Entries for worlds that are not loaded yet stay pending until the world loads.
+	 * Entries for signs hidden by the current run are never touched.
 	 */
 	public static void restoreAll()
 	{
-		ENTRIES.clear();
 		File file = file();
-		if(!file.exists())
-			return;
-
-		List<JsonObject> pending = new ArrayList<>();
-		try(Reader reader = Files.newBufferedReader(file.toPath(), StandardCharsets.UTF_8))
+		if(file.exists())
 		{
-			JsonElement root = new JsonParser().parse(reader);
-			if(root != null && root.isJsonArray())
-				for(JsonElement element : root.getAsJsonArray())
-					if(element.isJsonObject())
-						pending.add(element.getAsJsonObject());
-		} catch(IOException | RuntimeException e)
-		{
-			COMZombies.log.warning("Could not read the hidden sign journal: " + e.getMessage());
-			return;
-		}
-
-		int restored = 0;
-		for(JsonObject entry : pending)
-		{
-			World world = Bukkit.getWorld(entry.get("world").getAsString());
-			if(world == null)
+			try(Reader reader = Files.newBufferedReader(file.toPath(), StandardCharsets.UTF_8))
 			{
-				ENTRIES.put(entry.get("world").getAsString() + ";" + entry.get("x").getAsInt() + ";" + entry.get("y").getAsInt() + ";" + entry.get("z").getAsInt(), entry);
-				continue;
+				JsonElement root = new JsonParser().parse(reader);
+				if(root != null && root.isJsonArray())
+					for(JsonElement element : root.getAsJsonArray())
+						addPending(element);
+			} catch(IOException | RuntimeException e)
+			{
+				COMZombies.log.warning("Could not read the hidden sign journal: " + e.getMessage());
+				return;
 			}
+		}
+		restorePending();
+	}
+
+	private static void addPending(JsonElement element)
+	{
+		try
+		{
+			JsonObject entry = element.getAsJsonObject();
+			String key = entry.get("world").getAsString() + ";" + entry.get("x").getAsInt() + ";" + entry.get("y").getAsInt() + ";" + entry.get("z").getAsInt();
+			if(!ENTRIES.containsKey(key))
+				PENDING.putIfAbsent(key, entry);
+		} catch(RuntimeException e)
+		{
+			COMZombies.log.warning("Dropping an unreadable hidden sign journal entry: " + e.getMessage());
+		}
+	}
+
+	private static void restorePending()
+	{
+		int restored = 0;
+		boolean changed = false;
+		Iterator<JsonObject> it = PENDING.values().iterator();
+		while(it.hasNext())
+		{
+			JsonObject entry = it.next();
 			try
 			{
+				World world = Bukkit.getWorld(entry.get("world").getAsString());
+				if(world == null)
+					continue;
 				Location loc = new Location(world, entry.get("x").getAsInt(), entry.get("y").getAsInt(), entry.get("z").getAsInt());
 				Material material = Material.valueOf(entry.get("material").getAsString());
 				BlockData data = entry.has("data") ? Bukkit.createBlockData(entry.get("data").getAsString()) : null;
@@ -162,9 +184,22 @@ public final class HiddenSignJournal
 			{
 				COMZombies.log.warning("Dropping an unreadable hidden sign journal entry: " + e.getMessage());
 			}
+			it.remove();
+			changed = true;
 		}
-		save();
+		if(changed)
+			save();
 		if(restored > 0)
 			COMZombies.log.info(COMZombies.CONSOLE_PREFIX + "Restored " + restored + " feature sign(s) left hidden by an unclean shutdown.");
+	}
+
+	public static final class WorldLoadRetry implements Listener
+	{
+		@EventHandler
+		public void onWorldLoad(WorldLoadEvent event)
+		{
+			if(!PENDING.isEmpty())
+				restorePending();
+		}
 	}
 }

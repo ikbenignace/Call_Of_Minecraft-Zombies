@@ -139,7 +139,7 @@ public class ProximityBuyManager
 
 		for(Player player : game.getPlayersInGame())
 		{
-			if(player == null || !player.isOnline())
+			if(player == null || !player.isOnline() || !game.getLivingPlayers().contains(player))
 				continue;
 			seen.add(player.getUniqueId());
 			if(game.downedPlayerManager.isDownedPlayer(player) || game.downedPlayerManager.isGhost(player))

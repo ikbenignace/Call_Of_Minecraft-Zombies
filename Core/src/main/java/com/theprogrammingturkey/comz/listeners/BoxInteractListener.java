@@ -51,6 +51,8 @@ public class BoxInteractListener implements Listener
 		if(!game.getLivingPlayers().contains(event.getPlayer()) || game.downedPlayerManager.isDownedPlayer(event.getPlayer()) || game.downedPlayerManager.isGhost(event.getPlayer()))
 			return;
 
+		if(!com.theprogrammingturkey.comz.game.managers.BuyDebounce.tryAcquire(event.getPlayer()))
+			return;
 		box.interact(event.getPlayer());
 	}
 }

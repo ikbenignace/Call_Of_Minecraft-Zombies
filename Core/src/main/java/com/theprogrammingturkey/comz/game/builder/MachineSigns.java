@@ -128,7 +128,7 @@ public final class MachineSigns
 		{
 			List<Entity> preview = new ArrayList<>();
 			BlockData signData = sign.getBlockData();
-			BlockFace wallFacing = signData instanceof Directional ? ((Directional) signData).getFacing() : BlockFace.NORTH;
+			BlockFace wallFacing = com.theprogrammingturkey.comz.util.Compat.facingOf(signData);
 			Entity model = WallGunVisuals.spawn(sign.getLocation(), wallFacing, WeaponManager.getGun(ChatColor.stripColor(sign.getLine(2))), usePack, 0.9);
 			if(model != null)
 				preview.add(model);
@@ -138,10 +138,7 @@ public final class MachineSigns
 		if(look == null)
 			return new ArrayList<>();
 
-		BlockFace facing = BlockFace.NORTH;
-		BlockData data = sign.getBlockData();
-		if(data instanceof Directional)
-			facing = ((Directional) data).getFacing();
+		BlockFace facing = com.theprogrammingturkey.comz.util.Compat.facingOf(sign.getBlockData());
 
 		// The preview sits on the sign's own block, where the machine / box chest stands in-game.
 		return MachineVisuals.spawn(sign.getLocation(), facing, look, usePack);

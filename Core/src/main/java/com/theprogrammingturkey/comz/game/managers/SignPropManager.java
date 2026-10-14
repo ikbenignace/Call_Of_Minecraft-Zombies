@@ -51,7 +51,6 @@ import java.util.UUID;
 public class SignPropManager
 {
 	private static final long UPKEEP_TICKS = 10L;
-	private static final long BUY_DEBOUNCE_MS = 250L;
 	private static final float HITBOX_WIDTH = 1.0f;
 	private static final float HITBOX_HEIGHT = 1.4f;
 	private static final float MAX_DOOR_HITBOX = 3.0f;
@@ -107,7 +106,6 @@ public class SignPropManager
 	private final Game game;
 	private final List<Prop> props = new ArrayList<>();
 	private final Map<UUID, Prop> byHitbox = new HashMap<>();
-	private final Map<UUID, Long> lastBuy = new HashMap<>();
 	private int taskId = -1;
 
 	public SignPropManager(Game game)
@@ -183,8 +181,11 @@ public class SignPropManager
 
 		Prop prop = new Prop(PropType.DOOR, null, signLocs.isEmpty() ? null : signLocs.get(0), null, door, centre, centre);
 		prop.hitbox = hitbox;
+		boolean doorSignsInWorld = com.theprogrammingturkey.comz.config.ConfigManager.getMainConfig().useDoorSigns;
 		for(Location signLoc : signLocs)
 		{
+			if(!doorSignsInWorld)
+				break;
 			BlockState state = signLoc.getBlock().getState();
 			if(state instanceof Sign)
 				prop.snapshots.add(SignSnapshot.of((Sign) state));
@@ -360,12 +361,7 @@ public class SignPropManager
 		if(game.getStatus() != Game.GameStatus.INGAME || !game.getLivingPlayers().contains(player)
 				|| game.downedPlayerManager.isDownedPlayer(player) || game.downedPlayerManager.isGhost(player))
 			return false;
-		long now = System.currentTimeMillis();
-		Long last = lastBuy.get(player.getUniqueId());
-		if(last != null && now - last < BUY_DEBOUNCE_MS)
-			return false;
-		lastBuy.put(player.getUniqueId(), now);
-		return true;
+		return BuyDebounce.tryAcquire(player);
 	}
 
 	private boolean powerLocked()
@@ -556,6 +552,5 @@ public class SignPropManager
 		}
 		props.clear();
 		byHitbox.clear();
-		lastBuy.clear();
 	}
 }

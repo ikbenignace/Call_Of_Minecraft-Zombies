@@ -38,7 +38,7 @@ public class MysteryBoxSign implements IGameSign
 		event.setLine(0, ChatColor.RED + "[Zombies]");
 		event.setLine(1, ChatColor.AQUA + "Mystery Box");
 		event.setLine(2, thirdLine);
-		BlockFace facing = ((Directional) event.getBlock().getBlockData()).getFacing();
+		BlockFace facing = com.theprogrammingturkey.comz.util.Compat.facingOf(event.getBlock().getBlockData());
 		RandomBox box = new RandomBox(event.getBlock().getLocation(), facing, game, game.boxManager.getNextBoxName(), Integer.parseInt(thirdLine));
 		game.boxManager.addBox(box);
 		player.sendMessage(ChatColor.RED + "" + ChatColor.BOLD + "Random Weapon Box Created!");
