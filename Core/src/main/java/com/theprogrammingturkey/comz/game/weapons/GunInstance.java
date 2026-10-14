@@ -251,6 +251,9 @@ public class GunInstance extends WeaponInstance
 
 		String shootSound = com.theprogrammingturkey.comz.util.SoundConfig.gun(gun.getName(), gun.isPackAPunched(), "shoot", gun.soundKey);
 		SoundUtil.play(world, player.getLocation(), shootSound, SoundCategory.PLAYERS, 1, 1);
+		// Pack-a-Punched guns keep their own report with the PaP energy layer on top, as in Black Ops.
+		if(gun.isPackAPunched())
+			SoundUtil.play(world, player.getLocation(), com.theprogrammingturkey.comz.util.SoundConfig.get("guns._papLayer.shoot", null), SoundCategory.PLAYERS, 0.6F, 1);
 
 		updateWeapon();
 		canFire = false;

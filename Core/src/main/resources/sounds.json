@@ -62,23 +62,46 @@
       "shoot": "custom.weapon.shoot.pap",
       "reload": ""
     },
+    "_papLayer": {
+      "shoot": "custom.weapon.shoot.pap"
+    },
     "B23R": {
-      "shoot": "custom.weapon.shoot.cz75",
-      "reload": "custom.weapon.reload_start.cz75"
+      "shoot": "custom.weapon.shoot.bo2.b23r",
+      "reload": "custom.weapon.reload.bo2.b23r"
+    },
+    "B34R": {
+      "shoot": "custom.weapon.shoot.bo2.b23r",
+      "reload": "custom.weapon.reload.bo2.b23r"
     },
     "Executioner": {
-      "shoot": "custom.weapon.shoot.python",
-      "reload": "custom.weapon.reload_start.python"
+      "shoot": "custom.weapon.shoot.bo2.executioner",
+      "reload": "custom.weapon.reload.bo2.executioner"
+    },
+    "Voice of Justice": {
+      "shoot": "custom.weapon.shoot.bo2.executioner",
+      "reload": "custom.weapon.reload.bo2.executioner"
     },
     "Five-Seven": {
+      "shoot": "custom.weapon.shoot.bo2.fiveseven",
+      "reload": "custom.weapon.reload.bo2.fiveseven"
+    },
+    "Ultra": {
+      "shoot": "custom.weapon.shoot.bo2.fiveseven",
+      "reload": "custom.weapon.reload.bo2.fiveseven"
+    },
+    "Kap-40": {
+      "shoot": "custom.weapon.shoot.bo2.kap40",
+      "reload": "custom.weapon.reload.bo2.kap40"
+    },
+    "Karmic Atom Perforator-4000": {
+      "shoot": "custom.weapon.shoot.bo2.kap40",
+      "reload": "custom.weapon.reload.bo2.kap40"
+    },
+    "M1911": {
       "shoot": "custom.weapon.shoot.m1911",
       "reload": "custom.weapon.reload_start.m1911"
     },
-    "Kap-40": {
-      "shoot": "custom.weapon.shoot.cz75",
-      "reload": "custom.weapon.reload_start.cz75"
-    },
-    "M1911": {
+    "C-3000 b1at-ch35": {
       "shoot": "custom.weapon.shoot.m1911",
       "reload": "custom.weapon.reload_start.m1911"
     },
@@ -86,121 +109,493 @@
       "shoot": "custom.weapon.shoot.python",
       "reload": "custom.weapon.reload_start.python"
     },
+    "Cobra": {
+      "shoot": "custom.weapon.shoot.python",
+      "reload": "custom.weapon.reload_start.python"
+    },
+    "Makarov": {
+      "shoot": "custom.weapon.shoot.cz75",
+      "reload": "custom.weapon.reload_start.cz75"
+    },
+    "Rarov": {
+      "shoot": "custom.weapon.shoot.cz75",
+      "reload": "custom.weapon.reload_start.cz75"
+    },
+    "ASP": {
+      "shoot": "custom.weapon.shoot.cz75",
+      "reload": "custom.weapon.reload_start.cz75"
+    },
+    "Aspirator": {
+      "shoot": "custom.weapon.shoot.cz75",
+      "reload": "custom.weapon.reload_start.cz75"
+    },
+    "CZ75": {
+      "shoot": "custom.weapon.shoot.cz75",
+      "reload": "custom.weapon.reload_start.cz75"
+    },
+    "Calamity": {
+      "shoot": "custom.weapon.shoot.cz75",
+      "reload": "custom.weapon.reload_start.cz75"
+    },
     "M1216": {
-      "shoot": "custom.weapon.shoot.spas",
-      "reload": "custom.weapon.reload_end.spas"
+      "shoot": "custom.weapon.shoot.bo2.m1216",
+      "reload": "custom.weapon.reload.bo2.m1216"
+    },
+    "Mesmerizer": {
+      "shoot": "custom.weapon.shoot.bo2.m1216",
+      "reload": "custom.weapon.reload.bo2.m1216"
     },
     "Olympia": {
       "shoot": "custom.weapon.shoot.db",
       "reload": "custom.weapon.reload_start.db"
     },
+    "Hades": {
+      "shoot": "custom.weapon.shoot.db",
+      "reload": "custom.weapon.reload_start.db"
+    },
     "R870 MCS": {
-      "shoot": "custom.weapon.shoot.stake",
-      "reload": ""
+      "shoot": "custom.weapon.shoot.bo2.r870",
+      "reload": "custom.weapon.reload.bo2.r870"
+    },
+    "Refitted-870 Mechanical Cranium Sequencer": {
+      "shoot": "custom.weapon.shoot.bo2.r870",
+      "reload": "custom.weapon.reload.bo2.r870"
     },
     "S12": {
+      "shoot": "custom.weapon.shoot.bo2.s12",
+      "reload": "custom.weapon.reload.bo2.s12"
+    },
+    "Synthetic Dozen": {
+      "shoot": "custom.weapon.shoot.bo2.s12",
+      "reload": "custom.weapon.reload.bo2.s12"
+    },
+    "Stakeout": {
+      "shoot": "custom.weapon.shoot.stake",
+      "reload": "custom.weapon.shotgun_load"
+    },
+    "Raid": {
+      "shoot": "custom.weapon.shoot.stake",
+      "reload": "custom.weapon.shotgun_load"
+    },
+    "SPAS-12": {
       "shoot": "custom.weapon.shoot.spas",
       "reload": "custom.weapon.reload_end.spas"
     },
+    "SPAZ-24": {
+      "shoot": "custom.weapon.shoot.spas",
+      "reload": "custom.weapon.reload_end.spas"
+    },
+    "HS-10": {
+      "shoot": "custom.weapon.shoot.hs10",
+      "reload": "custom.weapon.reload_end.hs10"
+    },
+    "Typhoid & Mary": {
+      "shoot": "custom.weapon.shoot.hs10",
+      "reload": "custom.weapon.reload_end.hs10"
+    },
     "AN-94": {
-      "shoot": "custom.weapon.shoot.ak74",
-      "reload": "custom.weapon.reload_start.ak74"
+      "shoot": "custom.weapon.shoot.bo2.an94",
+      "reload": "custom.weapon.reload.bo2.an94"
+    },
+    "Actuated Neutralizer 94000": {
+      "shoot": "custom.weapon.shoot.bo2.an94",
+      "reload": "custom.weapon.reload.bo2.an94"
     },
     "Colt M16A1": {
       "shoot": "custom.weapon.shoot.m16",
-      "reload": ""
+      "reload": "custom.weapon.reload.bo2.m16a1"
+    },
+    "Skullcrusher": {
+      "shoot": "custom.weapon.shoot.m16",
+      "reload": "custom.weapon.reload.bo2.m16a1"
     },
     "FAL": {
       "shoot": "custom.weapon.shoot.fal",
       "reload": "custom.weapon.reload_start.fal"
     },
+    "EPC WN": {
+      "shoot": "custom.weapon.shoot.fal",
+      "reload": "custom.weapon.reload_start.fal"
+    },
     "M8A1": {
-      "shoot": "custom.weapon.shoot.famas",
-      "reload": "custom.weapon.reload_start.famas"
+      "shoot": "custom.weapon.shoot.bo2.m8a1",
+      "reload": "custom.weapon.reload.bo2.m8a1"
+    },
+    "Micro Aerator": {
+      "shoot": "custom.weapon.shoot.bo2.m8a1",
+      "reload": "custom.weapon.reload.bo2.m8a1"
     },
     "M14": {
       "shoot": "custom.weapon.shoot.m14",
       "reload": "custom.weapon.reload_start.m14"
     },
-    "M27": {
-      "shoot": "custom.weapon.shoot.comm",
-      "reload": "custom.weapon.reload_start.comm"
-    },
-    "MTAR": {
-      "shoot": "custom.weapon.shoot.galil",
-      "reload": "custom.weapon.reload_start.galil"
-    },
-    "SMR": {
+    "Mnesia": {
       "shoot": "custom.weapon.shoot.m14",
       "reload": "custom.weapon.reload_start.m14"
     },
+    "M27": {
+      "shoot": "custom.weapon.shoot.bo2.m27",
+      "reload": "custom.weapon.reload.bo2.m27"
+    },
+    "Mystifier": {
+      "shoot": "custom.weapon.shoot.bo2.m27",
+      "reload": "custom.weapon.reload.bo2.m27"
+    },
+    "MTAR": {
+      "shoot": "custom.weapon.shoot.bo2.mtar",
+      "reload": "custom.weapon.reload.bo2.mtar"
+    },
+    "Malevolent Taxonomic Anodized Redeemer": {
+      "shoot": "custom.weapon.shoot.bo2.mtar",
+      "reload": "custom.weapon.reload.bo2.mtar"
+    },
+    "SMR": {
+      "shoot": "custom.weapon.shoot.bo2.smr",
+      "reload": "custom.weapon.reload.bo2.smr"
+    },
+    "SM1L3R": {
+      "shoot": "custom.weapon.shoot.bo2.smr",
+      "reload": "custom.weapon.reload.bo2.smr"
+    },
     "Type 25": {
+      "shoot": "custom.weapon.shoot.bo2.type25",
+      "reload": "custom.weapon.reload.bo2.type25"
+    },
+    "Strain 25": {
+      "shoot": "custom.weapon.shoot.bo2.type25",
+      "reload": "custom.weapon.reload.bo2.type25"
+    },
+    "FAMAS": {
+      "shoot": "custom.weapon.shoot.famas",
+      "reload": "custom.weapon.reload_start.famas"
+    },
+    "G16-GL35": {
+      "shoot": "custom.weapon.shoot.famas",
+      "reload": "custom.weapon.reload_start.famas"
+    },
+    "Galil": {
+      "shoot": "custom.weapon.shoot.galil",
+      "reload": "custom.weapon.reload_start.galil"
+    },
+    "Lamentation": {
+      "shoot": "custom.weapon.shoot.galil",
+      "reload": "custom.weapon.reload_start.galil"
+    },
+    "AUG": {
+      "shoot": "custom.weapon.shoot.aug",
+      "reload": "custom.weapon.reload_start.aug"
+    },
+    "AUG-50M3": {
+      "shoot": "custom.weapon.shoot.aug",
+      "reload": "custom.weapon.reload_start.aug"
+    },
+    "Commando": {
       "shoot": "custom.weapon.shoot.comm",
       "reload": "custom.weapon.reload_start.comm"
     },
+    "Predator": {
+      "shoot": "custom.weapon.shoot.comm",
+      "reload": "custom.weapon.reload_start.comm"
+    },
+    "G11": {
+      "shoot": "custom.weapon.shoot.g11",
+      "reload": "custom.weapon.reload_start.g11"
+    },
+    "G115 Generator": {
+      "shoot": "custom.weapon.shoot.g11",
+      "reload": "custom.weapon.reload_start.g11"
+    },
     "HAMR": {
-      "shoot": "custom.weapon.shoot.hk21",
-      "reload": "custom.weapon.reload_start.hk21"
+      "shoot": "custom.weapon.shoot.bo2.hamr",
+      "reload": "custom.weapon.reload.bo2.hamr"
+    },
+    "SLDG-HAMR": {
+      "shoot": "custom.weapon.shoot.bo2.hamr",
+      "reload": "custom.weapon.reload.bo2.hamr"
     },
     "LSAT": {
-      "shoot": "custom.weapon.shoot.hk21",
-      "reload": "custom.weapon.reload_start.hk21"
+      "shoot": "custom.weapon.shoot.bo2.lsat",
+      "reload": "custom.weapon.reload.bo2.lsat"
+    },
+    "FSIRT": {
+      "shoot": "custom.weapon.shoot.bo2.lsat",
+      "reload": "custom.weapon.reload.bo2.lsat"
     },
     "RPD": {
       "shoot": "custom.weapon.shoot.rpk",
       "reload": "custom.weapon.reload_start.rpk"
     },
+    "Relativistic Punishment Device": {
+      "shoot": "custom.weapon.shoot.rpk",
+      "reload": "custom.weapon.reload_start.rpk"
+    },
     "Mk 48": {
+      "shoot": "custom.weapon.shoot.bo2.mk48",
+      "reload": "custom.weapon.reload.bo2.mk48"
+    },
+    "Mauler 48000": {
+      "shoot": "custom.weapon.shoot.bo2.mk48",
+      "reload": "custom.weapon.reload.bo2.mk48"
+    },
+    "RPK": {
+      "shoot": "custom.weapon.shoot.rpk",
+      "reload": "custom.weapon.reload_start.rpk"
+    },
+    "R115 Resonator": {
+      "shoot": "custom.weapon.shoot.rpk",
+      "reload": "custom.weapon.reload_start.rpk"
+    },
+    "HK21": {
       "shoot": "custom.weapon.shoot.hk21",
       "reload": "custom.weapon.reload_start.hk21"
     },
+    "H115 Oscillator": {
+      "shoot": "custom.weapon.shoot.hk21",
+      "reload": "custom.weapon.reload_start.hk21"
+    },
+    "M60": {
+      "shoot": "custom.weapon.shoot.bo2.m60",
+      "reload": "custom.weapon.reload.bo2.m60"
+    },
+    "Mounted M60": {
+      "shoot": "custom.weapon.shoot.bo2.m60",
+      "reload": "custom.weapon.reload.bo2.m60"
+    },
     "Chicom CQB": {
-      "shoot": "custom.weapon.shoot.mpl",
-      "reload": "custom.weapon.reload_start.mpl"
+      "shoot": "custom.weapon.shoot.bo2.chicom",
+      "reload": "custom.weapon.reload.bo2.chicom"
+    },
+    "Chicom Cataclysmic Quadruple Burst": {
+      "shoot": "custom.weapon.shoot.bo2.chicom",
+      "reload": "custom.weapon.reload.bo2.chicom"
     },
     "MP5": {
       "shoot": "custom.weapon.shoot.mp5",
       "reload": "custom.weapon.reload_start.mp5"
     },
+    "MP115 Kollider": {
+      "shoot": "custom.weapon.shoot.mp5",
+      "reload": "custom.weapon.reload_start.mp5"
+    },
     "PDW-57": {
-      "shoot": "custom.weapon.shoot.spectre",
-      "reload": "custom.weapon.reload_start.spectre"
+      "shoot": "custom.weapon.shoot.bo2.pdw57",
+      "reload": "custom.weapon.reload.bo2.pdw57"
+    },
+    "Predictive Death Wish 57000": {
+      "shoot": "custom.weapon.shoot.bo2.pdw57",
+      "reload": "custom.weapon.reload.bo2.pdw57"
     },
     "MSMC": {
-      "shoot": "custom.weapon.shoot.pm63",
-      "reload": "custom.weapon.reload_start.pm63"
+      "shoot": "custom.weapon.shoot.bo2.msmc",
+      "reload": "custom.weapon.reload.bo2.msmc"
+    },
+    "Tika-Tovo": {
+      "shoot": "custom.weapon.shoot.bo2.msmc",
+      "reload": "custom.weapon.reload.bo2.msmc"
     },
     "Skorpion EVO": {
-      "shoot": "custom.weapon.shoot.pm63",
-      "reload": "custom.weapon.reload_start.pm63"
+      "shoot": "custom.weapon.shoot.bo2.skorpion",
+      "reload": "custom.weapon.reload.bo2.skorpion"
+    },
+    "Scorpio Evolution": {
+      "shoot": "custom.weapon.shoot.bo2.skorpion",
+      "reload": "custom.weapon.reload.bo2.skorpion"
     },
     "Vector K10": {
-      "shoot": "custom.weapon.shoot.spectre",
-      "reload": "custom.weapon.reload_start.spectre"
+      "shoot": "custom.weapon.shoot.bo2.vectork10",
+      "reload": "custom.weapon.reload.bo2.vectork10"
+    },
+    "Vector Kannon-10000": {
+      "shoot": "custom.weapon.shoot.bo2.vectork10",
+      "reload": "custom.weapon.reload.bo2.vectork10"
     },
     "Peacekeeper": {
+      "shoot": "custom.weapon.shoot.bo2.peacekeeper",
+      "reload": "custom.weapon.reload.bo2.peacekeeper"
+    },
+    "Peacekeeper MK2": {
+      "shoot": "custom.weapon.shoot.bo2.peacekeeper",
+      "reload": "custom.weapon.reload.bo2.peacekeeper"
+    },
+    "MP5K": {
+      "shoot": "custom.weapon.shoot.mp5",
+      "reload": "custom.weapon.reload_start.mp5"
+    },
+    "AK-74u": {
       "shoot": "custom.weapon.shoot.ak74",
       "reload": "custom.weapon.reload_start.ak74"
     },
+    "AK-74fu2": {
+      "shoot": "custom.weapon.shoot.ak74",
+      "reload": "custom.weapon.reload_start.ak74"
+    },
+    "PM63": {
+      "shoot": "custom.weapon.shoot.pm63",
+      "reload": "custom.weapon.reload_start.pm63"
+    },
+    "Tokyo & Rose": {
+      "shoot": "custom.weapon.shoot.pm63",
+      "reload": "custom.weapon.reload_start.pm63"
+    },
+    "MPL": {
+      "shoot": "custom.weapon.shoot.mpl",
+      "reload": "custom.weapon.reload_start.mpl"
+    },
+    "MPL-LF": {
+      "shoot": "custom.weapon.shoot.mpl",
+      "reload": "custom.weapon.reload_start.mpl"
+    },
+    "Spectre": {
+      "shoot": "custom.weapon.shoot.spectre",
+      "reload": "custom.weapon.reload_start.spectre"
+    },
+    "Phantom": {
+      "shoot": "custom.weapon.shoot.spectre",
+      "reload": "custom.weapon.reload_start.spectre"
+    },
+    "MP40": {
+      "shoot": "custom.weapon.shoot.mp40",
+      "reload": "custom.weapon.reload_start.mp40"
+    },
+    "The Afterburner": {
+      "shoot": "custom.weapon.shoot.mp40",
+      "reload": "custom.weapon.reload_start.mp40"
+    },
     "Barret 50KCAL": {
-      "shoot": "custom.weapon.shoot.l96",
-      "reload": "custom.weapon.reload_start.l96"
+      "shoot": "custom.weapon.shoot.bo2.barret",
+      "reload": "custom.weapon.reload.bo2.barret"
+    },
+    "Macro Annihilator": {
+      "shoot": "custom.weapon.shoot.bo2.barret",
+      "reload": "custom.weapon.reload.bo2.barret"
     },
     "DSR 50": {
-      "shoot": "custom.weapon.shoot.l96",
-      "reload": "custom.weapon.reload_start.l96"
+      "shoot": "custom.weapon.shoot.bo2.dsr50",
+      "reload": "custom.weapon.reload.bo2.dsr50"
+    },
+    "Dead Specimen Reactor 5000": {
+      "shoot": "custom.weapon.shoot.bo2.dsr50",
+      "reload": "custom.weapon.reload.bo2.dsr50"
     },
     "SVU-AS": {
+      "shoot": "custom.weapon.shoot.bo2.svuas",
+      "reload": "custom.weapon.reload.bo2.svuas"
+    },
+    "Shadowy Veil Utilizer": {
+      "shoot": "custom.weapon.shoot.bo2.svuas",
+      "reload": "custom.weapon.reload.bo2.svuas"
+    },
+    "Dragunov": {
       "shoot": "custom.weapon.shoot.drag",
       "reload": "custom.weapon.reload_start.drag"
     },
+    "D115 Disassembler": {
+      "shoot": "custom.weapon.shoot.drag",
+      "reload": "custom.weapon.reload_start.drag"
+    },
+    "L96A1": {
+      "shoot": "custom.weapon.shoot.l96",
+      "reload": "custom.weapon.reload_start.l96"
+    },
+    "L115 Isolator": {
+      "shoot": "custom.weapon.shoot.l96",
+      "reload": "custom.weapon.reload_start.l96"
+    },
     "Ray Gun": {
+      "shoot": "custom.weapon.shoot.ray",
+      "reload": "custom.weapon.reload_start.ray"
+    },
+    "Porter's X2 Ray Gun": {
       "shoot": "custom.weapon.shoot.ray",
       "reload": "custom.weapon.reload_start.ray"
     },
     "Thundergun": {
       "shoot": "custom.weapon.shoot.thun",
       "reload": "custom.weapon.reload_start.thun"
+    },
+    "Zeus Cannon": {
+      "shoot": "custom.weapon.shoot.thun",
+      "reload": "custom.weapon.reload_start.thun"
+    },
+    "Wunderwaffe DG-2": {
+      "shoot": "custom.weapon.shoot.thun",
+      "reload": "custom.weapon.reload_start.thun"
+    },
+    "Wunderwaffe DG-3 JZ": {
+      "shoot": "custom.weapon.shoot.thun",
+      "reload": "custom.weapon.reload_start.thun"
+    },
+    "M72 LAW": {
+      "shoot": "custom.weapon.shoot.bo2.m72",
+      "reload": "custom.weapon.reload.bo2.m72"
+    },
+    "M72 Anarchy": {
+      "shoot": "custom.weapon.shoot.bo2.m72",
+      "reload": "custom.weapon.reload.bo2.m72"
+    },
+    "China Lake": {
+      "shoot": "custom.weapon.shoot.bo2.chinalake",
+      "reload": "custom.weapon.reload.bo2.chinalake"
+    },
+    "China Beach": {
+      "shoot": "custom.weapon.shoot.bo2.chinalake",
+      "reload": "custom.weapon.reload.bo2.chinalake"
+    },
+    "Crossbow": {
+      "shoot": "custom.weapon.shoot.bo2.crossbow",
+      "reload": "custom.weapon.reload.bo2.crossbow"
+    },
+    "Awful Lawton": {
+      "shoot": "custom.weapon.shoot.bo2.crossbow",
+      "reload": "custom.weapon.reload.bo2.crossbow"
+    },
+    "Ballistic Knife": {
+      "shoot": "custom.weapon.shoot.bo2.balknife",
+      "reload": "custom.weapon.reload.bo2.balknife"
+    },
+    "The Krauss Refibrillator": {
+      "shoot": "custom.weapon.shoot.bo2.balknife",
+      "reload": "custom.weapon.reload.bo2.balknife"
+    },
+    "Winter's Howl": {
+      "shoot": "custom.weapon.shoot.thun",
+      "reload": "custom.weapon.reload_start.thun"
+    },
+    "Winter's Fury": {
+      "shoot": "custom.weapon.shoot.thun",
+      "reload": "custom.weapon.reload_start.thun"
+    },
+    "Scavenger": {
+      "shoot": "custom.weapon.shoot.l96",
+      "reload": "custom.weapon.reload_start.l96"
+    },
+    "Hyena Infra-Dead": {
+      "shoot": "custom.weapon.shoot.l96",
+      "reload": "custom.weapon.reload_start.l96"
+    },
+    "V-R11": {
+      "shoot": "custom.weapon.shoot.vr11",
+      "reload": "custom.weapon.reload_start.vr11"
+    },
+    "V-R11 Upgraded": {
+      "shoot": "custom.weapon.shoot.vr11",
+      "reload": "custom.weapon.reload_start.vr11"
+    },
+    "31-79 JGb215": {
+      "shoot": "custom.weapon.shoot.bo2.chinalake",
+      "reload": "custom.weapon.reload.bo2.chinalake"
+    },
+    "Fractalizer": {
+      "shoot": "custom.weapon.shoot.bo2.chinalake",
+      "reload": "custom.weapon.reload.bo2.chinalake"
+    },
+    "Wave Gun": {
+      "shoot": "custom.weapon.shoot.ray",
+      "reload": "custom.weapon.reload_start.ray"
+    },
+    "Porter's Mark II Ray Gun": {
+      "shoot": "custom.weapon.shoot.ray",
+      "reload": "custom.weapon.reload_start.ray"
     }
   }
 }

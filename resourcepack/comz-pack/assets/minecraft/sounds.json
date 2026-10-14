@@ -86,7 +86,18 @@
     "replace": true,
     "category": "mob",
     "sounds": [
-      "mob/zombie/death"
+      "mob/zombie/death",
+      "mob/zombie/bo_death1",
+      "mob/zombie/bo_death2",
+      "mob/zombie/bo_death3",
+      "mob/zombie/bo_death4",
+      "mob/zombie/bo_death5",
+      "mob/zombie/bo_death6",
+      "mob/zombie/bo_death7",
+      "mob/zombie/bo_death8",
+      "mob/zombie/bo_death9",
+      "mob/zombie/bo_death10",
+      "mob/zombie/bo_death11"
     ]
   },
   "entity.zombie.hurt": {
@@ -95,7 +106,21 @@
     "sounds": [
       "mob/zombie/attack-01",
       "mob/zombie/attack-02",
-      "mob/zombie/attack-03"
+      "mob/zombie/attack-03",
+      "mob/zombie/bo_hurt1",
+      "mob/zombie/bo_hurt2",
+      "mob/zombie/bo_hurt3",
+      "mob/zombie/bo_hurt4",
+      "mob/zombie/bo_hurt5",
+      "mob/zombie/bo_hurt6",
+      "mob/zombie/bo_hurt7",
+      "mob/zombie/bo_hurt8",
+      "mob/zombie/bo_hurt9",
+      "mob/zombie/bo_hurt10",
+      "mob/zombie/bo_hurt11",
+      "mob/zombie/bo_hurt12",
+      "mob/zombie/bo_hurt13",
+      "mob/zombie/bo_hurt14"
     ]
   },
   "entity.zombie.ambient": {
@@ -106,7 +131,48 @@
       "mob/zombie/say-02",
       "mob/zombie/say-03",
       "mob/zombie/say-04",
-      "mob/zombie/say-05"
+      "mob/zombie/say-05",
+      "mob/zombie/bo_say1",
+      "mob/zombie/bo_say2",
+      "mob/zombie/bo_say3",
+      "mob/zombie/bo_say4",
+      "mob/zombie/bo_say5",
+      "mob/zombie/bo_say6",
+      "mob/zombie/bo_say7",
+      "mob/zombie/bo_say8",
+      "mob/zombie/bo_say9",
+      "mob/zombie/bo_say10",
+      "mob/zombie/bo_say11",
+      "mob/zombie/bo_say12",
+      "mob/zombie/bo_say13",
+      "mob/zombie/bo_say14",
+      "mob/zombie/bo_say15",
+      "mob/zombie/bo_say16",
+      "mob/zombie/bo_say17",
+      "mob/zombie/bo_say18",
+      "mob/zombie/bo_say19",
+      "mob/zombie/bo_say20",
+      "mob/zombie/bo_say21",
+      "mob/zombie/bo_say22",
+      "mob/zombie/bo_say23",
+      "mob/zombie/bo_say24",
+      "mob/zombie/bo_say25",
+      "mob/zombie/bo_say26",
+      "mob/zombie/bo_say27",
+      "mob/zombie/bo_say28",
+      "mob/zombie/bo_say29",
+      "mob/zombie/bo_say30",
+      "mob/zombie/bo_say31",
+      "mob/zombie/bo_say32",
+      "mob/zombie/bo_say33",
+      "mob/zombie/bo_say34",
+      "mob/zombie/bo_say35",
+      "mob/zombie/bo_say36",
+      "mob/zombie/bo_say37",
+      "mob/zombie/bo_say38",
+      "mob/zombie/bo_say39",
+      "mob/zombie/bo_say40",
+      "mob/zombie/bo_say41"
     ]
   },
   "entity.zombie_villager.converted": {
@@ -1781,6 +1847,376 @@
     "category": "master",
     "sounds": [
       "custom/weapons/wonder/human/vr11_impact"
+    ]
+  },
+  "custom.weapon.shoot.bo2.b23r": {
+    "category": "master",
+    "sounds": [
+      "custom/weapons/bo2/b23r/shoot"
+    ]
+  },
+  "custom.weapon.reload.bo2.b23r": {
+    "category": "master",
+    "sounds": [
+      "custom/weapons/bo2/b23r/reload"
+    ]
+  },
+  "custom.weapon.shoot.bo2.executioner": {
+    "category": "master",
+    "sounds": [
+      "custom/weapons/bo2/executioner/shoot"
+    ]
+  },
+  "custom.weapon.reload.bo2.executioner": {
+    "category": "master",
+    "sounds": [
+      "custom/weapons/bo2/executioner/reload"
+    ]
+  },
+  "custom.weapon.shoot.bo2.fiveseven": {
+    "category": "master",
+    "sounds": [
+      "custom/weapons/bo2/fiveseven/shoot"
+    ]
+  },
+  "custom.weapon.reload.bo2.fiveseven": {
+    "category": "master",
+    "sounds": [
+      "custom/weapons/bo2/fiveseven/reload"
+    ]
+  },
+  "custom.weapon.shoot.bo2.kap40": {
+    "category": "master",
+    "sounds": [
+      "custom/weapons/bo2/kap40/shoot"
+    ]
+  },
+  "custom.weapon.reload.bo2.kap40": {
+    "category": "master",
+    "sounds": [
+      "custom/weapons/bo2/kap40/reload"
+    ]
+  },
+  "custom.weapon.shoot.bo2.m1216": {
+    "category": "master",
+    "sounds": [
+      "custom/weapons/bo2/m1216/shoot"
+    ]
+  },
+  "custom.weapon.reload.bo2.m1216": {
+    "category": "master",
+    "sounds": [
+      "custom/weapons/bo2/m1216/reload"
+    ]
+  },
+  "custom.weapon.shoot.bo2.r870": {
+    "category": "master",
+    "sounds": [
+      "custom/weapons/bo2/r870/shoot"
+    ]
+  },
+  "custom.weapon.reload.bo2.r870": {
+    "category": "master",
+    "sounds": [
+      "custom/weapons/bo2/r870/reload"
+    ]
+  },
+  "custom.weapon.shoot.bo2.s12": {
+    "category": "master",
+    "sounds": [
+      "custom/weapons/bo2/s12/shoot"
+    ]
+  },
+  "custom.weapon.reload.bo2.s12": {
+    "category": "master",
+    "sounds": [
+      "custom/weapons/bo2/s12/reload"
+    ]
+  },
+  "custom.weapon.shoot.bo2.an94": {
+    "category": "master",
+    "sounds": [
+      "custom/weapons/bo2/an94/shoot"
+    ]
+  },
+  "custom.weapon.reload.bo2.an94": {
+    "category": "master",
+    "sounds": [
+      "custom/weapons/bo2/an94/reload"
+    ]
+  },
+  "custom.weapon.reload.bo2.m16a1": {
+    "category": "master",
+    "sounds": [
+      "custom/weapons/bo2/m16a1/reload"
+    ]
+  },
+  "custom.weapon.shoot.bo2.m8a1": {
+    "category": "master",
+    "sounds": [
+      "custom/weapons/bo2/m8a1/shoot"
+    ]
+  },
+  "custom.weapon.reload.bo2.m8a1": {
+    "category": "master",
+    "sounds": [
+      "custom/weapons/bo2/m8a1/reload"
+    ]
+  },
+  "custom.weapon.shoot.bo2.m27": {
+    "category": "master",
+    "sounds": [
+      "custom/weapons/bo2/m27/shoot"
+    ]
+  },
+  "custom.weapon.reload.bo2.m27": {
+    "category": "master",
+    "sounds": [
+      "custom/weapons/bo2/m27/reload"
+    ]
+  },
+  "custom.weapon.shoot.bo2.mtar": {
+    "category": "master",
+    "sounds": [
+      "custom/weapons/bo2/mtar/shoot"
+    ]
+  },
+  "custom.weapon.reload.bo2.mtar": {
+    "category": "master",
+    "sounds": [
+      "custom/weapons/bo2/mtar/reload"
+    ]
+  },
+  "custom.weapon.shoot.bo2.smr": {
+    "category": "master",
+    "sounds": [
+      "custom/weapons/bo2/smr/shoot"
+    ]
+  },
+  "custom.weapon.reload.bo2.smr": {
+    "category": "master",
+    "sounds": [
+      "custom/weapons/bo2/smr/reload"
+    ]
+  },
+  "custom.weapon.shoot.bo2.type25": {
+    "category": "master",
+    "sounds": [
+      "custom/weapons/bo2/type25/shoot"
+    ]
+  },
+  "custom.weapon.reload.bo2.type25": {
+    "category": "master",
+    "sounds": [
+      "custom/weapons/bo2/type25/reload"
+    ]
+  },
+  "custom.weapon.shoot.bo2.hamr": {
+    "category": "master",
+    "sounds": [
+      "custom/weapons/bo2/hamr/shoot"
+    ]
+  },
+  "custom.weapon.reload.bo2.hamr": {
+    "category": "master",
+    "sounds": [
+      "custom/weapons/bo2/hamr/reload"
+    ]
+  },
+  "custom.weapon.shoot.bo2.lsat": {
+    "category": "master",
+    "sounds": [
+      "custom/weapons/bo2/lsat/shoot"
+    ]
+  },
+  "custom.weapon.reload.bo2.lsat": {
+    "category": "master",
+    "sounds": [
+      "custom/weapons/bo2/lsat/reload"
+    ]
+  },
+  "custom.weapon.shoot.bo2.mk48": {
+    "category": "master",
+    "sounds": [
+      "custom/weapons/bo2/mk48/shoot"
+    ]
+  },
+  "custom.weapon.reload.bo2.mk48": {
+    "category": "master",
+    "sounds": [
+      "custom/weapons/bo2/mk48/reload"
+    ]
+  },
+  "custom.weapon.shoot.bo2.m60": {
+    "category": "master",
+    "sounds": [
+      "custom/weapons/bo2/m60/shoot"
+    ]
+  },
+  "custom.weapon.reload.bo2.m60": {
+    "category": "master",
+    "sounds": [
+      "custom/weapons/bo2/m60/reload"
+    ]
+  },
+  "custom.weapon.shoot.bo2.chicom": {
+    "category": "master",
+    "sounds": [
+      "custom/weapons/bo2/chicom/shoot"
+    ]
+  },
+  "custom.weapon.reload.bo2.chicom": {
+    "category": "master",
+    "sounds": [
+      "custom/weapons/bo2/chicom/reload"
+    ]
+  },
+  "custom.weapon.shoot.bo2.pdw57": {
+    "category": "master",
+    "sounds": [
+      "custom/weapons/bo2/pdw57/shoot"
+    ]
+  },
+  "custom.weapon.reload.bo2.pdw57": {
+    "category": "master",
+    "sounds": [
+      "custom/weapons/bo2/pdw57/reload"
+    ]
+  },
+  "custom.weapon.shoot.bo2.msmc": {
+    "category": "master",
+    "sounds": [
+      "custom/weapons/bo2/msmc/shoot"
+    ]
+  },
+  "custom.weapon.reload.bo2.msmc": {
+    "category": "master",
+    "sounds": [
+      "custom/weapons/bo2/msmc/reload"
+    ]
+  },
+  "custom.weapon.shoot.bo2.skorpion": {
+    "category": "master",
+    "sounds": [
+      "custom/weapons/bo2/skorpion/shoot"
+    ]
+  },
+  "custom.weapon.reload.bo2.skorpion": {
+    "category": "master",
+    "sounds": [
+      "custom/weapons/bo2/skorpion/reload"
+    ]
+  },
+  "custom.weapon.shoot.bo2.vectork10": {
+    "category": "master",
+    "sounds": [
+      "custom/weapons/bo2/vectork10/shoot"
+    ]
+  },
+  "custom.weapon.reload.bo2.vectork10": {
+    "category": "master",
+    "sounds": [
+      "custom/weapons/bo2/vectork10/reload"
+    ]
+  },
+  "custom.weapon.shoot.bo2.peacekeeper": {
+    "category": "master",
+    "sounds": [
+      "custom/weapons/bo2/peacekeeper/shoot"
+    ]
+  },
+  "custom.weapon.reload.bo2.peacekeeper": {
+    "category": "master",
+    "sounds": [
+      "custom/weapons/bo2/peacekeeper/reload"
+    ]
+  },
+  "custom.weapon.shoot.bo2.barret": {
+    "category": "master",
+    "sounds": [
+      "custom/weapons/bo2/barret/shoot"
+    ]
+  },
+  "custom.weapon.reload.bo2.barret": {
+    "category": "master",
+    "sounds": [
+      "custom/weapons/bo2/barret/reload"
+    ]
+  },
+  "custom.weapon.shoot.bo2.dsr50": {
+    "category": "master",
+    "sounds": [
+      "custom/weapons/bo2/dsr50/shoot"
+    ]
+  },
+  "custom.weapon.reload.bo2.dsr50": {
+    "category": "master",
+    "sounds": [
+      "custom/weapons/bo2/dsr50/reload"
+    ]
+  },
+  "custom.weapon.shoot.bo2.svuas": {
+    "category": "master",
+    "sounds": [
+      "custom/weapons/bo2/svuas/shoot"
+    ]
+  },
+  "custom.weapon.reload.bo2.svuas": {
+    "category": "master",
+    "sounds": [
+      "custom/weapons/bo2/svuas/reload"
+    ]
+  },
+  "custom.weapon.shoot.bo2.chinalake": {
+    "category": "master",
+    "sounds": [
+      "custom/weapons/bo2/chinalake/shoot"
+    ]
+  },
+  "custom.weapon.reload.bo2.chinalake": {
+    "category": "master",
+    "sounds": [
+      "custom/weapons/bo2/chinalake/reload"
+    ]
+  },
+  "custom.weapon.shoot.bo2.m72": {
+    "category": "master",
+    "sounds": [
+      "custom/weapons/bo2/m72/shoot"
+    ]
+  },
+  "custom.weapon.reload.bo2.m72": {
+    "category": "master",
+    "sounds": [
+      "custom/weapons/bo2/m72/reload"
+    ]
+  },
+  "custom.weapon.shoot.bo2.crossbow": {
+    "category": "master",
+    "sounds": [
+      "custom/weapons/bo2/crossbow/shoot",
+      "custom/weapons/bo2/crossbow/shoot_2",
+      "custom/weapons/bo2/crossbow/shoot_3"
+    ]
+  },
+  "custom.weapon.reload.bo2.crossbow": {
+    "category": "master",
+    "sounds": [
+      "custom/weapons/bo2/crossbow/reload"
+    ]
+  },
+  "custom.weapon.shoot.bo2.balknife": {
+    "category": "master",
+    "sounds": [
+      "custom/weapons/bo2/balknife/shoot",
+      "custom/weapons/bo2/balknife/shoot_2",
+      "custom/weapons/bo2/balknife/shoot_3"
+    ]
+  },
+  "custom.weapon.reload.bo2.balknife": {
+    "category": "master",
+    "sounds": [
+      "custom/weapons/bo2/balknife/reload"
     ]
   }
 }
