@@ -49,14 +49,26 @@ public final class Displays
 	{
 		if(loc.getWorld() == null || block == null)
 			return null;
-		return backend.spawnBlock(loc, block, cx, cy, cz, sx, sy, sz, yawDegrees, glow);
+		return nonPersistent(backend.spawnBlock(loc, block, cx, cy, cz, sx, sy, sz, yawDegrees, glow));
 	}
 
 	public static Entity spawnItem(Location loc, ItemStack stack, float scale, float yawDegrees, float offsetY, boolean faceViewer)
 	{
 		if(loc.getWorld() == null)
 			return null;
-		return backend.spawnItem(loc, stack, scale, yawDegrees, offsetY, faceViewer);
+		return nonPersistent(backend.spawnItem(loc, stack, scale, yawDegrees, offsetY, faceViewer));
+	}
+
+	public static void setBrightness(Entity display, int block, int sky)
+	{
+		if(display == null || display.isDead())
+			return;
+		backend.setBrightness(display, block, sky);
+	}
+
+	public static void clearBrightness(Entity display)
+	{
+		setBrightness(display, -1, -1);
 	}
 
 	public static void animate(Entity display, float x, float y, float z, float scale, float yawDegrees, int durationTicks)
@@ -70,13 +82,21 @@ public final class Displays
 	{
 		if(loc.getWorld() == null)
 			return null;
-		return backend.spawnText(loc, text, seeThrough);
+		return nonPersistent(backend.spawnText(loc, text, seeThrough));
 	}
 
 	public static Entity spawnHitbox(Location loc, float width, float height)
 	{
 		if(loc.getWorld() == null)
 			return null;
-		return backend.spawnHitbox(loc, width, height);
+		return nonPersistent(backend.spawnHitbox(loc, width, height));
+	}
+
+	// Visual entities are rebuilt every game, so a copy saved with the chunk would only be an orphan after a restart.
+	private static Entity nonPersistent(Entity entity)
+	{
+		if(entity != null)
+			entity.setPersistent(false);
+		return entity;
 	}
 }

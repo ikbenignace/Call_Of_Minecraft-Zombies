@@ -2,6 +2,7 @@ package com.theprogrammingturkey.comz.util;
 
 import org.bukkit.Color;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.Particle;
 import org.bukkit.World;
 
@@ -56,6 +57,15 @@ public final class ParticleFX
 		world.spawnParticle(Particle.END_ROD, base.clone().add(0, height, 0), 1, 0, 0, 0, 0);
 	}
 
+	/** Rising column of end-rod light from {@code base} up to {@code base + height}, like a beacon beam. */
+	public static void lightColumn(World world, Location base, double height)
+	{
+		if(world == null)
+			return;
+		for(double y = 0; y <= height; y += 0.5)
+			world.spawnParticle(Particle.END_ROD, base.clone().add(0, y, 0), 0, 0, 1, 0, 0.12);
+	}
+
 	/**
 	 * Coloured burst of {@code count} DUST particles at a location (perk-buy / Pack-a-Punch flourish).
 	 */
@@ -65,5 +75,37 @@ public final class ParticleFX
 			return;
 		// 'count' dust particles with a moderate (~0.4) spread and a chunky (~1.5) size.
 		world.spawnParticle(Compat.DUST, loc, count, 0.4, 0.4, 0.4, 0, new Particle.DustOptions(color, 1.5f));
+	}
+
+	/** Fireball with a smoke ring and shrapnel dust, used for grenade and monkey bomb detonations. */
+	public static void blast(World world, Location loc)
+	{
+		if(world == null)
+			return;
+		world.spawnParticle(Compat.EXPLOSION_EMITTER, loc, 1);
+		world.spawnParticle(Compat.EXPLOSION, loc, 6, 1.0, 0.6, 1.0, 0);
+		world.spawnParticle(Compat.SMOKE, loc, 30, 1.2, 0.8, 1.2, 0.05);
+		world.spawnParticle(Particle.FLAME, loc, 20, 0.8, 0.5, 0.8, 0.08);
+	}
+
+	/** Dirt crumbs and dust where a zombie claws out of the ground. */
+	public static void groundBreak(World world, Location loc)
+	{
+		if(world == null)
+			return;
+		if(Compat.BLOCK != null)
+			world.spawnParticle(Compat.BLOCK, loc.clone().add(0, 0.1, 0), 25, 0.4, 0.1, 0.4, 0.1, Material.DIRT.createBlockData());
+		world.spawnParticle(Compat.SMOKE, loc.clone().add(0, 0.2, 0), 6, 0.3, 0.1, 0.3, 0.02);
+	}
+
+	/** Quick bright flash around a player, used when a power-up is grabbed. */
+	public static void grabFlash(World world, Location loc, Color color)
+	{
+		if(world == null)
+			return;
+		Location chest = loc.clone().add(0, 1, 0);
+		world.spawnParticle(Compat.FIREWORK, chest, 25, 0.4, 0.6, 0.4, 0.08);
+		world.spawnParticle(Compat.DUST, chest, 30, 0.6, 0.8, 0.6, 0, new Particle.DustOptions(color, 1.8f));
+		world.spawnParticle(Particle.END_ROD, chest, 10, 0.3, 0.5, 0.3, 0.1);
 	}
 }

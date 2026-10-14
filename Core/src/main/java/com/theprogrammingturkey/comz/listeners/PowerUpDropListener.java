@@ -153,6 +153,10 @@ public class PowerUpDropListener implements Listener
 			{
 				player.getInventory().remove(item);
 				notifyAll(game, powerUp);
+				com.theprogrammingturkey.comz.util.ParticleFX.grabFlash(player.getWorld(), player.getLocation(), powerUp.getGlowColor());
+				String grab = com.theprogrammingturkey.comz.util.SoundConfig.get("powerup.grab", "ENTITY_ITEM_PICKUP");
+				if(!grab.equals(com.theprogrammingturkey.comz.util.SoundConfig.get("powerup." + powerUp.name(), "")))
+					com.theprogrammingturkey.comz.util.SoundUtil.play(player, player.getLocation(), grab, org.bukkit.SoundCategory.MASTER, 0.8F, 1);
 			}
 
 			int duration = -1;

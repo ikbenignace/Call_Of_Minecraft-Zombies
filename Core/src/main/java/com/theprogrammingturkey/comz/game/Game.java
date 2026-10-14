@@ -345,7 +345,10 @@ public class Game
 	 */
 	public void turnOffPower()
 	{
+		boolean wasOn = powerOn;
 		powerOn = false;
+		if(wasOn && machineModelManager != null)
+			machineModelManager.onPowerChanged(false);
 	}
 
 	/**
@@ -354,12 +357,13 @@ public class Game
 	public void turnOnPower()
 	{
 		powerOn = true;
+		machineModelManager.onPowerChanged(true);
 
 		for(Player pl : getPlayersAndSpectators())
 		{
 			World world = pl.getLocation().getWorld();
 			if(world != null)
-				world.playSound(pl.getLocation(), Sound.ENTITY_LIGHTNING_BOLT_THUNDER, 1L, 1L);
+				com.theprogrammingturkey.comz.util.SoundUtil.playKey(pl, pl.getLocation(), "power.on", "ENTITY_LIGHTNING_BOLT_THUNDER", org.bukkit.SoundCategory.MASTER, 1, 1);
 		}
 	}
 
@@ -656,8 +660,9 @@ public class Game
 				// Round-start ambience: dramatic stinger + brief eerie darkness for buildup (additive to the title above).
 				if(ConfigManager.getMainConfig().visualsRoundAmbience)
 				{
-					// Low-pitched vanilla stinger for a dramatic round-start cue (per-player, matching the title sends above).
-					com.theprogrammingturkey.comz.util.SoundUtil.play(pl, pl.getLocation(), "ENTITY_WITHER_SPAWN", org.bukkit.SoundCategory.MASTER, 0.7f, 0.6f);
+					// The pack's round chime is the stinger; the vanilla wither roar would play over it.
+					if(!com.theprogrammingturkey.comz.util.PackModels.isPackEnabled())
+						com.theprogrammingturkey.comz.util.SoundUtil.play(pl, pl.getLocation(), "ENTITY_WITHER_SPAWN", org.bukkit.SoundCategory.MASTER, 0.7f, 0.6f);
 					// Short DARKNESS effect (~40 ticks) to sell the eerie buildup; weather is intentionally left untouched.
 					if(Compat.DARKNESS != null)
 						pl.addPotionEffect(new org.bukkit.potion.PotionEffect(Compat.DARKNESS, 40, 0, false, false, false));
@@ -666,7 +671,7 @@ public class Game
 				switch(spawnType)
 				{
 					case REGULAR:
-						com.theprogrammingturkey.comz.util.SoundUtil.play(pl, pl.getLocation(), com.theprogrammingturkey.comz.util.SoundConfig.get("round.regular", "BLOCK_PORTAL_TRAVEL"), org.bukkit.SoundCategory.MASTER, ConfigManager.getMainConfig().roundSoundVolume, 1);
+						com.theprogrammingturkey.comz.util.SoundUtil.play(pl, pl.getLocation(), com.theprogrammingturkey.comz.util.SoundConfig.get(waveNumber == 1 ? "round.first" : "round.regular", "BLOCK_PORTAL_TRAVEL"), org.bukkit.SoundCategory.MASTER, ConfigManager.getMainConfig().roundSoundVolume, 1);
 						break;
 					case HELL_HOUNDS:
 						com.theprogrammingturkey.comz.util.SoundUtil.play(pl, pl.getLocation(), com.theprogrammingturkey.comz.util.SoundConfig.get("round.dogs", "ENTITY_ENDER_DRAGON_GROWL"), org.bukkit.SoundCategory.MASTER, ConfigManager.getMainConfig().roundSoundVolume, 1);
@@ -1513,8 +1518,10 @@ public class Game
 
 			powerUpManager.powerUpDrop(mob, player);
 			mob.remove();
-			PointManager.INSTANCE.addPoints(player, killPoints(ConfigManager.getMainConfig().pointsOnKill, headshotKill, meleeKill,
-					ConfigManager.getMainConfig().headshotKillBonus, ConfigManager.getMainConfig().meleeKillBonus, isDoublePoints()));
+			int killScore = killPoints(ConfigManager.getMainConfig().pointsOnKill, headshotKill, meleeKill,
+					ConfigManager.getMainConfig().headshotKillBonus, ConfigManager.getMainConfig().meleeKillBonus, isDoublePoints());
+			PointManager.INSTANCE.addPoints(player, killScore);
+			com.theprogrammingturkey.comz.util.PointPopup.show(player, mob, killScore);
 
 			PointManager.INSTANCE.notifyPlayer(player);
 			tryVultureDrop(mob, player);
@@ -1543,8 +1550,10 @@ public class Game
 
 			powerUpManager.powerUpDrop(mob, player);
 			mob.remove();
-			PointManager.INSTANCE.addPoints(player, killPoints(ConfigManager.getMainConfig().pointsOnKill, headshotKill, meleeKill,
-					ConfigManager.getMainConfig().headshotKillBonus, ConfigManager.getMainConfig().meleeKillBonus, isDoublePoints()));
+			int killScore = killPoints(ConfigManager.getMainConfig().pointsOnKill, headshotKill, meleeKill,
+					ConfigManager.getMainConfig().headshotKillBonus, ConfigManager.getMainConfig().meleeKillBonus, isDoublePoints());
+			PointManager.INSTANCE.addPoints(player, killScore);
+			com.theprogrammingturkey.comz.util.PointPopup.show(player, mob, killScore);
 
 			PointManager.INSTANCE.notifyPlayer(player);
 			tryVultureDrop(mob, player);
@@ -1570,10 +1579,9 @@ public class Game
 			else
 				player.getWorld().playSound(mob.getLocation(), Sound.ENTITY_GENERIC_HURT, 1f, 1f);
 
-			if(isDoublePoints())
-				PointManager.INSTANCE.addPoints(player, ConfigManager.getMainConfig().pointsOnHit * 2);
-			else
-				PointManager.INSTANCE.addPoints(player, ConfigManager.getMainConfig().pointsOnHit);
+			int hitScore = ConfigManager.getMainConfig().pointsOnHit * (isDoublePoints() ? 2 : 1);
+			PointManager.INSTANCE.addPoints(player, hitScore);
+			com.theprogrammingturkey.comz.util.PointPopup.show(player, mob, hitScore);
 			PointManager.INSTANCE.notifyPlayer(player);
 		}
 
@@ -1643,7 +1651,15 @@ public class Game
 				pl.sendTitle(ChatColor.DARK_RED + "" + ChatColor.BOLD + "GAME OVER", ChatColor.GRAY + "You survived to round " + waveNumber, 10, 60, 20);
 				CommandUtil.sendMessageToPlayer(pl, ChatColor.DARK_RED + "" + ChatColor.BOLD + "GAME OVER" + ChatColor.GRAY + " — you reached round " + waveNumber + ".");
 			}
+			java.util.List<Player> ending = new java.util.ArrayList<>(getPlayersInGame());
 			endGame();
+			// endGame moves players out of the arena, so the sting follows them to wherever they land.
+			COMZombies.scheduleTask(2, () ->
+			{
+				for(Player pl : ending)
+					if(pl.isOnline())
+						com.theprogrammingturkey.comz.util.SoundUtil.playKey(pl, pl.getLocation(), "round.gameover", "ENTITY_WITHER_DEATH", org.bukkit.SoundCategory.MASTER, ConfigManager.getMainConfig().roundSoundVolume, 1);
+			});
 		}
 		else
 			downedPlayerManager.setPlayerDowned(player, this);

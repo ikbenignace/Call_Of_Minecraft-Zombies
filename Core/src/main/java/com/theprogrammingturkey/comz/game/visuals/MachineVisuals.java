@@ -99,6 +99,27 @@ public final class MachineVisuals
 		return spawned;
 	}
 
+	private static final int DIM_LIGHT = 3;
+
+	/**
+	 * Lights the machine up or darkens it. Lit machines glow at full brightness on their glow parts (the whole
+	 * model for the pack); unpowered ones are drawn dim, glow parts included.
+	 */
+	public static void setPowered(List<Entity> entities, Look look, boolean powered)
+	{
+		boolean perPart = look != null && entities.size() == look.partCount();
+		for(int i = 0; i < entities.size(); i++)
+		{
+			Entity entity = entities.get(i);
+			if(!powered)
+				Displays.setBrightness(entity, DIM_LIGHT, DIM_LIGHT);
+			else if(!perPart || look.isGlowPart(i))
+				Displays.setBrightness(entity, 15, 15);
+			else
+				Displays.clearBrightness(entity);
+		}
+	}
+
 	public static void remove(List<Entity> entities)
 	{
 		if(entities == null)

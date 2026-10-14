@@ -1,7 +1,9 @@
 package com.theprogrammingturkey.comz.game.managers;
 
 import com.theprogrammingturkey.comz.COMZombies;
+import com.theprogrammingturkey.comz.game.visuals.MachineLooks.Look;
 import com.theprogrammingturkey.comz.game.visuals.MachineVisuals;
+import org.bukkit.block.BlockFace;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Sign;
@@ -38,8 +40,17 @@ public class MachineModel
 	Entity hologram;
 	String label;
 
-	MachineModel(Location baseLoc, Location signLoc, Material signMaterial, BlockData signData, String[] signLines)
+	final BlockFace facing;
+	/** Mutable: the power switch swaps between its off and on look. */
+	Look look;
+	boolean usePack;
+	/** Lights up when the arena power comes on (perk machines and Pack-a-Punch). */
+	boolean powerGated;
+
+	MachineModel(Location baseLoc, Location signLoc, Material signMaterial, BlockData signData, String[] signLines, BlockFace facing, Look look)
 	{
+		this.facing = facing;
+		this.look = look;
 		this.baseLoc = baseLoc;
 		this.signLoc = signLoc;
 		this.signMaterial = signMaterial;

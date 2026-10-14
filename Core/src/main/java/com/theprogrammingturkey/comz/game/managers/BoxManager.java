@@ -179,8 +179,10 @@ public class BoxManager
 	{
 		if(beamTaskId != -1 || !ConfigManager.getMainConfig().visualsBoxBeam)
 			return;
+		final int[] ticks = {0};
 		beamTaskId = COMZombies.scheduleTask(0, 8, () ->
 		{
+			ticks[0]++;
 			if(game.getStatus() != Game.GameStatus.INGAME)
 			{
 				Bukkit.getScheduler().cancelTask(beamTaskId);
@@ -192,7 +194,11 @@ public class BoxManager
 			{
 				Location base = b.getLocation();
 				if(base != null && base.getWorld() != null)
+				{
 					ParticleFX.beam(base.getWorld(), base.clone().add(0.5, 1.0, 0.5), 2.5, Color.fromRGB(0xFF, 0xD7, 0x00));
+					if(ticks[0] % 3 == 0)
+						ParticleFX.lightColumn(base.getWorld(), base.clone().add(0.5, 1.0, 0.5), 12.0);
+				}
 			}
 		});
 	}

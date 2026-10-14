@@ -4,6 +4,7 @@ import com.theprogrammingturkey.comz.COMZombies;
 import com.theprogrammingturkey.comz.config.ConfigManager;
 import com.theprogrammingturkey.comz.game.Game;
 import com.theprogrammingturkey.comz.game.features.PerkType;
+import com.theprogrammingturkey.comz.game.features.RandomBox;
 import com.theprogrammingturkey.comz.game.builder.MachineSigns;
 import com.theprogrammingturkey.comz.game.signs.IGameSign;
 import com.theprogrammingturkey.comz.game.signs.PackAPunchSign;
@@ -50,6 +51,8 @@ public class MachineModelManager
 	private final Game game;
 	private final List<MachineModel> machines = new ArrayList<>();
 	private final Map<UUID, MachineModel> byInteraction = new HashMap<>();
+	/** Hitboxes owned by mystery boxes; the box creates and removes them, this only routes clicks. */
+	private final Map<UUID, RandomBox> boxHitboxes = new HashMap<>();
 
 	public MachineModelManager(Game game)
 	{
@@ -90,6 +93,26 @@ public class MachineModelManager
 			base = Material.BARREL;
 			label = ChatColor.AQUA + titleCase(perk.toString()) + ChatColor.YELLOW + " [" + ChatColor.stripColor(sign.getLine(3)) + "]";
 		}
+		else if(type.equals("ammo crate"))
+		{
+			base = Material.BARRIER;
+			label = ChatColor.AQUA + "Ammo Crate " + ChatColor.YELLOW + "[" + ChatColor.stripColor(sign.getLine(2)) + "]";
+		}
+		else if(type.equals("power"))
+		{
+			base = Material.AIR; // wall-mounted: nothing to collide with, the model hangs on the wall behind the sign block
+			label = ChatColor.AQUA + "Power Switch";
+		}
+		else if(type.equals("fridge"))
+		{
+			base = Material.BARRIER;
+			label = ChatColor.AQUA + "Fridge";
+		}
+		else if(type.equals("bank"))
+		{
+			base = Material.BARRIER;
+			label = ChatColor.AQUA + "Bank";
+		}
 		else
 		{
 			return; // mystery box owns its own visuals (chest + model) via RandomBox
@@ -115,7 +138,7 @@ public class MachineModelManager
 		// the MachineModel and fully rebuilt on teardown).
 		Location baseLoc = signLoc.clone();
 		String[] signLines = sign.getLines().clone();
-		MachineModel machine = new MachineModel(baseLoc, signLoc, sign.getType(), data, signLines);
+		MachineModel machine = new MachineModel(baseLoc, signLoc, sign.getType(), data, signLines, facing, look);
 
 		baseLoc.getBlock().setType(base, false);
 		if(ChatColor.stripColor(signLines[1]).trim().equalsIgnoreCase("pack-a-punch"))
@@ -125,7 +148,14 @@ public class MachineModelManager
 		// shared ItemDisplay would otherwise render as a missing-model cube for pack-less players); everyone
 		// else gets the block look-alike.
 		boolean usePack = PackModels.isPackEnabled() && ConfigManager.getMainConfig().resourcePackForce;
+		machine.usePack = usePack;
+		machine.powerGated = look != MachineLooks.AMMO_CRATE && look != MachineLooks.POWER_SWITCH
+				&& look != MachineLooks.FRIDGE && look != MachineLooks.BANK;
 		machine.visuals.addAll(MachineVisuals.spawn(baseLoc, facing, look, usePack));
+		if(machine.powerGated && game.hasPower())
+			MachineVisuals.setPowered(machine.visuals, look, game.isPowered());
+		if(look == MachineLooks.POWER_SWITCH && game.isPowered())
+			flipSwitch(machine, true);
 
 		// Invisible clickable hitbox covering the whole machine.
 		Entity interaction = Displays.spawnHitbox(baseLoc.clone().add(0.5, 0.0, 0.5), look.hitWidth, look.hitHeight);
@@ -146,6 +176,14 @@ public class MachineModelManager
 	 */
 	public boolean handleInteract(Player player, Entity entity)
 	{
+		RandomBox box = boxHitboxes.get(entity.getUniqueId());
+		if(box != null)
+		{
+			if(game.getStatus() == Game.GameStatus.INGAME && game.getLivingPlayers().contains(player)
+					&& !game.downedPlayerManager.isDownedPlayer(player) && !game.downedPlayerManager.isGhost(player))
+				box.interact(player);
+			return true;
+		}
 		MachineModel machine = byInteraction.get(entity.getUniqueId());
 		if(machine == null)
 			return false;
@@ -191,6 +229,58 @@ public class MachineModelManager
 	{
 		String s = enumName.toLowerCase().replace('_', ' ');
 		return s.isEmpty() ? s : Character.toUpperCase(s.charAt(0)) + s.substring(1);
+	}
+
+	public void registerBoxHitbox(Entity hitbox, RandomBox box)
+	{
+		boxHitboxes.put(hitbox.getUniqueId(), box);
+	}
+
+	public void unregisterBoxHitbox(Entity hitbox)
+	{
+		boxHitboxes.remove(hitbox.getUniqueId());
+	}
+
+	/**
+	 * Power came on or went off: perk machines and Pack-a-Punch light up or go dark, and the power switch
+	 * flips with a spark burst.
+	 */
+	public void onPowerChanged(boolean on)
+	{
+		for(MachineModel machine : machines)
+		{
+			World world = machine.baseLoc.getWorld();
+			if(machine.look == MachineLooks.POWER_SWITCH || machine.look == MachineLooks.POWER_SWITCH_ON)
+			{
+				flipSwitch(machine, on);
+				if(on && world != null)
+					world.spawnParticle(Compat.ELECTRIC_SPARK, machine.baseLoc.clone().add(0.5, 0.6, 0.35), 60, 0.25, 0.3, 0.1, 0.4);
+			}
+			else if(machine.powerGated)
+			{
+				MachineVisuals.setPowered(machine.visuals, machine.look, on);
+				if(on && world != null)
+					world.spawnParticle(Compat.ELECTRIC_SPARK, machine.baseLoc.clone().add(0.5, 1.0, 0.5), 30, 0.35, 0.8, 0.35, 0.3);
+			}
+		}
+	}
+
+	private void flipSwitch(MachineModel machine, boolean on)
+	{
+		Look target = on ? MachineLooks.POWER_SWITCH_ON : MachineLooks.POWER_SWITCH;
+		if(machine.look != target)
+		{
+			MachineVisuals.remove(machine.visuals);
+			machine.look = target;
+			machine.visuals.addAll(MachineVisuals.spawn(machine.baseLoc, machine.facing, target, machine.usePack));
+		}
+		if(on && machine.hologram != null)
+		{
+			machine.hologram.remove();
+			machine.hologram = null;
+		}
+		if(on)
+			machine.label = ChatColor.GREEN + "Power Switch (on)";
 	}
 
 	/** Remove all machines: despawn entities and restore base blocks. Safe to call repeatedly. */

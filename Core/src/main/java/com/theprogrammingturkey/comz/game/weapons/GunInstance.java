@@ -245,7 +245,7 @@ public class GunInstance extends WeaponInstance
 		if(totalAmmo == 0 && clipAmmo == 0)
 		{
 			CommandUtil.sendMessageToPlayer(player, ChatColor.RED + "No ammo!");
-			player.getWorld().playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1, 1);
+			SoundUtil.playKey(player.getWorld(), player.getLocation(), "weapon.dryfire", "UI_BUTTON_CLICK", SoundCategory.PLAYERS, 1, 1);
 			return false;
 		}
 

@@ -5,8 +5,10 @@ import com.theprogrammingturkey.comz.game.Game;
 import com.theprogrammingturkey.comz.game.managers.PlayerWeaponManager;
 import com.theprogrammingturkey.comz.game.weapons.GunInstance;
 import com.theprogrammingturkey.comz.util.CommandUtil;
+import com.theprogrammingturkey.comz.util.SoundUtil;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
+import org.bukkit.SoundCategory;
 import org.bukkit.entity.Player;
 import org.bukkit.event.block.SignChangeEvent;
 
@@ -41,6 +43,7 @@ public class AmmoCrateSign implements IGameSign
 				GunInstance gun = manager.getGun(player.getInventory().getHeldItemSlot());
 				gun.clipAmmo = gun.getType().clipAmmo;
 				gun.maxAmmo();
+				SoundUtil.playKey(player, player.getLocation(), "pickup.ammo", "ENTITY_ITEM_PICKUP", SoundCategory.PLAYERS, 1f, 1f);
 			}
 			else
 			{

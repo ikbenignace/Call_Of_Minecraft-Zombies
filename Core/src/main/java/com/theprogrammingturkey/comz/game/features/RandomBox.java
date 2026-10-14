@@ -12,6 +12,7 @@ import com.theprogrammingturkey.comz.game.weapons.Weapon;
 import com.theprogrammingturkey.comz.util.BlockUtils;
 import com.theprogrammingturkey.comz.util.CommandUtil;
 import com.theprogrammingturkey.comz.util.PackModels;
+import com.theprogrammingturkey.comz.util.display.Displays;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
@@ -52,6 +53,11 @@ public class RandomBox
 
 	/** Pack model or block look-alike drawn around the chest in-game; owned by this box. */
 	private final List<Entity> visuals = new ArrayList<>();
+	/** Invisible click targets covering the model's two halves; the 2-block-wide model is wider than the chest. */
+	private final List<Entity> hitboxes = new ArrayList<>();
+	/** True when the pack model stands in for the chest (the chest block is hidden behind a barrier). */
+	private boolean modelMode;
+	private boolean lidOpen;
 
 	private Player openedBy;
 
@@ -110,13 +116,15 @@ public class RandomBox
 		openedBy = player;
 		useCount++;
 
-		if(chestLocation != null)
+		if(chestLocation != null && chestLocation.getBlock().getType() == Material.CHEST)
 			COMZombies.nmsUtil.playChestAction(chestLocation, true);
+		setLid(true);
 
 		running = true;
 		Location itemLoc = getBoxCenterLoc(chestLocation);
 
 		item = player.getWorld().dropItem(itemLoc, weapon.getStack());
+		item.setPersistent(false);
 		namePlate = (ArmorStand) player.getWorld().spawnEntity(itemLoc.clone().add(0, -1.7, 0), EntityType.ARMOR_STAND);
 		namePlate.setVisible(false);
 		namePlate.setPersistent(false);
@@ -167,6 +175,7 @@ public class RandomBox
 
 							COMZombies.scheduleTask(40, () ->
 							{
+								com.theprogrammingturkey.comz.util.SoundUtil.playKey(player.getWorld(), boxLoc, "box.leave", "ENTITY_ENDERMAN_TELEPORT", org.bukkit.SoundCategory.MASTER, 1f, 1f);
 								int velTask = COMZombies.scheduleTask(0, 5, () -> item.setVelocity(new Vector(0, 0.1, 0)));
 
 								COMZombies.scheduleTask(60, () ->
@@ -182,6 +191,8 @@ public class RandomBox
 						else
 						{
 							com.theprogrammingturkey.comz.util.SoundUtil.play(player.getWorld(), boxLoc, com.theprogrammingturkey.comz.util.SoundConfig.get("box.lock", "ENTITY_EXPERIENCE_ORB_PICKUP"), org.bukkit.SoundCategory.MASTER, 1f, 1f);
+							if(weapon.getName().toLowerCase().contains("ray gun"))
+								com.theprogrammingturkey.comz.util.SoundUtil.playKey(player.getWorld(), boxLoc, "box.raygun", "", org.bukkit.SoundCategory.MASTER, 1f, 1f);
 							gunSelected = true;
 						}
 					}
@@ -317,7 +328,11 @@ public class RandomBox
 			namePlate.remove();
 		// In-game the chest sits at boxLoc; close its lid animation.
 		if(boxLoc != null && boxGame.getStatus() == Game.GameStatus.INGAME)
-			COMZombies.nmsUtil.playChestAction(boxLoc, false);
+		{
+			if(boxLoc.getBlock().getType() == Material.CHEST)
+				COMZombies.nmsUtil.playChestAction(boxLoc, false);
+			setLid(false);
+		}
 		Integer id = RandomBox.boxes.remove(RandomBox.this);
 		if(id != null)
 			Bukkit.getScheduler().cancelTask(id);
@@ -350,14 +365,22 @@ public class RandomBox
 			showSign();
 	}
 
-	/** In-game representation: a CHEST on boxLoc + a price hologram floating above it. */
+	/**
+	 * In-game representation: the chest on boxLoc with a price hologram above it. With the pack model the
+	 * chest is hidden behind a barrier (the model is wider than the chest and the lid is part of the model),
+	 * and clicks come from hitboxes instead.
+	 */
 	private void showChest()
 	{
+		boolean usePack = PackModels.isPackEnabled() && ConfigManager.getMainConfig().resourcePackForce;
+		modelMode = usePack && Displays.supportsItemDisplays() && Displays.supportsHitboxes();
+
 		Block block = boxLoc.getBlock();
-		// Only (re)place if it isn't already a chest — avoid wiping a mid-spin chest state.
-		if(block.getType() != Material.CHEST)
+		Material wanted = modelMode ? Material.BARRIER : Material.CHEST;
+		// Only (re)place if it isn't already there, to avoid wiping a mid-spin chest state.
+		if(block.getType() != wanted)
 		{
-			block.setType(Material.CHEST, false);
+			block.setType(wanted, false);
 			BlockData data = block.getBlockData();
 			if(data instanceof Directional && ((Directional) data).getFaces().contains(facing))
 			{
@@ -366,13 +389,10 @@ public class RandomBox
 			}
 		}
 
-		// The chest stays (it carries the click and lid animation); the model / crate is drawn around it.
 		if(!MachineVisuals.anyAlive(visuals))
-		{
-			boolean usePack = PackModels.isPackEnabled() && ConfigManager.getMainConfig().resourcePackForce;
-			visuals.clear();
-			visuals.addAll(MachineVisuals.spawn(boxLoc, facing, MachineLooks.BOX, usePack));
-		}
+			spawnVisuals(usePack);
+		if(Displays.supportsHitboxes() && !MachineVisuals.anyAlive(hitboxes))
+			spawnHitboxes();
 
 		if(priceHologram == null || priceHologram.isDead())
 		{
@@ -388,6 +408,47 @@ public class RandomBox
 		}
 	}
 
+	private void spawnVisuals(boolean usePack)
+	{
+		visuals.clear();
+		visuals.addAll(MachineVisuals.spawn(boxLoc, facing, lidOpen && modelMode ? MachineLooks.BOX_OPEN : MachineLooks.BOX, usePack));
+	}
+
+	/** Swaps the pack model between its closed and open-lid states; the look-alike keeps the vanilla chest lid. */
+	private void setLid(boolean open)
+	{
+		lidOpen = open;
+		if(!modelMode || !MachineVisuals.anyAlive(visuals))
+			return;
+		MachineVisuals.remove(visuals);
+		spawnVisuals(true);
+	}
+
+	private void spawnHitboxes()
+	{
+		hitboxes.clear();
+		boolean alongX = facing == BlockFace.NORTH || facing == BlockFace.SOUTH;
+		for(int side = -1; side <= 1; side += 2)
+		{
+			Location at = boxLoc.clone().add(0.5 + (alongX ? 0.5 * side : 0.0), 0.0, 0.5 + (alongX ? 0.0 : 0.5 * side));
+			Entity hitbox = Displays.spawnHitbox(at, 1.0f, 0.95f);
+			if(hitbox == null)
+				continue;
+			hitboxes.add(hitbox);
+			boxGame.machineModelManager.registerBoxHitbox(hitbox, this);
+		}
+	}
+
+	private void removeHitboxes()
+	{
+		for(Entity hitbox : hitboxes)
+		{
+			boxGame.machineModelManager.unregisterBoxHitbox(hitbox);
+			hitbox.remove();
+		}
+		hitboxes.clear();
+	}
+
 	/** Edit/lobby representation: the authoring sign on boxLoc. */
 	private void showSign()
 	{
@@ -395,6 +456,8 @@ public class RandomBox
 		// hologram at game end, which reset() deliberately leaves standing mid-game.
 		removePriceHologram();
 		MachineVisuals.remove(visuals);
+		removeHitboxes();
+		lidOpen = false;
 		Block block = boxLoc.getBlock();
 		block.setType(Material.OAK_WALL_SIGN);
 		BlockData blockData = block.getBlockData();
@@ -419,6 +482,8 @@ public class RandomBox
 		BlockUtils.setBlockToAir(boxLoc);
 		removePriceHologram();
 		MachineVisuals.remove(visuals);
+		removeHitboxes();
+		lidOpen = false;
 	}
 
 	private void removePriceHologram()

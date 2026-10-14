@@ -90,6 +90,14 @@ public class ModernDisplayBackend implements DisplayBackend
 	}
 
 	@Override
+	public void setBrightness(Entity entity, int block, int sky)
+	{
+		if(!(entity instanceof Display))
+			return;
+		((Display) entity).setBrightness(block < 0 ? null : new Display.Brightness(block, sky));
+	}
+
+	@Override
 	public Entity spawnText(Location loc, String text, boolean seeThrough)
 	{
 		return EntitySpawner.spawn(loc.getWorld(), loc, TextDisplay.class, display ->

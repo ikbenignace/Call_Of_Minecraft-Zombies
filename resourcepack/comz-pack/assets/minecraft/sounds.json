@@ -79,7 +79,8 @@
     "replace": true,
     "category": "mob",
     "sounds": [
-      "random/levelup"
+      "custom/fx/grenade/explode_01",
+      "custom/fx/grenade/explode_02"
     ]
   },
   "entity.zombie.death": {
@@ -2217,6 +2218,135 @@
     "category": "master",
     "sounds": [
       "custom/weapons/bo2/balknife/reload"
+    ]
+  },
+  "custom.melee.swing": {
+    "category": "master",
+    "sounds": [
+      "custom/fx/melee/swing_01",
+      "custom/fx/melee/swing_02",
+      "custom/fx/melee/swing_03"
+    ]
+  },
+  "custom.melee.hit": {
+    "category": "master",
+    "sounds": [
+      "custom/fx/melee/hit_01",
+      "custom/fx/melee/hit_02",
+      "custom/fx/melee/hit_03"
+    ]
+  },
+  "custom.grenade.pin": {
+    "category": "master",
+    "sounds": [
+      "custom/fx/grenade/pin"
+    ]
+  },
+  "custom.grenade.throw": {
+    "category": "master",
+    "sounds": [
+      "custom/fx/grenade/throw"
+    ]
+  },
+  "custom.grenade.bounce": {
+    "category": "master",
+    "sounds": [
+      "custom/fx/grenade/bounce_01",
+      "custom/fx/grenade/bounce_02",
+      "custom/fx/grenade/bounce_03",
+      "custom/fx/grenade/bounce_04",
+      "custom/fx/grenade/bounce_05"
+    ]
+  },
+  "custom.grenade.explode": {
+    "category": "master",
+    "sounds": [
+      "custom/fx/grenade/explode_01",
+      "custom/fx/grenade/explode_02"
+    ]
+  },
+  "custom.grenade.semtex_stick": {
+    "category": "master",
+    "sounds": [
+      "custom/fx/grenade/semtex_stick"
+    ]
+  },
+  "custom.grenade.semtex_alert": {
+    "category": "master",
+    "sounds": [
+      "custom/fx/grenade/semtex_alert"
+    ]
+  },
+  "custom.grenade.semtex_pin": {
+    "category": "master",
+    "sounds": [
+      "custom/fx/grenade/semtex_pin"
+    ]
+  },
+  "custom.grenade.semtex_charge": {
+    "category": "master",
+    "sounds": [
+      "custom/fx/grenade/semtex_charge"
+    ]
+  },
+  "custom.claymore.plant": {
+    "category": "master",
+    "sounds": [
+      "custom/fx/claymore/plant"
+    ]
+  },
+  "custom.claymore.alert": {
+    "category": "master",
+    "sounds": [
+      "custom/fx/claymore/alert"
+    ]
+  },
+  "custom.weapon.dryfire": {
+    "category": "master",
+    "sounds": [
+      "custom/fx/weapon/dryfire_01",
+      "custom/fx/weapon/dryfire_02",
+      "custom/fx/weapon/dryfire_03"
+    ]
+  },
+  "custom.pickup.ammo": {
+    "category": "master",
+    "sounds": [
+      "custom/fx/pickup/ammo_01",
+      "custom/fx/pickup/ammo_02"
+    ]
+  },
+  "custom.pickup.weapon": {
+    "category": "master",
+    "sounds": [
+      "custom/fx/pickup/weapon"
+    ]
+  },
+  "custom.zombie.spawn": {
+    "category": "master",
+    "sounds": [
+      "custom/fx/zombie/spawn_01",
+      "custom/fx/zombie/spawn_02",
+      "custom/fx/zombie/spawn_03"
+    ]
+  },
+  "custom.trap.flame": {
+    "category": "master",
+    "sounds": [
+      "custom/fx/trap/flame"
+    ]
+  },
+  "custom.round.gameover": {
+    "category": "master",
+    "sounds": [
+      "custom/round/gameover1",
+      "custom/round/gameover2",
+      "custom/round/gameover3",
+      "custom/round/gameover4",
+      "custom/round/gameover5",
+      "custom/round/gameover6",
+      "custom/round/gameover7",
+      "custom/round/gameover8"
     ]
   }
 }

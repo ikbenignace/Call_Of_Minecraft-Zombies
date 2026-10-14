@@ -50,6 +50,11 @@ public class LegacyDisplayBackend implements DisplayBackend
 	}
 
 	@Override
+	public void setBrightness(Entity display, int block, int sky)
+	{
+	}
+
+	@Override
 	public Entity spawnText(Location loc, String text, boolean seeThrough)
 	{
 		World world = loc.getWorld();

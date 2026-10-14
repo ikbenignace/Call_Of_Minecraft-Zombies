@@ -84,4 +84,16 @@ public final class SoundUtil
 		if(sound != null)
 			player.playSound(loc, sound, category, volume, pitch);
 	}
+
+	/** Plays the sound registered under {@code key} in sounds.json, falling back to {@code vanilla} without the pack. */
+	public static void playKey(World world, Location loc, String key, String vanilla, SoundCategory category, float volume, float pitch)
+	{
+		play(world, loc, SoundConfig.get(key, vanilla), category, volume, pitch);
+	}
+
+	/** Player-only variant of {@link #playKey(World, Location, String, String, SoundCategory, float, float)}. */
+	public static void playKey(Player player, Location loc, String key, String vanilla, SoundCategory category, float volume, float pitch)
+	{
+		play(player, loc, SoundConfig.get(key, vanilla), category, volume, pitch);
+	}
 }

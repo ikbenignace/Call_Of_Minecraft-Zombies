@@ -261,6 +261,7 @@ public class DownedPlayer implements Listener
 		if(!isPlayerDown)
 			return;
 		player.sendMessage(ChatColor.GREEN + "You have been revived!");
+		com.theprogrammingturkey.comz.util.SoundUtil.playKey(player.getWorld(), player.getLocation(), "player.revive", "ENTITY_PLAYER_LEVELUP", org.bukkit.SoundCategory.PLAYERS, 1, 1);
 		if(reviver != null)
 		{
 			reviver.sendMessage(ChatColor.GREEN + "You revived " + ChatColor.DARK_GREEN + player.getName());

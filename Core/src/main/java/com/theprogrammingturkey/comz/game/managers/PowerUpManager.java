@@ -219,6 +219,7 @@ public class PowerUpManager
 		droppedItem.setVelocity(new Vector());
 		// Make the pickup unmistakable: a glowing item (outline through walls) with a themed beam.
 		droppedItem.setGlowing(true);
+		com.theprogrammingturkey.comz.util.SoundUtil.playKey(loc.getWorld(), loc, "powerup.spawn", "BLOCK_NOTE_BLOCK_BELL", org.bukkit.SoundCategory.MASTER, 1, 1);
 		final org.bukkit.Color beamColor = powerUp.getGlowColor();
 		// Ground lifetime now comes from config (perkLife, default 30) instead of a hardcoded 30.
 		final int lifetimeTicks = (int) Math.round(ConfigManager.getMainConfig().perkLife * 20);

@@ -125,7 +125,7 @@ public class WeaponListener implements Listener
 						return;
 					if(gun.isReloading())
 					{
-						player.getLocation().getWorld().playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1, 1);
+						SoundUtil.playKey(player.getWorld(), player.getLocation(), "weapon.dryfire", "UI_BUTTON_CLICK", SoundCategory.PLAYERS, 1, 1);
 					}
 					else if(gun.wasShot())
 					{
@@ -422,10 +422,20 @@ public class WeaponListener implements Listener
 				item.setVelocity(player.getLocation().getDirection().multiply(1));
 				item.setPickupDelay(1000);
 
+				SoundUtil.playKey(player.getWorld(), player.getLocation(), "grenade.pin", "BLOCK_LEVER_CLICK", SoundCategory.PLAYERS, 1, 1);
+				COMZombies.scheduleTask(6, () -> SoundUtil.playKey(player.getWorld(), item.getLocation(), "grenade.throw", "ENTITY_SNOWBALL_THROW", SoundCategory.PLAYERS, 1, 1));
+				for(int bounceTick : new int[]{14, 32})
+					COMZombies.scheduleTask(bounceTick, () ->
+					{
+						if(item.isValid())
+							SoundUtil.playKey(item.getWorld(), item.getLocation(), "grenade.bounce", "BLOCK_STONE_HIT", SoundCategory.PLAYERS, 0.7F, 1);
+					});
+
 				COMZombies.scheduleTask(100, () ->
 				{
 					Location loc = item.getLocation();
-					player.getWorld().createExplosion(loc.getX(), loc.getY(), loc.getZ(), 0.0F, false, false);
+					SoundUtil.playKey(item.getWorld(), loc, "grenade.explode", "ENTITY_GENERIC_EXPLODE", SoundCategory.PLAYERS, 1.6F, 1);
+					ParticleFX.blast(item.getWorld(), loc);
 					List<Mob> ents = game.spawnManager.getEntities();
 					int ticker = COMZombies.scheduleTask(0, 5, () ->
 							item.getWorld().spawnParticle(Compat.SMOKE, item.getLocation().clone(), 0, COMZombies.rand.nextDouble() - 0.5, 0.5, COMZombies.rand.nextDouble() - 0.5, 0.05));
@@ -464,8 +474,8 @@ public class WeaponListener implements Listener
 					e.setTarget(attackEnt);
 
 				// Throw cue + the iconic monkey music-box tune that lures the zombies in.
-				SoundUtil.play(player.getWorld(), item.getLocation(), "custom.monkeybomb.use", SoundCategory.PLAYERS, 1.2F, 1.0F);
-				SoundUtil.play(player.getWorld(), item.getLocation(), "custom.monkeybomb.tune", SoundCategory.PLAYERS, 1.0F, 1.0F);
+				SoundUtil.playKey(player.getWorld(), item.getLocation(), "monkeybomb.use", "ENTITY_SNOWBALL_THROW", SoundCategory.PLAYERS, 1.2F, 1.0F);
+				SoundUtil.playKey(player.getWorld(), item.getLocation(), "monkeybomb.tune", "", SoundCategory.PLAYERS, 1.0F, 1.0F);
 
 				// One self-terminating task: drives the lure (smoke + retarget), detonates at 140t, and
 				// cleans up the item + attractor stand. It aborts (removing both entities) the instant the
@@ -492,8 +502,8 @@ public class WeaponListener implements Listener
 					if(elapsed[0] >= 140)
 					{
 						Location loc = item.getLocation();
-						SoundUtil.play(item.getWorld(), loc, "custom.monkeybomb.exploding", SoundCategory.PLAYERS, 1.4F, 1.0F);
-						item.getWorld().createExplosion(loc.getX(), loc.getY(), loc.getZ(), 0.0F, false, false);
+						SoundUtil.playKey(item.getWorld(), loc, "monkeybomb.explode", "ENTITY_GENERIC_EXPLODE", SoundCategory.PLAYERS, 1.4F, 1.0F);
+						ParticleFX.blast(item.getWorld(), loc);
 						item.getWorld().spawnParticle(Compat.EXPLOSION, loc, 3, 0.5, 0.5, 0.5, 0);
 						List<Mob> ents = game.spawnManager.getEntities();
 						for(int i = ents.size() - 1; i >= 0; i--)

@@ -162,6 +162,8 @@ public class ZombieSpawner extends RoundSpawner
 		Location location = new Location(loc.getLocation().getWorld(), loc.getLocation().getBlockX(), loc.getLocation().getBlockY(), loc.getLocation().getBlockZ());
 		location.add(0.5, 0, 0.5);
 		Zombie zomb = (Zombie) location.getWorld().spawnEntity(location, EntityType.ZOMBIE);
+		com.theprogrammingturkey.comz.util.ParticleFX.groundBreak(location.getWorld(), location);
+		com.theprogrammingturkey.comz.util.SoundUtil.playKey(location.getWorld(), location, "zombie.spawn", "BLOCK_GRAVEL_BREAK", org.bukkit.SoundCategory.HOSTILE, 0.8F, 1.0F);
 		COMZombies.scheduleTask(10, () ->
 		{
 			if(zomb.getEquipment() != null)

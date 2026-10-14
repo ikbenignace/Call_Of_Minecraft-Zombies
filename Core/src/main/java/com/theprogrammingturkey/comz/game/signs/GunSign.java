@@ -64,6 +64,7 @@ public class GunSign implements IGameSign
 				PointManager.INSTANCE.takePoints(player, ammoCost);
 				target.maxAmmo();
 				CommandUtil.sendMessageToPlayer(player, ChatColor.RED + "" + ChatColor.BOLD + "Filling ammo!");
+				com.theprogrammingturkey.comz.util.SoundUtil.playKey(player.getWorld(), player.getLocation(), "gun.ammo", "ENTITY_ITEM_PICKUP", org.bukkit.SoundCategory.MASTER, 1, 1);
 				PointManager.INSTANCE.notifyPlayer(player);
 			}
 			else

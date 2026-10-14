@@ -20,17 +20,21 @@
   },
   "box": {
     "open": "custom.mysterybox.theme",
-    "spin": "BLOCK_NOTE_BLOCK_HARP",
+    "spin": "",
     "lock": "custom.mysterybox.land",
     "pickup": "custom.global.buy",
-    "teddy": "custom.mysterybox.teddy"
+    "teddy": "custom.mysterybox.teddy",
+    "leave": "custom.mysterybox.byebye",
+    "raygun": "custom.mysterybox.raygun"
   },
   "round": {
     "start": "custom.round.newround",
     "regular": "custom.round.newround",
-    "dogs": "custom.round.dogstart"
+    "dogs": "custom.round.dogstart",
+    "gameover": "custom.round.gameover",
+    "first": "custom.round.roundone"
   },
-  "packapunch": "BLOCK_ANVIL_USE",
+  "packapunch": "custom.pap.upgrade",
   "pap": {
     "upgrade": "custom.pap.upgrade",
     "ready": "custom.pap.ready",
@@ -40,9 +44,10 @@
   "door": {
     "open": "custom.global.door_slide"
   },
-  "trap": "BLOCK_FIRE_AMBIENT",
+  "trap": "custom.trap.flame",
   "gun": {
-    "buy": "custom.global.buy"
+    "buy": "custom.global.buy",
+    "ammo": "custom.pickup.ammo"
   },
   "game": {
     "join": "ENTITY_ZOMBIE_AMBIENT"
@@ -57,7 +62,9 @@
     "BONUS_POINTS": "custom.powerup.grab",
     "RANDOM_PERK": "custom.powerup.grab",
     "DEATH_MACHINE": "custom.powerup.death",
-    "BONFIRE_SALE": "custom.powerup.bonfire"
+    "BONFIRE_SALE": "custom.powerup.bonfire",
+    "spawn": "custom.powerup.powerupspawn",
+    "grab": "custom.powerup.grab"
   },
   "guns": {
     "_default": {
@@ -603,5 +610,48 @@
       "shoot": "custom.weapon.shoot.ray",
       "reload": "custom.weapon.reload_start.ray"
     }
+  },
+  "melee": {
+    "swing": "custom.melee.swing",
+    "hit": "custom.melee.hit"
+  },
+  "grenade": {
+    "pin": "custom.grenade.pin",
+    "throw": "custom.grenade.throw",
+    "bounce": "custom.grenade.bounce",
+    "explode": "custom.grenade.explode",
+    "semtexStick": "custom.grenade.semtex_stick",
+    "semtexAlert": "custom.grenade.semtex_alert",
+    "semtexPin": "custom.grenade.semtex_pin",
+    "semtexCharge": "custom.grenade.semtex_charge"
+  },
+  "claymore": {
+    "plant": "custom.claymore.plant",
+    "alert": "custom.claymore.alert"
+  },
+  "monkeybomb": {
+    "use": "custom.monkeybomb.use",
+    "tune": "custom.monkeybomb.tune",
+    "explode": "custom.monkeybomb.exploding"
+  },
+  "weapon": {
+    "dryfire": "custom.weapon.dryfire"
+  },
+  "barrier": {
+    "repair": "custom.global.windows.wood"
+  },
+  "power": {
+    "on": "custom.circuit.power_flux"
+  },
+  "zombie": {
+    "spawn": "custom.zombie.spawn"
+  },
+  "pickup": {
+    "ammo": "custom.pickup.ammo",
+    "weapon": "custom.pickup.weapon"
+  },
+  "player": {
+    "downed": "ENTITY_PLAYER_BIG_FALL",
+    "revive": "ENTITY_PLAYER_LEVELUP"
   }
 }

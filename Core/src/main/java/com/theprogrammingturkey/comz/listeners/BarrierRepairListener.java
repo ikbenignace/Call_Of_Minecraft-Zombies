@@ -95,7 +95,7 @@ public class BarrierRepairListener implements Listener
 			Location signLoc = target.getRepairLoc();
 			World world = signLoc.getWorld();
 			if(world != null)
-				world.playSound(signLoc, Sound.BLOCK_ANVIL_LAND, 0.5F, 1.6F);
+				com.theprogrammingturkey.comz.util.SoundUtil.playKey(world, signLoc, "barrier.repair", "BLOCK_ANVIL_LAND", org.bukkit.SoundCategory.BLOCKS, 0.8F, 1.0F);
 
 			if(fullyRepaired)
 				stopRepairing(player.getUniqueId());

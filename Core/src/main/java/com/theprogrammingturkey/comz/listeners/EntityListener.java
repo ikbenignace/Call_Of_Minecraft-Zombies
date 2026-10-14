@@ -195,7 +195,8 @@ public class EntityListener implements Listener
 						// Pack-independent (vanilla particle/sound); the player's own arm swing supplies the motion.
 						org.bukkit.Location hit = mob.getLocation().add(0, 1, 0);
 						mob.getWorld().spawnParticle(org.bukkit.Particle.SWEEP_ATTACK, hit, 1, 0, 0, 0, 0);
-						mob.getWorld().playSound(hit, org.bukkit.Sound.ENTITY_PLAYER_ATTACK_SWEEP, 0.8F, 1.2F);
+						com.theprogrammingturkey.comz.util.SoundUtil.playKey(mob.getWorld(), player.getLocation(), "melee.swing", "ENTITY_PLAYER_ATTACK_SWEEP", org.bukkit.SoundCategory.PLAYERS, 0.8F, 1.0F);
+						com.theprogrammingturkey.comz.util.SoundUtil.playKey(mob.getWorld(), hit, "melee.hit", "ENTITY_PLAYER_ATTACK_STRONG", org.bukkit.SoundCategory.PLAYERS, 1.0F, 1.0F);
 					}
 				}
 			}

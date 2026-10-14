@@ -120,7 +120,8 @@ public class DevMenu implements InventoryHolder
 			return;
 		action.run();
 		// The action may have closed the inventory (down); only redraw while it is still showing.
-		if(player.getOpenInventory().getTopInventory().getHolder() == this)
+		// InventoryView became an interface after 1.20, so asking it for the top inventory breaks on newer servers.
+		if(getInventory().getViewers().contains(player))
 			render();
 	}
 }

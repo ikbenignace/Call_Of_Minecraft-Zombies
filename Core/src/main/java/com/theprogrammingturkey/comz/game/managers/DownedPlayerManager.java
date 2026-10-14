@@ -200,6 +200,7 @@ public class DownedPlayerManager
 		DownedPlayer down = new DownedPlayer(player, game);
 		down.setPlayerDown();
 		downedPlayers.add(down);
+		com.theprogrammingturkey.comz.util.SoundUtil.playKey(player.getWorld(), player.getLocation(), "player.downed", "ENTITY_PLAYER_BIG_FALL", org.bukkit.SoundCategory.PLAYERS, 1, 0.8f);
 		player.setHealth(1D);
 
 		// Solo Quick Revive self-revive schedules an automatic get-up; if it fires, it owns the

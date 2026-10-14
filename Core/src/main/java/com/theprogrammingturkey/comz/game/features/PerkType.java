@@ -90,6 +90,18 @@ public enum PerkType
 		return modelName == null ? null : "machine/perk_" + modelName;
 	}
 
+	public String displayName()
+	{
+		StringBuilder out = new StringBuilder();
+		for(String word : name().split("_"))
+		{
+			if(out.length() > 0)
+				out.append(' ');
+			out.append(word.charAt(0)).append(word.substring(1).toLowerCase());
+		}
+		return out.toString();
+	}
+
 	/** BO2 machine price, used when a perk sign is created without an explicit price. */
 	public int getDefaultCost()
 	{
@@ -159,9 +171,13 @@ public enum PerkType
 	{
 		if(!com.theprogrammingturkey.comz.config.ConfigManager.getMainConfig().visualsPerkFeedback)
 			return;
-		// Level-up chord then a chime, for a satisfying "got the perk" cue.
-		com.theprogrammingturkey.comz.util.SoundUtil.play(world, player.getLocation(), "ENTITY_PLAYER_LEVELUP", org.bukkit.SoundCategory.MASTER, 1, 1);
-		COMZombies.scheduleTask(4, () -> com.theprogrammingturkey.comz.util.SoundUtil.play(world, player.getLocation(), "BLOCK_NOTE_BLOCK_CHIME", org.bukkit.SoundCategory.MASTER, 1, 1.4f));
+		// A configured jingle already carries the "got the perk" cue; the vanilla chord is only for servers without one.
+		if(com.theprogrammingturkey.comz.util.SoundConfig.get("perk.drink." + name(), "").isEmpty())
+		{
+			com.theprogrammingturkey.comz.util.SoundUtil.play(world, player.getLocation(), "ENTITY_PLAYER_LEVELUP", org.bukkit.SoundCategory.MASTER, 1, 1);
+			COMZombies.scheduleTask(4, () -> com.theprogrammingturkey.comz.util.SoundUtil.play(world, player.getLocation(), "BLOCK_NOTE_BLOCK_CHIME", org.bukkit.SoundCategory.MASTER, 1, 1.4f));
+		}
+		player.sendTitle("", org.bukkit.ChatColor.GOLD + "" + org.bukkit.ChatColor.BOLD + displayName(), 0, 30, 10);
 		// Brief golden burst at the player's feet.
 		com.theprogrammingturkey.comz.util.ParticleFX.burst(world, player.getLocation(), org.bukkit.Color.YELLOW, 16);
 	}

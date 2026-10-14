@@ -30,7 +30,9 @@ import java.util.concurrent.ConcurrentHashMap;
 public final class Compat
 {
 	// Resolved once: these are used on hot paths (per-shot particles, per-spawn attributes).
+	public static final Particle BLOCK = particle("BLOCK", "BLOCK_CRACK");
 	public static final Particle DUST = particle("DUST", "REDSTONE");
+	public static final Particle ELECTRIC_SPARK = particle("ELECTRIC_SPARK", "CRIT");
 	public static final Particle ENCHANTED_HIT = particle("ENCHANTED_HIT", "CRIT_MAGIC");
 	public static final Particle EXPLOSION = particle("EXPLOSION", "EXPLOSION_LARGE");
 	public static final Particle EXPLOSION_EMITTER = particle("EXPLOSION_EMITTER", "EXPLOSION_HUGE");
