@@ -24,7 +24,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 public class PowerUpManager
 {
@@ -46,6 +45,50 @@ public class PowerUpManager
 
 	/** Number of power-ups dropped in the current round, for the per-round cap. Reset on wave start. */
 	private int droppedThisRound = 0;
+
+	/** Shuffled bag of types: each enabled type drops once before any repeats. */
+	private final List<PowerUp> dropCycle = new ArrayList<>();
+
+	private static final int BLINK_SECONDS = 6;
+
+	private boolean isEligible(Game game, PowerUp powerUp)
+	{
+		switch(powerUp)
+		{
+			case FIRE_SALE:
+			case BONFIRE_SALE:
+				return !game.boxManager.isMultiBox() && !game.isFireSale() && game.boxManager.hasBoxMoved();
+			case CARPENTER:
+				for(com.theprogrammingturkey.comz.game.features.Barrier barrier : game.barrierManager.getBarriers())
+					if(barrier.getStage() > -1)
+						return true;
+				return false;
+			default:
+				return true;
+		}
+	}
+
+	/** Next drop from the shuffled cycle; types that cannot apply right now are skipped until the next shuffle. */
+	private PowerUp nextFromCycle(Game game)
+	{
+		for(int pass = 0; pass < 2; pass++)
+		{
+			if(dropCycle.isEmpty())
+			{
+				for(Map.Entry<PowerUp, Boolean> entry : powerups.entrySet())
+					if(entry.getValue() && entry.getKey() != PowerUp.NONE)
+						dropCycle.add(entry.getKey());
+				java.util.Collections.shuffle(dropCycle, COMZombies.rand);
+			}
+			while(!dropCycle.isEmpty())
+			{
+				PowerUp next = dropCycle.remove(dropCycle.size() - 1);
+				if(isEligible(game, next))
+					return next;
+			}
+		}
+		return null;
+	}
 
 	/**
 	 * Pure decision for the ground cap: whether the oldest power-up must be
@@ -91,6 +134,7 @@ public class PowerUpManager
 		for(Entity powerUp : new ArrayList<>(powerupNameplates.keySet()))
 			removePowerUp(powerUp);
 		droppedThisRound = 0;
+		dropCycle.clear();
 	}
 
 
@@ -177,7 +221,7 @@ public class PowerUpManager
 		droppedItem.setGlowing(true);
 		final org.bukkit.Color beamColor = powerUp.getGlowColor();
 		// Ground lifetime now comes from config (perkLife, default 30) instead of a hardcoded 30.
-		final int lifetimeSeconds = ConfigManager.getMainConfig().perkLife;
+		final int lifetimeTicks = (int) Math.round(ConfigManager.getMainConfig().perkLife * 20);
 		// Spawn the countdown nameplate ABOVE the dropped item (was -1.7 below, which buried it under
 		// the floor in most arenas and made the pickup timer invisible).
 		ArmorStand namePlate = (ArmorStand) mob.getWorld().spawnEntity(droppedItem.getLocation().clone().add(0, 1.2, 0), EntityType.ARMOR_STAND);
@@ -186,7 +230,7 @@ public class PowerUpManager
 		namePlate.setAI(false);
 		namePlate.setMarker(true);
 		namePlate.setPersistent(false);
-		namePlate.setCustomName(String.valueOf(lifetimeSeconds));
+		namePlate.setCustomName(String.valueOf((lifetimeTicks + 19) / 20));
 		namePlate.setCustomNameVisible(true);
 
 		// Enforce the ground cap: drop the oldest power-up before adding a new one.
@@ -200,8 +244,8 @@ public class PowerUpManager
 		// down on every 20-tick boundary, so the beam is smooth while the countdown cadence is unchanged.
 		int id = COMZombies.scheduleTask(0, 5, new Runnable()
 		{
-			int time = lifetimeSeconds;
-			int ticks = 0;
+			int ticksLeft = lifetimeTicks;
+			int phase = 0;
 
 			@Override
 			public void run()
@@ -212,23 +256,33 @@ public class PowerUpManager
 					return;
 				}
 
+				ticksLeft -= 5;
+				if(ticksLeft <= 0)
+				{
+					removePowerUp(droppedItem);
+					return;
+				}
+
+				// Blink: the glow and beam drop out on alternate beats, faster in the last 3 seconds.
+				boolean blinking = ticksLeft <= BLINK_SECONDS * 20;
+				boolean visible = true;
+				if(blinking)
+				{
+					phase++;
+					int half = ticksLeft <= 60 ? 1 : 2;
+					visible = (phase / half) % 2 == 0;
+					droppedItem.setGlowing(visible);
+				}
+				namePlate.setCustomName(String.valueOf((ticksLeft + 19) / 20));
+
 				Location base = droppedItem.getLocation();
 				World world = base.getWorld();
-				if(world != null)
+				if(world != null && visible)
 				{
 					Particle.DustOptions dust = new Particle.DustOptions(beamColor, 1.5F);
 					for(double y = 0.1; y <= 1.8; y += 0.3)
 						world.spawnParticle(Compat.DUST, base.clone().add(0, y, 0), 2, 0.07, 0.07, 0.07, dust);
 					world.spawnParticle(Particle.END_ROD, base.clone().add(0, 2.0, 0), 1, 0.03, 0.03, 0.03, 0.0);
-				}
-
-				ticks += 5;
-				if(ticks % 20 == 0)
-				{
-					time--;
-					namePlate.setCustomName(String.valueOf(time));
-					if(time <= 0)
-						removePowerUp(droppedItem);
 				}
 			}
 		});
@@ -237,6 +291,8 @@ public class PowerUpManager
 
 	public void powerUpDrop(Entity mob, Entity entPlayer)
 	{
+		if(mob instanceof org.bukkit.entity.Wolf)
+			return;
 		if(!(entPlayer instanceof Player) || !GameManager.INSTANCE.isEntityInGame(mob) || !GameManager.INSTANCE.isEntityInGame(entPlayer))
 			return;
 
@@ -254,17 +310,11 @@ public class PowerUpManager
 		int chance = COMZombies.rand.nextInt(100);
 		if(chance < effectiveDropChance())
 		{
-			List<PowerUp> availableRewards = powerups.keySet().stream().filter(powerUp ->
-			{
-				if((powerUp == PowerUp.FIRE_SALE || powerUp == PowerUp.BONFIRE_SALE) && game.boxManager.isMultiBox())
-					return false;
-				return powerups.get(powerUp);
-			}).collect(Collectors.toList());
-
-			if(availableRewards.isEmpty())
+			PowerUp reward = nextFromCycle(game);
+			if(reward == null)
 				return;
 
-			this.dropPowerUp(mob, availableRewards.get(COMZombies.rand.nextInt(availableRewards.size())));
+			this.dropPowerUp(mob, reward);
 			droppedThisRound++;
 		}
 	}

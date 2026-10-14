@@ -3,6 +3,7 @@ package com.theprogrammingturkey.comz.util.display;
 import com.theprogrammingturkey.comz.COMZombies;
 import com.theprogrammingturkey.comz.util.ServerFeatures;
 import org.bukkit.Location;
+import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Entity;
 import org.bukkit.inventory.ItemStack;
 
@@ -37,6 +38,18 @@ public final class Displays
 	public static boolean supportsHitboxes()
 	{
 		return backend.supportsHitboxes();
+	}
+
+	public static boolean supportsBlockDisplays()
+	{
+		return backend.supportsBlockDisplays();
+	}
+
+	public static Entity spawnBlock(Location loc, BlockData block, float cx, float cy, float cz, float sx, float sy, float sz, float yawDegrees, boolean glow)
+	{
+		if(loc.getWorld() == null || block == null)
+			return null;
+		return backend.spawnBlock(loc, block, cx, cy, cz, sx, sy, sz, yawDegrees, glow);
 	}
 
 	public static Entity spawnItem(Location loc, ItemStack stack, float scale, float yawDegrees, float offsetY, boolean faceViewer)

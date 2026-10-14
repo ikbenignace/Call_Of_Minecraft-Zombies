@@ -140,6 +140,20 @@ public class ZombieSpawner extends RoundSpawner
 		}
 	}
 
+	/** Walker, runner or sprinter multiplier for a zombie spawned on {@code wave}; fast types grow likelier each round. */
+	static float speedMultiplier(int wave)
+	{
+		com.theprogrammingturkey.comz.config.ConfigSetup cfg = ConfigManager.getMainConfig();
+		int roll = COMZombies.rand.nextInt(100);
+		int sprinterChance = wave >= cfg.zombieSprinterStartRound ? Math.min(60, 10 + 8 * (wave - cfg.zombieSprinterStartRound)) : 0;
+		if(roll < sprinterChance)
+			return (float) cfg.zombieSprinterSpeed;
+		int runnerChance = wave >= cfg.zombieRunnerStartRound ? Math.min(80, 20 + 15 * (wave - cfg.zombieRunnerStartRound)) : 0;
+		if(COMZombies.rand.nextInt(100) < runnerChance)
+			return (float) cfg.zombieRunnerSpeed;
+		return 1f;
+	}
+
 	@Override
 	public Mob spawnEntity(Game game, SpawnPoint loc, int wave)
 	{
@@ -160,8 +174,9 @@ public class ZombieSpawner extends RoundSpawner
 		setMaxHealth(zomb, strength);
 		zomb.setHealth(strength);
 
-		if(game.getWave() > 4 && COMZombies.rand.nextInt(100) < 20 + (15 * (game.getWave() - 5)))
-			setSpeed(zomb, 1.25f);
+		float speed = speedMultiplier(wave);
+		if(speed != 1f)
+			setSpeed(zomb, speed);
 
 		// #130/#96 — barrier breaking is now proximity-driven (BarrierManager.tickBarriers checks
 		// which zombies are near each barrier), so we no longer tie a barrier to the specific zombie

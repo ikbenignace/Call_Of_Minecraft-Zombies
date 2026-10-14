@@ -21,6 +21,12 @@ public class WeaponInstance
 	 * Slot containing gun
 	 */
 	protected int slot;
+	/**
+	 * Set while the instance is not registered in its player's weapon manager (replaced, or parked
+	 * under a Death Machine). A detached instance must not write the inventory: its pending reload
+	 * tasks would otherwise overwrite whatever now occupies the slot.
+	 */
+	private boolean detached;
 
 	public WeaponInstance(Weapon baseWeapon, Player player, int slot)
 	{
@@ -60,8 +66,20 @@ public class WeaponInstance
 		updateWeapon();
 	}
 
+	public boolean isDetached()
+	{
+		return detached;
+	}
+
+	public void setDetached(boolean detached)
+	{
+		this.detached = detached;
+	}
+
 	public void updateWeapon()
 	{
+		if(detached)
+			return;
 		ItemStack newStack = baseWeapon.getStack();
 		newStack.setAmount(totalAmmo);
 		ItemMeta data = newStack.getItemMeta();

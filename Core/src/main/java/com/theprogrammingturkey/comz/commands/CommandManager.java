@@ -222,6 +222,13 @@ public class CommandManager implements CommandExecutor, TabExecutor
 		// Perm
 		// - zombies.zombies.debug
 		commandList.put("debug", new DebugCommand(COMZPermission.DEBUG));
+
+		// Developer mod menu for in-game testing:
+		// Perm
+		// - zombies.debug
+		commandList.put("dev", new DevCommand(COMZPermission.DEBUG));
+		commandList.put("dm", commandList.get("dev"));
+		commandList.put("devmenu", commandList.get("dev"));
 	}
 
 	public void onRemoteCommand(Player player, String[] args)

@@ -21,10 +21,18 @@ public class AmmoCrateSign implements IGameSign
 	@Override
 	public void onInteract(Game game, Player player, Location location, String[] lines)
 	{
-		int buyPoints = Integer.parseInt(lines[2].trim());
+		int buyPoints;
+		try
+		{
+			buyPoints = Integer.parseInt(ChatColor.stripColor(lines[2]).trim());
+		} catch(RuntimeException ex)
+		{
+			CommandUtil.sendMessageToPlayer(player, ChatColor.RED + "This ammo crate has an invalid price!");
+			return;
+		}
 
 		PlayerWeaponManager manager = game.getPlayersWeapons(player);
-		if(manager.isHeldItemWeapon())
+		if(manager.isHeldItemGun())
 		{
 			if(PointManager.INSTANCE.canBuy(player, buyPoints))
 			{

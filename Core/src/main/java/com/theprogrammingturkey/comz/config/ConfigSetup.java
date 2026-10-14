@@ -62,7 +62,7 @@ public class ConfigSetup
 	 * Seconds a ground power-up stays before expiring (BO default 30). Was hardcoded in
 	 * PowerUpManager and the config key was dead; now wired through.
 	 */
-	public int perkLife;
+	public double perkLife;
 	/**
 	 * Time it takes for an arena to start.
 	 */
@@ -93,6 +93,21 @@ public class ConfigSetup
 	 * 0b — Extra board capacity added per additional player beyond the first.
 	 */
 	public int zombieBoardPerPlayer;
+	public double zombieSpawnDelayMin;
+	public double zombieCoopCountScale;
+	public double zombieCountMultiplier;
+	public int zombieRunnerStartRound;
+	public int zombieSprinterStartRound;
+	public double zombieRunnerSpeed;
+	public double zombieSprinterSpeed;
+	public int dogRoundFirstMin;
+	public int dogRoundFirstMax;
+	public double doubleTapDamageMultiplier;
+	public double staminUpWalkSpeed;
+	public double phdFlopperDamage;
+	public double phdFlopperRadius;
+	public double quickReviveHealDelayFactor;
+	public boolean visualsLowHealthVignette;
 	/**
 	 * 0b — Per-round zombie count multiplier for rounds >= 5 (count = round * mult * boardMax).
 	 */
@@ -187,6 +202,28 @@ public class ConfigSetup
 	 * 0j — Point cost to re-Pack-a-Punch a gun for an ammo refill.
 	 */
 	public int packAPunchRepackCost;
+	/** Seconds the Pack-a-Punch machine works before the upgraded gun is ready. */
+	public double packAPunchWorkSeconds;
+	/** Seconds the upgraded gun waits in the machine for pickup before it is lost. */
+	public double packAPunchPickupSeconds;
+	/** Seconds a player cannot fire while drinking a perk. */
+	public double perkDrinkLockSeconds;
+	/** Quick Revive price in a solo game. */
+	public int soloQuickRevivePrice;
+	/** Seconds the mystery box weapon roulette spins. */
+	public double boxRollSeconds;
+	/** Seconds the rolled weapon can be taken from the box. */
+	public double boxPickupSeconds;
+	/** Box uses at one location before the teddy bear can appear. */
+	public int boxTeddyMinUses;
+	/** Box uses at one location after which the teddy bear is guaranteed; 0 = never forced. */
+	public int boxTeddyMaxUses;
+	/** Mystery box price while Fire Sale is active. */
+	public int boxFireSaleCost;
+	/** Wall-buy ammo costs wall gun price divided by this; 0 uses the sign's second price. */
+	public int wallAmmoPriceDivisor;
+	/** Wall-buy ammo price for the Pack-a-Punched version of the wall gun. */
+	public int wallAmmoPackAPunchCost;
 
 	/**
 	 * 0k — Teleporter recharge/cooldown in seconds before it can be used again.
@@ -326,9 +363,14 @@ public class ConfigSetup
 
 	/**
 	 * Tier 3 — Tombstone Soda: when enabled, a player holding the perk has their perks snapshotted
-	 * on down and re-granted when they are reclaimed on revive/next-round respawn. Default true.
+	 * on down and left in a tombstone if they bleed out, reclaimable after respawn. Default true.
 	 */
 	public boolean tombstoneEnabled;
+
+	/**
+	 * Seconds a tombstone stays once its owner is back in play before it fades.
+	 */
+	public int tombstoneLifetime;
 
 	/**
 	 * Tier 3 — solo self-revive: number of times Quick Revive can self-revive a lone player in a
@@ -467,7 +509,7 @@ public class ConfigSetup
 		doublePointsTimer = plugin.getConfig().getInt("config.gameSettings.doublePointsTimer");
 		instaKillTimer = plugin.getConfig().getInt("config.gameSettings.instaKillTimer");
 		fireSaleTimer = plugin.getConfig().getInt("config.gameSettings.fireSaleTimer");
-		perkLife = plugin.getConfig().getInt("config.gameSettings.perkLife", 30);
+		perkLife = plugin.getConfig().getDouble("config.gameSettings.perkLife", 26.5);
 		maxZombies = (int) plugin.getConfig().getDouble("config.gameSettings.maxZombies");
 		waveSpawnInterval = plugin.getConfig().getInt("config.gameSettings.waveSpawnInterval");
 		pointsOnHit = plugin.getConfig().getInt("config.gameSettings.defaultPointsOnHit");
@@ -482,20 +524,35 @@ public class ConfigSetup
 
 		arenaStartTime = plugin.getConfig().getInt("config.gameSettings.arenaStartTime");
 		// Perks are HUD potion-effect icons now (not inventory slots); cap at the 12 real perks.
-		maxPerks = Math.min(plugin.getConfig().getInt("config.perks.maxPerks", 12), 12);
+		maxPerks = Math.min(plugin.getConfig().getInt("config.perks.maxPerks", 4), 12);
 		KillMoney = plugin.getConfig().getInt("config.Economy.MoneyPerKill");
 		//PistolMaterial = plugin.getConfig().getInt("config.Guns.PistolMaterial");
-		zombieDamage = plugin.getConfig().getDouble("config.gameSettings.zombieDamage", 10);
-		juggernogHealth = plugin.getConfig().getDouble("config.perks.juggernogHealth", 2.5);
+		zombieDamage = plugin.getConfig().getDouble("config.gameSettings.zombieDamage", 8);
+		juggernogHealth = plugin.getConfig().getDouble("config.perks.juggernogHealth", 2.4);
 		healTime = plugin.getConfig().getDouble("config.gameSettings.healTime", 2.5);
 
 		// ---- BO2 fidelity (Tier 0) defaults ----
 		zombieBoardBase = plugin.getConfig().getInt("config.gameSettings.zombieBoardBase", 24);
-		zombieBoardPerPlayer = plugin.getConfig().getInt("config.gameSettings.zombieBoardPerPlayer", 6);
+		zombieBoardPerPlayer = plugin.getConfig().getInt("config.gameSettings.zombieBoardPerPlayer", 0);
+		zombieSpawnDelayMin = plugin.getConfig().getDouble("config.gameSettings.zombieSpawnDelayMin", 0.1);
+		zombieCoopCountScale = plugin.getConfig().getDouble("config.gameSettings.zombieCoopCountScale", 0.5);
+		zombieCountMultiplier = plugin.getConfig().getDouble("config.gameSettings.zombieCountMultiplier", 1.0);
+		zombieRunnerStartRound = plugin.getConfig().getInt("config.gameSettings.zombieRunnerStartRound", 4);
+		zombieSprinterStartRound = plugin.getConfig().getInt("config.gameSettings.zombieSprinterStartRound", 10);
+		zombieRunnerSpeed = plugin.getConfig().getDouble("config.gameSettings.zombieRunnerSpeed", 1.3);
+		zombieSprinterSpeed = plugin.getConfig().getDouble("config.gameSettings.zombieSprinterSpeed", 1.7);
+		dogRoundFirstMin = plugin.getConfig().getInt("config.gameSettings.dogRoundFirstMin", 5);
+		dogRoundFirstMax = Math.max(dogRoundFirstMin, plugin.getConfig().getInt("config.gameSettings.dogRoundFirstMax", 8));
+		doubleTapDamageMultiplier = plugin.getConfig().getDouble("config.perks.doubleTapDamageMultiplier", 2.0);
+		staminUpWalkSpeed = plugin.getConfig().getDouble("config.perks.staminUpWalkSpeed", 0.22);
+		phdFlopperDamage = plugin.getConfig().getDouble("config.perks.phdFlopperDamage", 100);
+		phdFlopperRadius = plugin.getConfig().getDouble("config.perks.phdFlopperRadius", 5.0);
+		quickReviveHealDelayFactor = plugin.getConfig().getDouble("config.gameSettings.quickReviveHealDelayFactor", 0.5);
+		visualsLowHealthVignette = plugin.getConfig().getBoolean("config.visuals.lowHealthVignette", true);
 		zombieRoundMultiplier = plugin.getConfig().getDouble("config.gameSettings.zombieRoundMultiplier", 0.15);
 		zombieAttackCooldownTicks = plugin.getConfig().getInt("config.gameSettings.zombieAttackCooldownTicks", 20);
-		headshotKillBonus = plugin.getConfig().getInt("config.gameSettings.headshotKillBonus", 30);
-		meleeKillBonus = plugin.getConfig().getInt("config.gameSettings.meleeKillBonus", 60);
+		headshotKillBonus = plugin.getConfig().getInt("config.gameSettings.headshotKillBonus", 50);
+		meleeKillBonus = plugin.getConfig().getInt("config.gameSettings.meleeKillBonus", 80);
 		deadshotHeadshotMultiplier = plugin.getConfig().getDouble("config.perks.deadshotHeadshotMultiplier", 2.0);
 		bonusPointsAmount = plugin.getConfig().getInt("config.gameSettings.bonusPointsAmount", 100);
 		maxGrenades = plugin.getConfig().getInt("config.gameSettings.maxGrenades", 4);
@@ -505,14 +562,25 @@ public class ConfigSetup
 		zombieStuckSeconds = plugin.getConfig().getInt("config.gameSettings.zombieStuckSeconds", 6);
 		zombieStuckMoveThreshold = plugin.getConfig().getDouble("config.gameSettings.zombieStuckMoveThreshold", 1.0);
 		dogsPerPlayer = plugin.getConfig().getInt("config.gameSettings.dogsPerPlayer", 3);
-		dogRoundEveryX = plugin.getConfig().getInt("config.gameSettings.dogRoundEveryX", 5);
+		dogRoundEveryX = plugin.getConfig().getInt("config.gameSettings.dogRoundEveryX", 4);
 		dogRoundMaxAmmoDrop = plugin.getConfig().getBoolean("config.gameSettings.dogRoundMaxAmmoDrop", true);
 		maxPowerUpsOnGround = plugin.getConfig().getInt("config.gameSettings.maxPowerUpsOnGround", 4);
 		powerUpDropPercentage = plugin.getConfig().getInt("config.gameSettings.powerUpDropPercentage", 2);
 		maxPowerUpsPerRound = plugin.getConfig().getInt("config.gameSettings.maxPowerUpsPerRound", 4);
 		powerUpRefreshOnPickup = plugin.getConfig().getBoolean("config.gameSettings.powerUpRefreshOnPickup", true);
 		packAPunchRepackEnabled = plugin.getConfig().getBoolean("config.gameSettings.packAPunchRepackEnabled", true);
-		packAPunchRepackCost = plugin.getConfig().getInt("config.gameSettings.packAPunchRepackCost", 2500);
+		packAPunchRepackCost = plugin.getConfig().getInt("config.gameSettings.packAPunchRepackCost", 2000);
+		packAPunchWorkSeconds = plugin.getConfig().getDouble("config.gameSettings.packAPunchWorkSeconds", 3.5);
+		packAPunchPickupSeconds = plugin.getConfig().getDouble("config.gameSettings.packAPunchPickupSeconds", 15);
+		perkDrinkLockSeconds = plugin.getConfig().getDouble("config.perks.drinkLockSeconds", 2);
+		soloQuickRevivePrice = plugin.getConfig().getInt("config.perks.soloQuickRevivePrice", 500);
+		boxRollSeconds = plugin.getConfig().getDouble("config.gameSettings.boxRollSeconds", 4);
+		boxPickupSeconds = plugin.getConfig().getDouble("config.gameSettings.boxPickupSeconds", 12);
+		boxTeddyMinUses = plugin.getConfig().getInt("config.gameSettings.boxTeddyMinUses", 3);
+		boxTeddyMaxUses = plugin.getConfig().getInt("config.gameSettings.boxTeddyMaxUses", 8);
+		boxFireSaleCost = plugin.getConfig().getInt("config.gameSettings.boxFireSaleCost", 10);
+		wallAmmoPriceDivisor = plugin.getConfig().getInt("config.gameSettings.wallAmmoPriceDivisor", 2);
+		wallAmmoPackAPunchCost = plugin.getConfig().getInt("config.gameSettings.wallAmmoPackAPunchCost", 4500);
 		teleporterCooldownSeconds = plugin.getConfig().getInt("config.teleporter.cooldownSeconds", 30);
 		teleporterChargeUpTicks = plugin.getConfig().getInt("config.teleporter.chargeUpTicks", 40);
 		teleporterPadKillRadius = plugin.getConfig().getDouble("config.teleporter.padKillRadius", 3.0);
@@ -541,8 +609,9 @@ public class ConfigSetup
 		wunderwaffeChainRadius = plugin.getConfig().getDouble("config.wonderWeapons.wunderwaffeChainRadius", 6.0);
 		bankDepositFeePercent = plugin.getConfig().getInt("config.bank.depositFeePercent", 10);
 		tombstoneEnabled = plugin.getConfig().getBoolean("config.perks.tombstoneEnabled", true);
+		tombstoneLifetime = Math.max(5, plugin.getConfig().getInt("config.perks.tombstoneLifetime", 90));
 		soloQuickReviveUses = plugin.getConfig().getInt("config.perks.soloQuickReviveUses", 3);
-		soloReviveDelaySeconds = plugin.getConfig().getInt("config.ReviveSettings.SoloReviveDelaySeconds", 5);
+		soloReviveDelaySeconds = plugin.getConfig().getInt("config.ReviveSettings.SoloReviveDelaySeconds", 10);
 		whosWhoSeconds = plugin.getConfig().getInt("config.perks.whosWhoSeconds", 20);
 		whosWhoReviveRange = plugin.getConfig().getDouble("config.perks.whosWhoReviveRange", 3.0);
 		bossRoundEveryX = plugin.getConfig().getInt("config.gameSettings.bossRoundEveryX", 0);

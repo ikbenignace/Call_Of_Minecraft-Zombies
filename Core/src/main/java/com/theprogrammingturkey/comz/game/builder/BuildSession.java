@@ -3,6 +3,8 @@ package com.theprogrammingturkey.comz.game.builder;
 import com.theprogrammingturkey.comz.game.Game;
 import com.theprogrammingturkey.comz.game.features.Barrier;
 import com.theprogrammingturkey.comz.game.features.Door;
+import com.theprogrammingturkey.comz.game.visuals.MachineLooks;
+import com.theprogrammingturkey.comz.game.visuals.MachineVisuals;
 import com.theprogrammingturkey.comz.spawning.SpawnPoint;
 import com.theprogrammingturkey.comz.util.Compat;
 import com.theprogrammingturkey.comz.util.DisplayEntityUtil;
@@ -40,8 +42,8 @@ public class BuildSession
 	/** Selected variant index per tool, indexed by {@link BuildTool#ordinal()}. */
 	private final int[] variantIndex = new int[BuildTool.values().length];
 
-	/** Preview machine models keyed by the sign location they belong to, for targeted + bulk removal. */
-	private final Map<Location, Entity> previews = new HashMap<>();
+	/** Preview machine visuals (pack model or block look-alike parts) keyed by the sign location, for targeted + bulk removal. */
+	private final Map<Location, List<Entity>> previews = new HashMap<>();
 
 	/**
 	 * Floating door-id holograms shown above every registered door's centre block while in build mode,
@@ -350,25 +352,34 @@ public class BuildSession
 			variantIndex[tool.ordinal()] = 0;
 	}
 
-	public void addPreview(Location signLoc, Entity display)
+	public void addPreview(Location signLoc, List<Entity> displays)
 	{
-		if(display != null)
-			previews.put(signLoc, display);
+		if(displays != null && !displays.isEmpty())
+			previews.put(signLoc, displays);
 	}
 
 	public void removePreview(Location signLoc)
 	{
-		Entity display = previews.remove(signLoc);
-		if(display != null && !display.isDead())
-			display.remove();
+		MachineVisuals.remove(previews.remove(signLoc));
 	}
 
 	public void removeAllPreviews()
 	{
-		for(Entity display : previews.values())
-			if(display != null && !display.isDead())
-				display.remove();
+		for(List<Entity> displays : previews.values())
+			MachineVisuals.remove(displays);
 		previews.clear();
+	}
+
+	/** Spawn (or respawn) a preview for every perk machine, Pack-a-Punch and mystery box sign in the arena. */
+	public void refreshMachinePreviews(Player player)
+	{
+		removeAllPreviews();
+		boolean usePack = MachineSigns.previewUsesPack(player);
+		MachineSigns.forEachArenaSign(game, sign ->
+		{
+			if(MachineLooks.forSignLines(sign.getLines()) != null)
+				addPreview(sign.getLocation(), MachineSigns.previewModel(sign, usePack));
+		});
 	}
 
 	/**

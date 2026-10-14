@@ -1,20 +1,29 @@
 package com.theprogrammingturkey.comz.game.builder;
 
 import com.theprogrammingturkey.comz.game.Game;
-import com.theprogrammingturkey.comz.game.features.PerkType;
+import com.theprogrammingturkey.comz.game.visuals.MachineLooks;
+import com.theprogrammingturkey.comz.game.visuals.MachineLooks.Look;
+import com.theprogrammingturkey.comz.game.visuals.MachineVisuals;
 import com.theprogrammingturkey.comz.game.signs.IGameSign;
 import com.theprogrammingturkey.comz.listeners.SignListener;
-import com.theprogrammingturkey.comz.util.ModelDisplay;
-import org.bukkit.ChatColor;
+import com.theprogrammingturkey.comz.listeners.ResourcePackListener;
+import com.theprogrammingturkey.comz.util.PackModels;
+import org.bukkit.Location;
+import org.bukkit.World;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
+import org.bukkit.block.BlockState;
 import org.bukkit.block.Sign;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.Directional;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.block.SignChangeEvent;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Consumer;
 
 /**
  * Places a fully-styled COM:Z feature sign in one shot for the in-game build mode, then re-dispatches
@@ -67,60 +76,56 @@ public final class MachineSigns
 		return true;
 	}
 
-	/**
-	 * Spawn the build-time preview machine model for a freshly-placed sign, mirroring
-	 * {@code MachineModelManager}'s in-game spawn (perk machines + Pack-a-Punch carry an ItemDisplay).
-	 * Returns the spawned display, or null when the sign type has no model or the pack is disabled.
-	 */
-	public static Entity previewModel(Sign sign)
+	/** Calls {@code action} for every sign inside the game's arena (loaded chunks only). */
+	public static void forEachArenaSign(Game game, Consumer<Sign> action)
 	{
-		String type = ChatColor.stripColor(sign.getLine(1)).trim().toLowerCase();
-		String modelKey;
-		if(type.equals("pack-a-punch"))
-		{
-			modelKey = "machine/pap";
-		}
-		else if(type.equals("perk machine"))
-		{
-			PerkType perk = PerkType.getPerkType(ChatColor.stripColor(sign.getLine(2)));
-			modelKey = perk == null ? null : perk.getMachineModelKey();
-		}
-		else
-		{
-			return null;
-		}
-		if(modelKey == null)
-			return null;
+		World world = game.arena.getWorld();
+		if(world == null || !game.arena.areMinAndMaxSet())
+			return;
+		Location min = game.arena.getMin();
+		Location max = game.arena.getMax();
+		int minCX = Math.min(min.getBlockX(), max.getBlockX()) >> 4;
+		int maxCX = Math.max(min.getBlockX(), max.getBlockX()) >> 4;
+		int minCZ = Math.min(min.getBlockZ(), max.getBlockZ()) >> 4;
+		int maxCZ = Math.max(min.getBlockZ(), max.getBlockZ()) >> 4;
+
+		for(int cx = minCX; cx <= maxCX; cx++)
+			for(int cz = minCZ; cz <= maxCZ; cz++)
+			{
+				if(!world.isChunkLoaded(cx, cz))
+					continue;
+				for(BlockState state : world.getChunkAt(cx, cz).getTileEntities())
+					if(state instanceof Sign && game.arena.containsBlock(state.getLocation()))
+						action.accept((Sign) state);
+			}
+	}
+
+	/**
+	 * Whether a build-time preview for {@code player} may use the pack model: the pack is enabled and this
+	 * player has it loaded. Anyone else sees the block look-alike (previews are visible to every player in range).
+	 */
+	public static boolean previewUsesPack(Player player)
+	{
+		return PackModels.isPackEnabled() && ResourcePackListener.hasPackLoaded(player);
+	}
+
+	/**
+	 * Spawn the build-time preview for a placed sign, mirroring the in-game visuals of
+	 * {@code MachineModelManager} / {@code RandomBox}: the pack model when {@code usePack}, else the block
+	 * look-alike. Empty when the sign is not a machine or the server has no display entities.
+	 */
+	public static List<Entity> previewModel(Sign sign, boolean usePack)
+	{
+		Look look = MachineLooks.forSignLines(sign.getLines());
+		if(look == null)
+			return new ArrayList<>();
 
 		BlockFace facing = BlockFace.NORTH;
 		BlockData data = sign.getBlockData();
 		if(data instanceof Directional)
 			facing = ((Directional) data).getFacing();
 
-		float yaw = yawFromFace(facing);
-		// Preview sits at the centre of the sign's own block, matching the in-game placement (the machine
-		// occupies the sign block, not the block in front of it).
-		org.bukkit.Location at = sign.getLocation().clone().add(0.5, 0.0, 0.5);
-		Entity preview = ModelDisplay.spawnModel(sign.getLocation().getWorld(), at, modelKey, 1.0f, yaw);
-		if(preview != null)
-			preview.setPersistent(false);
-		return preview;
-	}
-
-	private static float yawFromFace(BlockFace face)
-	{
-		switch(face)
-		{
-			case SOUTH:
-				return 0f;
-			case WEST:
-				return 90f;
-			case NORTH:
-				return 180f;
-			case EAST:
-				return 270f;
-			default:
-				return 0f;
-		}
+		// The preview sits on the sign's own block, where the machine / box chest stands in-game.
+		return MachineVisuals.spawn(sign.getLocation(), facing, look, usePack);
 	}
 }

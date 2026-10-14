@@ -78,6 +78,11 @@ public class WeaponManager
 	 * @param name to get weapon from
 	 * @return weapon based off the name
 	 */
+	public static List<String> getGunNames()
+	{
+		return weapons.stream().filter(weapon -> weapon instanceof BaseGun).map(Weapon::getName).collect(Collectors.toList());
+	}
+
 	public static Weapon getWeapon(String name)
 	{
 		//TODO: Default gun
@@ -111,8 +116,12 @@ public class WeaponManager
 				return false;
 			if(weapon instanceof BaseGun && playerWeaponManager.hasGun((BaseGun) weapon))
 				return false;
+			if(weapon instanceof BasicGun && ((BasicGun) weapon).isPackAPunchable() && playerWeaponManager.hasGun(((BasicGun) weapon).getPackAPunchGun()))
+				return false;
 			return includePackaPunch || !(weapon instanceof PackAPunchGun);
 		}).collect(Collectors.toList());
+		if(weaponsToChoose.isEmpty())
+			return null;
 		return weaponsToChoose.get(COMZombies.rand.nextInt(weaponsToChoose.size()));
 	}
 

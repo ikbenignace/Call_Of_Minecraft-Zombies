@@ -18,6 +18,7 @@ import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.SignChangeEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.inventory.EquipmentSlot;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -176,6 +177,13 @@ public class SignListener implements Listener
 		{
 			Sign sign = (Sign) event.getClickedBlock().getState();
 			Player player = event.getPlayer();
+
+			// Each click fires once per hand; a second pass would buy twice.
+			if(event.getHand() != null && event.getHand() != EquipmentSlot.HAND && GameManager.INSTANCE.isPlayerInGame(player))
+			{
+				event.setCancelled(true);
+				return;
+			}
 
 			if(GameManager.INSTANCE.isPlayerInGame(player))
 			{

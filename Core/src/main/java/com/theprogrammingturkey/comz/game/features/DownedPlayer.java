@@ -2,7 +2,6 @@ package com.theprogrammingturkey.comz.game.features;
 
 import com.theprogrammingturkey.comz.COMZombies;
 import com.theprogrammingturkey.comz.config.ConfigManager;
-import com.theprogrammingturkey.comz.economy.PointManager;
 import com.theprogrammingturkey.comz.game.Game;
 import com.theprogrammingturkey.comz.game.managers.PermaPerkManager;
 import com.theprogrammingturkey.comz.game.managers.PlayerWeaponManager;
@@ -36,6 +35,9 @@ import org.bukkit.event.Listener;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.FireworkMeta;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class DownedPlayer implements Listener
 {
 	private final Player player;
@@ -65,6 +67,7 @@ public class DownedPlayer implements Listener
 
 	/** Down-state visuals: the invisible seat the player rides (sit pose) + the floating revive icon. */
 	private ArmorStand seat;
+	private Location downLocation;
 	private Entity reviveIcon;
 	/** Progress bar shown during a revive (co-op revive timer or the solo self-revive countdown). */
 	private BossBar reviveBar;
@@ -83,11 +86,14 @@ public class DownedPlayer implements Listener
 		// The down message is sent by DownedPlayerManager.setPlayerDowned, which knows whether this
 		// is a co-op down (needs another player), a solo self-revive, or game over — so it isn't sent
 		// here (it used to always say "need to be revived", which made no sense in a solo game).
-		// Tier 3 — Tombstone Soda: snapshot perks BEFORE they are cleared so they can be reclaimed.
+		// Tier 3 — Tombstone Soda: snapshot perks BEFORE they are cleared. They only come back from the
+		// tombstone left on bleed-out; Tombstone itself is spent, as in BO2.
+		downLocation = player.getLocation().clone();
 		if(ConfigManager.getMainConfig().tombstoneEnabled && game.perkManager.hasPerk(player, PerkType.TOMBSTONE_SODA))
 		{
-			game.downedPlayerManager.storeTombstoneSnapshot(player.getUniqueId(), game.perkManager.getPlayersPerks(player));
-			player.sendMessage(ChatColor.GRAY + "Tombstone Soda will preserve your perks.");
+			List<PerkType> kept = new ArrayList<>(game.perkManager.getPlayersPerks(player));
+			kept.remove(PerkType.TOMBSTONE_SODA);
+			game.downedPlayerManager.storeTombstoneSnapshot(player.getUniqueId(), kept);
 		}
 		game.perkManager.clearPlayersPerks(player);
 		PowerUpDropListener.revertDeathMachine(game, player);
@@ -141,6 +147,7 @@ public class DownedPlayer implements Listener
 		player.setInvulnerable(false);
 		player.setWalkSpeed(0.2F);
 		player.setHealth(20);
+		LowHealthVignette.clear(player);
 		reviver = null;
 	}
 
@@ -274,11 +281,9 @@ public class DownedPlayer implements Listener
 			manager.addWeapon(gun);
 		}
 
-		// Tier 3 — Tombstone Soda: re-grant the snapshotted perks (one-shot) if one was saved.
-		game.downedPlayerManager.reclaimTombstonePerks(game, player);
+		// Revived players lose their perks, Tombstone included; the snapshot is only for a bleed-out.
+		game.downedPlayerManager.consumeTombstoneSnapshot(player.getUniqueId());
 
-		if(reviver != null)
-			PointManager.INSTANCE.addPoints(reviver, 10);
 	}
 
 	public void cancelRevive()
@@ -341,7 +346,7 @@ public class DownedPlayer implements Listener
 		reviveStartMs = System.currentTimeMillis();
 		int reviveTime = ConfigManager.getMainConfig().reviveTimer * 20;
 		if (game.perkManager.hasPerk(reviver, PerkType.QUICK_REVIVE))
-			reviveTime /= 5;
+			reviveTime /= 2;
 		startReviveBar(ChatColor.GREEN + "Reviving " + player.getName(), BarColor.GREEN, reviveTime);
 		reviveTask = COMZombies.scheduleTask(reviveTime, this::revivePlayer);
 		// Note: the consolidated branch shows revive progress via the boss bar (startReviveBar)
@@ -364,9 +369,7 @@ public class DownedPlayer implements Listener
 			{
 				player.sendMessage(ChatColor.RED + "" + ChatColor.BOLD + "You have died!");
 				//game.removePlayer(player);
-				// Died for real with no reclaim: discard any tombstone snapshot so it does not orphan
-				// in the manager (perks are only ever re-granted on a successful revive).
-				game.downedPlayerManager.consumeTombstoneSnapshot(player.getUniqueId());
+				game.downedPlayerManager.dropTombstone(game, player, downLocation, guns);
 				clearDownedState();
 				game.downedPlayerManager.downedPlayerRevived(this);
 				game.setDead(player);

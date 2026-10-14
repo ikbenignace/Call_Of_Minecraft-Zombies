@@ -5,7 +5,9 @@ import com.theprogrammingturkey.comz.config.ConfigManager;
 import com.theprogrammingturkey.comz.game.Game;
 import com.theprogrammingturkey.comz.game.GameManager;
 import com.theprogrammingturkey.comz.game.features.BuildableItems;
+import com.theprogrammingturkey.comz.game.features.LowHealthVignette;
 import com.theprogrammingturkey.comz.game.features.PerkType;
+import com.theprogrammingturkey.comz.game.features.Tombstone;
 import com.theprogrammingturkey.comz.util.CommandUtil;
 import org.bukkit.inventory.ItemStack;
 import com.theprogrammingturkey.comz.spawning.BossSpawner;
@@ -73,6 +75,9 @@ public class EntityListener implements Listener
 	public void spawn(CreatureSpawnEvent event)
 	{
 		Entity entity = event.getEntity();
+		// Tombstone bodies are summoned by command (no Bukkit API for mannequins) and must survive.
+		if(entity.getScoreboardTags().contains(Tombstone.ENTITY_TAG))
+			return;
 		if(!event.getSpawnReason().equals(CreatureSpawnEvent.SpawnReason.CUSTOM))
 			if(GameManager.INSTANCE.isLocationInGame(entity.getLocation()))
 				event.setCancelled(true);
@@ -134,6 +139,11 @@ public class EntityListener implements Listener
 
 					damage = game.damagePlayer(player, damage);
 					e.setDamage(damage);
+					if(damage == 0 && game.downedPlayerManager.isDownedPlayer(player))
+					{
+						e.setCancelled(true);
+						return;
+					}
 
 					// 0c — no i-frames so concurrent swarm hits this tick all land. setNoDamageTicks alone is
 					// overwritten with the maximum after the event; Game.resetPlayer restores the maximum.
@@ -142,6 +152,7 @@ public class EntityListener implements Listener
 
 					//heal system
 					resetHealingTimer(player);
+					updateVignette(player);
 
 					// Tier 4 — Brutus ability: when Brutus damages a player, temporarily disable one
 					// of that player's perks, then restore it after brutusDisableSeconds (reversible).
@@ -195,6 +206,8 @@ public class EntityListener implements Listener
 	@EventHandler
 	public void damgeEvent(EntityDamageEvent e)
 	{
+		if(e.isCancelled())
+			return;
 		if(!GameManager.INSTANCE.isEntityInGame(e.getEntity()))
 			return;
 
@@ -310,21 +323,42 @@ public class EntityListener implements Listener
 				@Override
 				public void run()
 				{
+					Game game = GameManager.INSTANCE.getGame(player);
+					if(!player.isOnline() || game == null || game.getStatus() != Game.GameStatus.INGAME
+							|| game.downedPlayerManager.isDownedPlayer(player) || game.downedPlayerManager.isGhost(player))
+					{
+						stopHealingTimer(player);
+						return;
+					}
 					int currentHealth = (int) player.getHealth();
 					if(currentHealth < 20)
 						player.setHealth(Math.min(currentHealth + 1, 20));
 					else
 						stopHealingTimer(player);
+					updateVignette(player);
 				}
 			};
 			//every tick
-			int taskId = healingTask.runTaskTimer(COMZombies.getPlugin(), Math.round(20 * ConfigManager.getMainConfig().healTime), 1).getTaskId();
+			Game game = GameManager.INSTANCE.getGame(player);
+			double delaySeconds = ConfigManager.getMainConfig().healTime;
+			if(game != null && game.perkManager.hasPerk(player, PerkType.QUICK_REVIVE))
+				delaySeconds *= ConfigManager.getMainConfig().quickReviveHealDelayFactor;
+			int taskId = healingTask.runTaskTimer(COMZombies.getPlugin(), Math.round(20 * delaySeconds), 1).getTaskId();
 			healTimers.put(player, taskId);
 		}
 	}
 
+	private void updateVignette(Player player)
+	{
+		if(ConfigManager.getMainConfig().visualsLowHealthVignette && player.getHealth() <= 12 && player.getHealth() > 0)
+			LowHealthVignette.show(player);
+		else
+			LowHealthVignette.clear(player);
+	}
+
 	private void stopHealingTimer(Player player)
 	{
+		LowHealthVignette.clear(player);
 		if(healTimers.containsKey(player))
 		{
 			Bukkit.getScheduler().cancelTask(healTimers.get(player));
@@ -344,6 +378,7 @@ public class EntityListener implements Listener
 		for(Integer taskId : instance.healTimers.values())
 			Bukkit.getScheduler().cancelTask(taskId);
 		instance.healTimers.clear();
+		LowHealthVignette.clearAll();
 	}
 
 	private void resetHealingTimer(Player player)

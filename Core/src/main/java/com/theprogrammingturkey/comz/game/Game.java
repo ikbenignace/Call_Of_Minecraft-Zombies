@@ -19,6 +19,7 @@ import com.theprogrammingturkey.comz.game.features.PerkType;
 import com.theprogrammingturkey.comz.game.features.PowerUp;
 import com.theprogrammingturkey.comz.game.features.WhosWhoGhost;
 import com.theprogrammingturkey.comz.game.features.RandomBox;
+import com.theprogrammingturkey.comz.game.dev.DevTools;
 import com.theprogrammingturkey.comz.game.managers.*;
 import com.theprogrammingturkey.comz.game.weapons.BaseGun;
 import com.theprogrammingturkey.comz.kits.KitManager;
@@ -373,6 +374,16 @@ public class Game
 	public GameStatus getStatus()
 	{
 		return this.status;
+	}
+
+	/** Developer tooling: ends the current round without rewards and starts the given one. */
+	public boolean devSetWave(int wave)
+	{
+		if(status != GameStatus.INGAME || changingRound)
+			return false;
+		waveNumber = Math.max(0, wave - 1);
+		spawnManager.skipRound();
+		return true;
 	}
 
 	public int getWave()
@@ -1486,6 +1497,8 @@ public class Game
 
 	public void damageMob(Mob mob, Player player, float damageAmount, boolean headshotKill, boolean meleeKill)
 	{
+		if(ConfigManager.getMainConfig().visualsHitFeedback)
+			player.playSound(player.getLocation(), Sound.ENTITY_ARROW_HIT_PLAYER, 0.35f, headshotKill ? 1.8f : 1.3f);
 		double mobHealth = mob.getHealth() - damageAmount;
 		mob.playEffect(EntityEffect.HURT);
 
@@ -1577,6 +1590,9 @@ public class Game
 
 	public float damagePlayer(Player player, float damageAmount)
 	{
+		if(DevTools.isGod(player))
+			return 0;
+
 		if(player.getHealth() - damageAmount < 1)
 		{
 			playerDowned(player);

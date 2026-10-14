@@ -4,8 +4,12 @@ import com.theprogrammingturkey.comz.config.ConfigManager;
 import com.theprogrammingturkey.comz.game.Game;
 import com.theprogrammingturkey.comz.game.features.DownedPlayer;
 import com.theprogrammingturkey.comz.game.features.PerkType;
+import com.theprogrammingturkey.comz.game.features.Tombstone;
 import com.theprogrammingturkey.comz.game.features.WhosWhoGhost;
+import com.theprogrammingturkey.comz.game.weapons.WeaponInstance;
 import com.theprogrammingturkey.comz.util.CommandUtil;
+import org.bukkit.ChatColor;
+import org.bukkit.Location;
 import org.bukkit.entity.Player;
 
 import java.util.ArrayList;
@@ -28,9 +32,11 @@ public class DownedPlayerManager
 
 	/**
 	 * Tier 3 — Tombstone Soda: perks snapshotted when a player holding Tombstone Soda goes down,
-	 * keyed by player UUID, to be re-granted (one-shot) when they reclaim on revive/respawn.
+	 * keyed by player UUID, left in their tombstone if they bleed out. A revive discards it: perks are lost on any down.
 	 */
 	private final Map<UUID, List<PerkType>> tombstoneSnapshots = new HashMap<>();
+
+	private final Map<UUID, Tombstone> tombstones = new HashMap<>();
 
 	/**
 	 * Tier 3 — solo Quick Revive self-revive uses remaining, keyed by player UUID. Initialized lazily
@@ -131,20 +137,28 @@ public class DownedPlayerManager
 	}
 
 	/**
-	 * Tier 3 — if the player has a saved tombstone snapshot and the feature is enabled, re-grant
-	 * each saved perk and clear the snapshot. No-op otherwise.
+	 * Tier 3 — a player holding Tombstone Soda bled out: leave their body with the snapshotted perks
+	 * and guns so they can reclaim it after respawning. One tombstone per player; a newer one replaces
+	 * the old. No-op when there is no snapshot or the feature is disabled.
 	 */
-	public void reclaimTombstonePerks(Game game, Player player)
+	public void dropTombstone(Game game, Player player, Location location, WeaponInstance[] guns)
 	{
-		UUID id = player.getUniqueId();
-		boolean enabled = ConfigManager.getMainConfig().tombstoneEnabled;
-		if(!shouldReclaim(hasTombstoneSnapshot(id), enabled))
+		List<PerkType> perks = consumeTombstoneSnapshot(player.getUniqueId());
+		if(!shouldReclaim(perks != null, ConfigManager.getMainConfig().tombstoneEnabled))
 			return;
-		List<PerkType> perks = consumeTombstoneSnapshot(id);
-		if(perks == null)
-			return;
-		for(PerkType perk : perks)
-			PerkManager.givePerk(game, player, perk);
+		Tombstone old = tombstones.remove(player.getUniqueId());
+		if(old != null)
+			old.remove();
+		Tombstone tombstone = new Tombstone(game, player, location, perks, guns);
+		tombstones.put(player.getUniqueId(), tombstone);
+		tombstone.spawn();
+		player.sendMessage(ChatColor.GRAY + "Your tombstone marks where you fell. Walk over it after you respawn to get your perks and guns back.");
+	}
+
+	public void removeTombstone(Tombstone tombstone)
+	{
+		tombstones.remove(tombstone.getOwnerId(), tombstone);
+		tombstone.remove();
 	}
 
 	public void clearDownedPlayers()
@@ -165,6 +179,9 @@ public class DownedPlayerManager
 		downedPlayers.clear();
 		soloSelfReviveUses.clear();
 		tombstoneSnapshots.clear();
+		for(Tombstone tombstone : new ArrayList<>(tombstones.values()))
+			tombstone.remove();
+		tombstones.clear();
 		// quitCleanup() calls endGhost(), which mutates the map, so iterate a copy.
 		for(WhosWhoGhost ghost : new ArrayList<>(whosWhoGhosts.values()))
 			ghost.quitCleanup();

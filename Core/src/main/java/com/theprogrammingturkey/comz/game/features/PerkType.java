@@ -90,6 +90,27 @@ public enum PerkType
 		return modelName == null ? null : "machine/perk_" + modelName;
 	}
 
+	/** BO2 machine price, used when a perk sign is created without an explicit price. */
+	public int getDefaultCost()
+	{
+		switch(this)
+		{
+			case JUGGERNOG:
+				return 2500;
+			case SPEED_COLA:
+			case VULTURE_AID:
+				return 3000;
+			case QUICK_REVIVE:
+			case DEADSHOT_DAIQ:
+			case DER_WUNDERFIZZ:
+				return 1500;
+			case MULE_KICK:
+				return 4000;
+			default:
+				return 2000;
+		}
+	}
+
 	public static PerkType getPerkType(String name)
 	{
 		for(PerkType pt : values())

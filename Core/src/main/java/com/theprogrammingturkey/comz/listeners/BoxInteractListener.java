@@ -10,6 +10,7 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.inventory.EquipmentSlot;
 
 /**
  * Right-click on a mystery-box CHEST → start / pick up the box. The chest is the box's in-game
@@ -24,7 +25,7 @@ public class BoxInteractListener implements Listener
 	@EventHandler(priority = EventPriority.HIGH)
 	public void onRightClickBox(PlayerInteractEvent event)
 	{
-		if(event.getAction() != Action.RIGHT_CLICK_BLOCK)
+		if(event.getAction() != Action.RIGHT_CLICK_BLOCK || event.getHand() != EquipmentSlot.HAND)
 			return;
 
 		Block clicked = event.getClickedBlock();
@@ -46,7 +47,10 @@ public class BoxInteractListener implements Listener
 		if(box == null)
 			return;
 
-		box.interact(event.getPlayer());
 		event.setCancelled(true);
+		if(!game.getLivingPlayers().contains(event.getPlayer()) || game.downedPlayerManager.isDownedPlayer(event.getPlayer()) || game.downedPlayerManager.isGhost(event.getPlayer()))
+			return;
+
+		box.interact(event.getPlayer());
 	}
 }

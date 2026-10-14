@@ -6,6 +6,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
+import org.bukkit.inventory.EquipmentSlot;
 
 /**
  * Right-clicking a machine's invisible {@link org.bukkit.entity.Interaction} hitbox forwards to the
@@ -18,6 +19,13 @@ public class MachineInteractListener implements Listener
 	@EventHandler
 	public void onInteractEntity(PlayerInteractEntityEvent event)
 	{
+		if(event.getHand() != EquipmentSlot.HAND)
+		{
+			// The off-hand pass would otherwise run the buy a second time for the same click.
+			if(GameManager.INSTANCE.isPlayerInGame(event.getPlayer()))
+				event.setCancelled(true);
+			return;
+		}
 		Player player = event.getPlayer();
 		if(!GameManager.INSTANCE.isPlayerInGame(player))
 			return;

@@ -28,6 +28,7 @@ public class BoxManager
 	private final List<RandomBox> boxes = new ArrayList<>();
 	private RandomBox currentBox;
 	private boolean multiBox;
+	private boolean boxHasMoved;
 	/** Repeating task id drawing the mystery-box locator beam(s); -1 when not running. */
 	private int beamTaskId = -1;
 
@@ -70,6 +71,7 @@ public class BoxManager
 
 	public void resetBoxes()
 	{
+		boxHasMoved = false;
 		if(beamTaskId != -1)
 		{
 			Bukkit.getScheduler().cancelTask(beamTaskId);
@@ -263,8 +265,14 @@ public class BoxManager
 		return Util.genRandId();
 	}
 
+	public boolean hasBoxMoved()
+	{
+		return boxHasMoved;
+	}
+
 	public void teddyBear()
 	{
+		boxHasMoved = true;
 		currentBox.removeBox();
 		RandomBox b = getRandomBox(currentBox);
 		if(b != null)

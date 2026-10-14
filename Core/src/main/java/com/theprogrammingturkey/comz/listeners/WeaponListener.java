@@ -121,6 +121,8 @@ public class WeaponListener implements Listener
 					// shot isn't fired twice. The WMDamageListener applies COM:Z damage/economy on WM hits.
 					if(WeaponBackends.forGun(gun.getType()).ownsFiring())
 						return;
+					if(game.perkManager.isDrinking(player))
+						return;
 					if(gun.isReloading())
 					{
 						player.getLocation().getWorld().playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1, 1);
@@ -175,6 +177,8 @@ public class WeaponListener implements Listener
 							rayTrace.showParticles(event.getPlayer().getWorld(), dist, 0.5f, gun.getType().particleColor);
 
 							float baseDamage = (float) gun.getType().damage / shots;
+							if(game.perkManager.hasPerk(player, PerkType.DOUBLE_TAP))
+								baseDamage *= (float) ConfigManager.getMainConfig().doubleTapDamageMultiplier;
 
 							for(RayTrace.RayEntityIntersection toDamageIntesect : toDamage)
 							{

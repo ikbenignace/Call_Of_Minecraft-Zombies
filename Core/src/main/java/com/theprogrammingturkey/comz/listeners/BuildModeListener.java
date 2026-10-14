@@ -20,7 +20,6 @@ import com.theprogrammingturkey.comz.spawning.SpawnPoint;
 import com.theprogrammingturkey.comz.util.BlockUtils;
 import com.theprogrammingturkey.comz.util.CommandUtil;
 import com.theprogrammingturkey.comz.util.Compat;
-import com.theprogrammingturkey.comz.util.PackModels;
 import com.theprogrammingturkey.comz.util.Util;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
@@ -335,13 +334,20 @@ public class BuildModeListener implements Listener
 		// game starts, RandomBox.loadBox replaces it with a CHEST on this exact spot (+ price hologram).
 		// No separate chest block is placed during authoring anymore.
 
+		// Preview right where it was placed: the pack model for builders who have the pack loaded, the
+		// block look-alike otherwise. Cleared again when the sign is removed.
 		session.removePreview(signBlock.getLocation());
-		// Only spawn a preview model if THIS player actually has the pack loaded; otherwise the custom
-		// item_model can't resolve client-side and renders as a purple/black missing-model cube. The real
-		// machine model still auto-derives from the sign at game start regardless.
-		if(playerHasPackLoaded(player))
-			session.addPreview(signBlock.getLocation(), MachineSigns.previewModel(sign));
-		manager.actionBar(player, ChatColor.GREEN + "Placed " + ChatColor.stripColor(sign.getLine(1)));
+		session.addPreview(signBlock.getLocation(), MachineSigns.previewModel(sign, MachineSigns.previewUsesPack(player)));
+		manager.actionBar(player, ChatColor.GREEN + "Placed " + placedLabel(sign));
+	}
+
+	private String placedLabel(Sign sign)
+	{
+		String type = ChatColor.stripColor(sign.getLine(1));
+		if(!type.equalsIgnoreCase("perk machine"))
+			return type;
+		PerkType perk = PerkType.getPerkType(ChatColor.stripColor(sign.getLine(2)));
+		return perk == null ? type : type + ": " + BuildTool.perkLabel(perk);
 	}
 
 	/** Returns {keyword, line2, line3} for the active sign tool/variant, or null after messaging an error. */
@@ -837,11 +843,6 @@ public class BuildModeListener implements Listener
 	 * True only when the server pack is enabled AND this client has actually loaded it. Guards preview
 	 * model spawning so a builder without the pack never sees purple/black missing-model cubes.
 	 */
-	private boolean playerHasPackLoaded(Player player)
-	{
-		return PackModels.isPackEnabled() && ResourcePackListener.hasPackLoaded(player);
-	}
-
 	private void msg(Player player, String text)
 	{
 		CommandUtil.sendMessageToPlayer(player, text);

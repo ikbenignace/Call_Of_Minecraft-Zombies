@@ -6,6 +6,8 @@ import com.theprogrammingturkey.comz.economy.PointManager;
 import com.theprogrammingturkey.comz.game.Game;
 import com.theprogrammingturkey.comz.game.GameManager;
 import com.theprogrammingturkey.comz.game.features.Door;
+import com.theprogrammingturkey.comz.game.features.PerkType;
+import com.theprogrammingturkey.comz.game.signs.PackAPunchSign;
 import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.Bukkit;
@@ -222,7 +224,7 @@ public class ProximityBuyManager
 			return ChatColor.GRAY + "[F] Box is in use";
 		boolean canAfford = PointManager.INSTANCE.getPlayersPoints(player) >= box.getCost();
 		ChatColor color = canAfford ? ChatColor.GREEN : ChatColor.RED;
-		return color + "[F] Mystery Box " + ChatColor.YELLOW + "$" + box.getCost();
+		return color + "[F] Mystery Box " + ChatColor.YELLOW + "[" + box.getCost() + "]";
 	}
 
 	private String doorPrompt(Door door, Player player)
@@ -234,10 +236,35 @@ public class ProximityBuyManager
 
 	private String machinePrompt(MachineModelManager.MachineTarget m, Player player)
 	{
-		// Machine labels already carry their own colour + cost; prefix with the key hint.
-		// We don't re-check affordability here (costs vary by perk/pap and the handler reports
-		// failure in chat anyway) — the prompt is informational.
+		String[] lines = m.signLines;
+		if(lines != null && lines.length > 3)
+		{
+			String type = ChatColor.stripColor(lines[1]).trim().toLowerCase();
+			if(type.equals("pack-a-punch"))
+				return ChatColor.GREEN + "[F] " + ChatColor.RESET + PackAPunchSign.prompt(game, player, m.base, lines);
+			if(type.equals("perk machine"))
+				return perkPrompt(lines, player);
+		}
 		return ChatColor.GREEN + "[F] " + ChatColor.RESET + m.label;
+	}
+
+	private String perkPrompt(String[] lines, Player player)
+	{
+		PerkType perk = PerkType.getPerkType(ChatColor.stripColor(lines[2]));
+		if(perk == null)
+			return ChatColor.RED + "[F] Unknown perk";
+		String name = ChatColor.AQUA + perk.toString().replace('_', ' ').toLowerCase();
+		boolean soloRevive = perk == PerkType.QUICK_REVIVE && game.getPlayersInGame().size() == 1;
+		if(!soloRevive && game.hasPower() && !game.isPowered())
+			return ChatColor.RED + "[F] " + name + ChatColor.GRAY + " - power required";
+		if(perk != PerkType.DER_WUNDERFIZZ && game.perkManager.hasPerk(player, perk))
+			return ChatColor.GRAY + "[F] " + name + " - owned";
+		String costStr = ChatColor.stripColor(lines[3]);
+		int cost = costStr != null && costStr.matches("[0-9]{1,5}") ? Integer.parseInt(costStr) : perk.getDefaultCost();
+		if(soloRevive)
+			cost = ConfigManager.getMainConfig().soloQuickRevivePrice;
+		ChatColor color = PointManager.INSTANCE.canBuy(player, cost) ? ChatColor.GREEN : ChatColor.RED;
+		return color + "[F] " + name + " " + ChatColor.YELLOW + "[" + cost + "]";
 	}
 
 	/**
@@ -254,7 +281,7 @@ public class ProximityBuyManager
 		if(powerLocked)
 			return ChatColor.RED + "[F] " + ChatColor.GRAY + "Locked — Power required";
 		ChatColor color = canAfford ? ChatColor.GREEN : ChatColor.RED;
-		return color + "[F] Open Door " + ChatColor.YELLOW + "$" + cost;
+		return color + "[F] Open Door " + ChatColor.YELLOW + "[" + cost + "]";
 	}
 
 	/**

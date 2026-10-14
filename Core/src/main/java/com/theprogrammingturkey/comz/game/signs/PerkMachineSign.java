@@ -1,5 +1,6 @@
 package com.theprogrammingturkey.comz.game.signs;
 
+import com.theprogrammingturkey.comz.config.ConfigManager;
 import com.theprogrammingturkey.comz.economy.PointManager;
 import com.theprogrammingturkey.comz.game.Game;
 import com.theprogrammingturkey.comz.game.features.PerkType;
@@ -23,33 +24,50 @@ public class PerkMachineSign implements IGameSign
 	public void onInteract(Game game, Player player, Location location, String[] lines)
 	{
 		PerkType perk = PerkType.getPerkType(lines[2]);
-		if(game.hasPower() && !game.isPowered())
-		{
-			CommandUtil.sendMessageToPlayer(player, ChatColor.RED + "You must turn on the power first!");
-			PerkType.noPower(player);
-			return;
-		}
-
 		if(perk == null)
 		{
 			CommandUtil.sendMessageToPlayer(player, ChatColor.RED + "" + ChatColor.BOLD + "An error occured when trying to buy this perk! Leave the game and contact an admin please.");
 			return;
 		}
 
-		int playerPoints = PointManager.INSTANCE.getPlayersPoints(player);
-		String costStr = lines[3];
+		boolean soloRevive = perk == PerkType.QUICK_REVIVE && game.getPlayersInGame().size() == 1;
+		if(!soloRevive && game.hasPower() && !game.isPowered())
+		{
+			CommandUtil.sendMessageToPlayer(player, ChatColor.RED + "You must turn on the power first!");
+			PerkType.noPower(player);
+			return;
+		}
+
+		if(game.perkManager.isDrinking(player))
+			return;
+
+		if(perk != PerkType.DER_WUNDERFIZZ && game.perkManager.hasPerk(player, perk))
+		{
+			CommandUtil.sendMessageToPlayer(player, ChatColor.RED + "" + ChatColor.BOLD + "You already have " + perk + "!");
+			return;
+		}
+
+		if(soloRevive && game.downedPlayerManager.getSelfReviveUses(player.getUniqueId(), ConfigManager.getMainConfig().soloQuickReviveUses) <= 0)
+		{
+			CommandUtil.sendMessageToPlayer(player, ChatColor.RED + "" + ChatColor.BOLD + "Quick Revive is out of order!");
+			return;
+		}
+
+		String costStr = ChatColor.stripColor(lines[3]);
 		int cost;
-		if(costStr.matches("[0-9]{1,5}"))
+		if(costStr != null && costStr.matches("[0-9]{1,5}"))
 		{
 			cost = Integer.parseInt(costStr);
 		}
 		else
 		{
-			cost = 2000;
+			cost = perk.getDefaultCost();
 			CommandUtil.sendMessageToPlayer(player, costStr + " is not a valid amount!");
 		}
+		if(soloRevive)
+			cost = ConfigManager.getMainConfig().soloQuickRevivePrice;
 
-		if(playerPoints < cost)
+		if(!PointManager.INSTANCE.canBuy(player, cost))
 		{
 			CommandUtil.sendMessageToPlayer(player, ChatColor.RED + "" + ChatColor.BOLD + "You do not have enough points to buy this!");
 			return;
@@ -72,6 +90,7 @@ public class PerkMachineSign implements IGameSign
 		CommandUtil.sendMessageToPlayer(player, ChatColor.RED + "" + ChatColor.BOLD + "You now have " + perk.toString().toLowerCase() + "!");
 		perk.initialEffect(player);
 		perk.playDrinkAnimation(player);
+		game.perkManager.startDrinking(player);
 		game.perkManager.applyPerkEffect(player, perk);
 
 		PointManager.INSTANCE.takePoints(player, cost);
@@ -101,8 +120,9 @@ public class PerkMachineSign implements IGameSign
 			}
 			else
 			{
-				cost = 2000;
-				CommandUtil.sendMessageToPlayer(player, fourthLine + " is not a valid amount!");
+				cost = type.getDefaultCost();
+				if(fourthLine != null && !fourthLine.isEmpty())
+					CommandUtil.sendMessageToPlayer(player, fourthLine + " is not a valid amount!");
 			}
 
 			sign.setLine(0, ChatColor.RED + "[Zombies]");

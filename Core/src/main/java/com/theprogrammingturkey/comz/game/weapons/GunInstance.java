@@ -210,6 +210,13 @@ public class GunInstance extends WeaponInstance
 		if(GameManager.INSTANCE.getGame(player).doesMaxAmmoReplenishClip())
 			clipAmmo = gun.clipAmmo;
 		super.maxAmmo();
+		// The base class refills to the weapon this instance was created with, which is the
+		// un-upgraded gun after a Pack-a-Punch.
+		if(totalAmmo != gun.totalAmmo)
+		{
+			totalAmmo = gun.totalAmmo;
+			updateWeapon();
+		}
 	}
 
 	/**
@@ -289,6 +296,8 @@ public class GunInstance extends WeaponInstance
 	@Override
 	public void updateWeapon()
 	{
+		if(isDetached())
+			return;
 		if(!GameManager.INSTANCE.isPlayerInGame(player))
 			return;
 		if(gun == null)

@@ -71,6 +71,8 @@ public final class BuildModeManager
 		game.showSpawnLocations();
 		// Floating door-id holograms above every existing door so the editor can tell doors apart at a glance.
 		session.refreshDoorHolograms();
+		// Previews of every perk machine, Pack-a-Punch and mystery box already in the arena.
+		session.refreshMachinePreviews(player);
 		giveToolbar(player, session);
 		player.getInventory().setHeldItemSlot(0);
 

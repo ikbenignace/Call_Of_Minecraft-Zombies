@@ -22,7 +22,8 @@
     "open": "custom.mysterybox.theme",
     "spin": "BLOCK_NOTE_BLOCK_HARP",
     "lock": "custom.mysterybox.land",
-    "pickup": "custom.global.buy"
+    "pickup": "custom.global.buy",
+    "teddy": "custom.mysterybox.teddy"
   },
   "round": {
     "start": "custom.round.newround",
@@ -30,6 +31,11 @@
     "dogs": "custom.round.dogstart"
   },
   "packapunch": "BLOCK_ANVIL_USE",
+  "pap": {
+    "upgrade": "custom.pap.upgrade",
+    "ready": "custom.pap.ready",
+    "deny": "custom.pap.deny"
+  },
   "teleporter": "ENTITY_ENDERMAN_TELEPORT",
   "door": {
     "open": "custom.global.door_slide"

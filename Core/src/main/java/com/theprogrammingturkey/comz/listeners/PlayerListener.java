@@ -173,35 +173,31 @@ public class PlayerListener implements Listener
 		if(GameManager.INSTANCE.isPlayerInGame(player))
 		{
 			player.setFoodLevel(20);
-			int fallDistance = (int) player.getFallDistance();
-			if(fallDistance > 2)
-			{
-				Game game = GameManager.INSTANCE.getGame(player);
-				if(game.perkManager.getPlayersPerks(player).contains(PerkType.PHD_FLOPPER))
-				{
-					double pHealth = player.getHealth();
-					Location loc = player.getLocation();
-					loc.getWorld().playSound(loc, Sound.ENTITY_GENERIC_EXPLODE, 1, 1);
-					for(int i = 0; i < 30; i++)
-					{
-						float x = (COMZombies.rand.nextFloat() * 2f);
-						float y = (COMZombies.rand.nextFloat() * 2f);
-						float z = (COMZombies.rand.nextFloat() * 2f);
-						player.getWorld().spawnParticle(Particle.LAVA, loc.getX(), loc.getY(), loc.getZ(), 1, x, y, z, 1);
-						player.getWorld().spawnParticle(Compat.FIREWORK, loc.getX(), loc.getY(), loc.getZ(), 1, x, y, z, 1);
-					}
-
-					for(Entity e : player.getNearbyEntities(5, 5, 5))
-						if(e instanceof Mob)
-							game.damageMob((Mob) e, player, 12);
-
-					player.setHealth(pHealth);
-				}
-			}
 		}
 	}
 
-	@EventHandler
+	private void phdLanding(Game game, Player player)
+	{
+		Location loc = player.getLocation();
+		loc.getWorld().playSound(loc, Sound.ENTITY_GENERIC_EXPLODE, 1, 1);
+		loc.getWorld().spawnParticle(Compat.EXPLOSION_EMITTER, loc, 1);
+		for(int i = 0; i < 30; i++)
+		{
+			float x = (COMZombies.rand.nextFloat() * 2f);
+			float y = (COMZombies.rand.nextFloat() * 2f);
+			float z = (COMZombies.rand.nextFloat() * 2f);
+			player.getWorld().spawnParticle(Particle.LAVA, loc.getX(), loc.getY(), loc.getZ(), 1, x, y, z, 1);
+			player.getWorld().spawnParticle(Compat.FIREWORK, loc.getX(), loc.getY(), loc.getZ(), 1, x, y, z, 1);
+		}
+
+		double radius = ConfigManager.getMainConfig().phdFlopperRadius;
+		float damage = (float) ConfigManager.getMainConfig().phdFlopperDamage;
+		for(Entity e : player.getNearbyEntities(radius, radius, radius))
+			if(e instanceof Mob && game.spawnManager.isEntitySpawned((Mob) e))
+				game.damageMob((Mob) e, player, damage);
+	}
+
+	@EventHandler(priority = org.bukkit.event.EventPriority.LOWEST)
 	public void ProjectileHit(EntityDamageEvent event)
 	{
 		if(event.getCause() == EntityDamageEvent.DamageCause.BLOCK_EXPLOSION || event.getCause() == EntityDamageEvent.DamageCause.ENTITY_EXPLOSION)
@@ -220,7 +216,10 @@ public class PlayerListener implements Listener
 				Player player = (Player) event.getEntity();
 				if(GameManager.INSTANCE.isPlayerInGame(player))
 					if(GameManager.INSTANCE.getGame(player).perkManager.hasPerk(player, PerkType.PHD_FLOPPER))
+					{
 						event.setCancelled(true);
+						phdLanding(GameManager.INSTANCE.getGame(player), player);
+					}
 			}
 		}
 	}

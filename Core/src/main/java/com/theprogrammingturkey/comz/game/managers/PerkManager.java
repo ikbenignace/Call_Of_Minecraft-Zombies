@@ -14,14 +14,15 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 public class PerkManager
 {
 	private final Map<Player, List<PerkType>> playersPerks = new HashMap<>();
+	private final Map<UUID, Long> drinkingUntil = new HashMap<>();
 
 	/** Default vanilla walk speed; STAMIN_UP raises it (without the SPEED effect's FOV widening). */
 	private static final float DEFAULT_WALK_SPEED = 0.2f;
-	private static final float STAMIN_UP_WALK_SPEED = 0.28f; // ~Speed II feel, no FOV change
 
 	/** Applies a perk's reskinned vanilla effect: infinite, hidden particles, HUD icon shown. */
 	public void applyPerkEffect(Player player, PerkType perk)
@@ -30,7 +31,7 @@ public class PerkManager
 			player.addPotionEffect(new PotionEffect(perk.getIconEffect(), Compat.INFINITE_DURATION, perk.getAmplifier(), false, false, true));
 		// STAMIN_UP: real move boost via walk-speed (SPEED potion would widen FOV).
 		if(perk == PerkType.STAMIN_UP)
-			player.setWalkSpeed(STAMIN_UP_WALK_SPEED);
+			player.setWalkSpeed((float) ConfigManager.getMainConfig().staminUpWalkSpeed);
 	}
 
 	/** Strips the perk's vanilla effect from the player (icon disappears). */
@@ -87,6 +88,25 @@ public class PerkManager
 		return true;
 	}
 
+	/** Blocks firing for the configured drink time. */
+	public void startDrinking(Player player)
+	{
+		long millis = (long) (ConfigManager.getMainConfig().perkDrinkLockSeconds * 1000);
+		if(millis > 0)
+			drinkingUntil.put(player.getUniqueId(), System.currentTimeMillis() + millis);
+	}
+
+	public boolean isDrinking(Player player)
+	{
+		Long until = drinkingUntil.get(player.getUniqueId());
+		if(until == null)
+			return false;
+		if(System.currentTimeMillis() < until)
+			return true;
+		drinkingUntil.remove(player.getUniqueId());
+		return false;
+	}
+
 	public PerkType getRandomPerk(Player player)
 	{
 		List<PerkType> current = getPlayersPerks(player);
@@ -96,6 +116,7 @@ public class PerkManager
 	public void clearPerks()
 	{
 		playersPerks.clear();
+		drinkingUntil.clear();
 	}
 
 	public void clearPlayersPerks(Player player)

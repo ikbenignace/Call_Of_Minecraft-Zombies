@@ -46,12 +46,14 @@ public class SpawnManager
 	private RoundSpawner roundSpawner = new ZombieSpawner();
 	private boolean canSpawn = false;
 	private double spawnInterval;
+	private int nextDogRound = -1;
 
 	private long spawnDelayTicks()
 	{
 		return Math.max(1L, Math.round(spawnInterval * 20));
 	}
 	private final double spawnDelayFactor;
+	private final double baseSpawnDelay;
 	private int mobsSpawned = 0;
 	private int mobsToSpawn = 0;
 	private boolean dogRound = false;
@@ -73,8 +75,10 @@ public class SpawnManager
 	public SpawnManager(Game game)
 	{
 		this.game = game;
-		spawnInterval = COMZombies.getPlugin().getConfig().getDouble("config.gameSettings.zombieSpawnDelay");
-		spawnDelayFactor = COMZombies.getPlugin().getConfig().getDouble("config.gameSettings.zombieSpawnDelayFactor");
+		baseSpawnDelay = COMZombies.getPlugin().getConfig().getDouble("config.gameSettings.zombieSpawnDelay", 2.0);
+		spawnInterval = baseSpawnDelay;
+		double factor = COMZombies.getPlugin().getConfig().getDouble("config.gameSettings.zombieSpawnDelayFactor", 1.0526);
+		spawnDelayFactor = factor > 0 ? factor : 1.0;
 	}
 
 	public void loadAllSpawnsToGame(JsonArray spawnsSaveJson)
@@ -162,6 +166,16 @@ public class SpawnManager
 		if(nextWave)
 			game.nextWave();
 		mobs.clear();
+	}
+
+	/** Developer tooling: drops the rest of the round (alive and unspawned) without drops or points and advances. */
+	public void skipRound()
+	{
+		canSpawn = false;
+		dogRound = false;
+		bossRound = false;
+		mobsSpawned = mobsToSpawn;
+		killAll(true);
 	}
 
 	public List<Mob> getEntities()
@@ -267,6 +281,47 @@ public class SpawnManager
 	 * 0b — Total zombies spawned in a given round. Early rounds (1-4) ramp up over the
 	 * board max; from round 5 on the wave multiplier takes over. Never less than 1.
 	 */
+	/**
+	 * BO2 solo zombie count (6, 8, 13, 18, 24 for rounds 1-5, then the community cubic, never
+	 * dropping below round 5), scaled for co-op by {@code coopScale} per extra player.
+	 */
+	public static int bo2ZombieCount(int wave, int players, double coopScale, double multiplier)
+	{
+		int[] early = {6, 8, 13, 18, 24};
+		double solo;
+		if(wave <= 1)
+			solo = early[0];
+		else if(wave <= 5)
+			solo = early[wave - 1];
+		else
+			solo = Math.max(early[4], 0.000058 * wave * wave * wave + 0.074032 * wave * wave + 0.718119 * wave + 14.738699);
+		double coop = 1 + coopScale * Math.max(0, players - 1);
+		return Math.max(1, (int) Math.round(solo * coop * multiplier));
+	}
+
+	/** Spawn delay for a round: base divided by factor each round after the first, floored at min. */
+	public static double spawnDelayForWave(double base, double factor, double min, int wave)
+	{
+		return Math.max(min, base / Math.pow(factor, Math.max(0, wave - 1)));
+	}
+
+	private boolean rollDogRound(int wave, int everyX, ConfigSetup cfg)
+	{
+		if(everyX <= 0 || wave <= 0)
+			return false;
+		if(nextDogRound < 0)
+		{
+			int span = cfg.dogRoundFirstMax - cfg.dogRoundFirstMin + 1;
+			nextDogRound = cfg.dogRoundFirstMin + COMZombies.rand.nextInt(Math.max(1, span));
+		}
+		if(wave > nextDogRound)
+			nextDogRound = wave + everyX;
+		if(wave != nextDogRound)
+			return false;
+		nextDogRound = wave + everyX + COMZombies.rand.nextInt(2);
+		return true;
+	}
+
 	public static int zombiesThisRound(int wave, int players, int base, int perPlayer, double mult)
 	{
 		int boardMax = maxOnBoard(players, base, perPlayer);
@@ -593,34 +648,33 @@ public class SpawnManager
 			// Small wave: a handful of heavy bosses (at least 1, ~half the player count).
 			mobsToSpawn = Math.max(1, game.getPlayersInGame().size() / 2);
 			roundSpawner = roundSpawnerMap.get(RoundSpawnType.BOSS);
-			setSpawnInterval(spawnInterval / spawnDelayFactor);
-			if(spawnInterval < 0.5)
-				spawnInterval = 0.5;
+			updateSpawnInterval(wave);
 			return RoundSpawnType.BOSS;
 		}
 
-		if(isDogRound(wave, game.getDogRoundEveryX()))
+		if(rollDogRound(wave, game.getDogRoundEveryX(), cfg))
 		{
 			bossRound = false;
 			dogRound = true;
 			mobsToSpawn = dogCount(game.getPlayersInGame().size(), cfg.dogsPerPlayer);
 			roundSpawner = roundSpawnerMap.get(RoundSpawnType.HELL_HOUNDS);
-			setSpawnInterval(spawnInterval / spawnDelayFactor);
-			if(spawnInterval < 0.5)
-				spawnInterval = 0.5;
+			updateSpawnInterval(wave);
 			return RoundSpawnType.HELL_HOUNDS;
 		}
 		else
 		{
 			bossRound = false;
 			dogRound = false;
-			mobsToSpawn = zombiesThisRound(wave, players.size(), cfg.zombieBoardBase, cfg.zombieBoardPerPlayer, cfg.zombieRoundMultiplier);
+			mobsToSpawn = bo2ZombieCount(wave, players.size(), cfg.zombieCoopCountScale, cfg.zombieCountMultiplier);
 			roundSpawner = roundSpawnerMap.get(RoundSpawnType.REGULAR);
-			setSpawnInterval(spawnInterval / spawnDelayFactor);
-			if(spawnInterval < 0.5)
-				spawnInterval = 0.5;
+			updateSpawnInterval(wave);
 			return RoundSpawnType.REGULAR;
 		}
+	}
+
+	private void updateSpawnInterval(int wave)
+	{
+		spawnInterval = spawnDelayForWave(baseSpawnDelay, spawnDelayFactor, ConfigManager.getMainConfig().zombieSpawnDelayMin, wave);
 	}
 
 	public void startWave(int wave)
@@ -656,9 +710,9 @@ public class SpawnManager
 		return this.mobs.size();
 	}
 
-	public int getSpawnInterval()
+	public double getSpawnInterval()
 	{
-		return (int) this.spawnInterval;
+		return Math.round(this.spawnInterval * 100) / 100.0;
 	}
 
 	public boolean isEntitySpawned(Mob ent)
@@ -675,7 +729,8 @@ public class SpawnManager
 		this.mobsToSpawn = 0;
 		this.dogRound = false;
 		this.bossRound = false;
-		this.spawnInterval = COMZombies.getPlugin().getConfig().getInt("config.gameSettings.zombieSpawnDelay");
+		this.spawnInterval = baseSpawnDelay;
+		this.nextDogRound = -1;
 	}
 
 	public String getNewSpawnPointNum()

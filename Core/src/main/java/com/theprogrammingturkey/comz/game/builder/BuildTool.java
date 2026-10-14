@@ -77,6 +77,12 @@ public enum BuildTool
 				.collect(Collectors.toList());
 	}
 
+	public static String perkLabel(PerkType perk)
+	{
+		String name = perk.toString().toLowerCase().replace('_', ' ');
+		return Character.toUpperCase(name.charAt(0)) + name.substring(1);
+	}
+
 	/** The variant labels for this tool, computed live. Empty when the tool has no variants. */
 	public List<String> variantLabels()
 	{
@@ -85,7 +91,7 @@ public enum BuildTool
 			case WARP:
 				return WARP_VARIANTS;
 			case PERK:
-				return placeablePerks().stream().map(p -> p.toString().toLowerCase()).collect(Collectors.toList());
+				return placeablePerks().stream().map(BuildTool::perkLabel).collect(Collectors.toList());
 			case WEAPON:
 				return WeaponManager.getBuyableGuns().stream().map(BaseGun::getName).collect(Collectors.toList());
 			case MACHINE:

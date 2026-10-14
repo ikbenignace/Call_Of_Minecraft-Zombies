@@ -1,17 +1,31 @@
 config:
   perks:
-    # Perks show as HUD potion-effect icons (not inventory slots); max is the 12 real perks.
-    maxPerks: 12
-    #Juggernog health multiplier (2.5 -> 250 equivalent of COD)
-    juggernogHealth: 2.5
+    # Perks show as HUD potion-effect icons (not inventory slots); BO2 limit is 4, max is the 12 real perks.
+    maxPerks: 4
+    #Seconds a player cannot fire while drinking a perk.
+    drinkLockSeconds: 2.0
+    #Quick Revive price in a solo game (BO2: 500). Multiplayer uses the machine's own price.
+    soloQuickRevivePrice: 500
+    #Juggernog damage divisor on zombie hits. With zombieDamage 8 the player goes down in 3 hits; at 2.4 Juggernog stretches that to 6 hits (BO2 ratio: 2 hits -> 5 hits).
+    juggernogHealth: 2.4
     #Deadshot Daiquiri extra headshot damage multiplier, applied on top of the base 1.5x headshot bonus.
     deadshotHeadshotMultiplier: 2.0
     #Speed Cola reload multiplier (0.5 = reload twice as fast). BO2: Speed Cola halves reload.
     speedColaReloadMultiplier: 0.5
     #Double Tap fire-delay divisor (1.5 = fire 1.5x faster). BO2: Double Tap speeds fire rate.
     doubleTapFireMultiplier: 1.5
-    #Tombstone Soda: when true, a player holding the perk keeps their perks on down and reclaims them on their next revive/respawn. BO2 behavior.
+    #Double Tap damage multiplier per bullet (BO2 Double Tap 2.0: each bullet counts double).
+    doubleTapDamageMultiplier: 2.0
+    #Stamin-Up walk speed (vanilla 0.2). BO2: about +7-10% walk speed.
+    staminUpWalkSpeed: 0.22
+    #PhD Flopper: damage dealt to zombies near a landing from a damaging fall (replaces fall damage).
+    phdFlopperDamage: 100
+    #PhD Flopper: blast radius in blocks.
+    phdFlopperRadius: 5.0
+    #Tombstone Soda (BO2 rules): a player holding the perk who bleeds out leaves their body behind. After respawning they walk over it to get their perks (minus Tombstone) and guns back. Being revived still loses all perks.
     tombstoneEnabled: true
+    #Seconds the tombstone stays once its owner is back in play, before it fades.
+    tombstoneLifetime: 90
     #Solo self-revive: number of times Quick Revive auto-revives a lone player in a solo (1-player) game. BO1/BO2 solo behavior.
     soloQuickReviveUses: 3
     #Who's Who: seconds a lone player spends as a ghost to reach their body and self-revive before dying for real (simplified solo approximation; see DownedPlayerManager).
@@ -29,45 +43,60 @@ config:
     instaKillTimer: 30
     #Insta kill lenght in seconds
     fireSaleTimer: 30
-    #Time perks will stay on the ground in seconds
-    perkLife: 15
+    #Time power-ups stay on the ground in seconds (BO2 ~26.5); they blink for the last 6 seconds.
+    perkLife: 26.5
     #Gun Reload time in seconds
     reloadTime: 3
     #Default points when you hit a zombie, value * 2 on double points
     defaultPointsOnHit: 10
     #Default points when you kill a zombie, value * 2 on double points
-    defaultPointsOnKill: 60
+    defaultPointsOnKill: 50
     #Maximum wave a game will run before ending automatically. 0 = no cap (games run until players die).
     maxWave: 0
     #Interval (seconds) between round change and the first zombie spawning. 0 = spawn immediately.
     waveSpawnInterval: 0
     #Max possible zombies in an arena at once (legacy; board max is now player-scaled below)
     maxZombies: 20
-    #BO2 board capacity: zombies alive at once = zombieBoardBase + zombieBoardPerPlayer*(players-1). BO2 = 24 + 6/extra player.
+    #BO2 board capacity: zombies alive at once = zombieBoardBase + zombieBoardPerPlayer*(players-1). BO2 = 24 regardless of player count.
     zombieBoardBase: 24
-    zombieBoardPerPlayer: 6
+    zombieBoardPerPlayer: 0
     #BO2 per-round zombie count multiplier for rounds >= 5 (count = round * mult * boardMax). Rounds 1-4 ramp .2/.4/.6/.8.
     zombieRoundMultiplier: 0.15
-    #This is the amount to change the zombieSpawnDelay per round. Equation is zombieSpawnDelayFactor / zombieSpawnDelayFactor
-    zombieSpawnDelayFactor: 1.05
-    #Interval between zombies spawning, value decreases as rounds go up. This value is rounded down and is # of seconds.
-    zombieSpawnDelay: 7
+    #Spawn delay is divided by this each round (1.0526 = x0.95 per round, BO2).
+    zombieSpawnDelayFactor: 1.0526
+    #Seconds between zombie spawns on round 1 (BO2: 2). Shrinks every round down to zombieSpawnDelayMin.
+    zombieSpawnDelay: 2.0
+    #Lowest spawn delay in seconds (BO2 ~0.1).
+    zombieSpawnDelayMin: 0.1
+    #Solo zombie counts follow the BO2 curve; each extra player adds this fraction of the solo count (0.5 = 2 players -> x1.5).
+    zombieCoopCountScale: 0.5
+    #Global multiplier on the BO2 round count.
+    zombieCountMultiplier: 1.0
+    #First round at which runners can appear, and the chance ramps up from there.
+    zombieRunnerStartRound: 4
+    #First round at which sprinters can appear.
+    zombieSprinterStartRound: 10
+    #Speed multipliers relative to a walker.
+    zombieRunnerSpeed: 1.3
+    zombieSprinterSpeed: 1.7
     #Time it takes for an arena to start
     arenaStartTime: 60
     #Apply Scope when zooming in if textured
     ZoomTexture: false
     #Change the volume of the round sound
     roundSoundVolume: 0.2
-    #The amount of damage zombies do. BO2: 10 = 2 hits down (no Jugg), ~5 hits with Juggernog.
-    zombieDamage: 10
+    #Damage of one zombie hit out of 20 hp. 8 = down on the 3rd hit (6 hits with Juggernog, see perks.juggernogHealth).
+    zombieDamage: 8
     #The amount of seconds after being hit to be healed. BO2: ~2.5s short delay then fast regen.
     healTime: 2.5
+    #Quick Revive multiplies the heal delay by this (faster regen start).
+    quickReviveHealDelayFactor: 0.5
     #Per-zombie attack cooldown in ticks. Each zombie damages a player at most once per this; hits from different zombies STACK (no shared invuln). 20 = ~1s, matching BO2.
     zombieAttackCooldownTicks: 20
-    #Bonus points on top of a kill when the killing blow is a headshot (BO2 headshot kill ~= +30).
-    headshotKillBonus: 30
-    #Bonus points on top of a kill when the killing blow is melee/knife (BO2 knife kill ~= +60).
-    meleeKillBonus: 60
+    #Bonus points on top of a kill when the killing blow is a headshot (BO2: 50 + 50 = 100).
+    headshotKillBonus: 50
+    #Bonus points on top of a kill when the killing blow is melee/knife (BO2: 50 + 80 = 130).
+    meleeKillBonus: 80
     #Base knife one-shots zombies through (and including) this round; knife damage derives from the HP curve at this round.
     knifeOneShotThroughRound: 9
     #When a round's zombies are all spawned and exactly one regular zombie remains, turn it into a slow gas-emitting crawler so players can hold the round (BO behavior).
@@ -88,8 +117,11 @@ config:
     maxGrenades: 4
     #Dogs spawned per player on a dog round (total = dogsPerPlayer * players). BO scales dogs by players, not round.
     dogsPerPlayer: 3
+    #First dog round is rolled between these rounds (BO2: 5-8); later ones come dogRoundEveryX (+0 or 1) rounds apart.
+    dogRoundFirstMin: 5
+    dogRoundFirstMax: 8
     #Global default for how often a dog (hellhound) round occurs: a dog round fires every Nth wave (e.g. 5 = every 5th wave). Used as the fallback when an arena's own dog_round_every_x setting is missing/zero/negative, so dog rounds can never be silently disabled by a bad arena value. 0 disables dog rounds globally.
-    dogRoundEveryX: 5
+    dogRoundEveryX: 4
     #Guarantee a Max Ammo drop when the last dog of a dog round dies (BO behavior).
     dogRoundMaxAmmoDrop: true
     #Chance (percent) that a normal zombie kill drops a power-up. BO uses ~2% per kill.
@@ -103,7 +135,25 @@ config:
     #Allow re-Pack-a-Punching an already-packed gun for an ammo refill (BO2 behavior).
     packAPunchRepackEnabled: true
     #Point cost to re-Pack-a-Punch a gun for an ammo refill.
-    packAPunchRepackCost: 2500
+    packAPunchRepackCost: 2000
+    #Seconds the Pack-a-Punch machine works before the gun is ready (BO2 ~3.5s).
+    packAPunchWorkSeconds: 3.5
+    #Seconds the upgraded gun waits in the machine before it is lost (BO2 ~15s).
+    packAPunchPickupSeconds: 15
+    #Seconds the mystery box spins through weapons.
+    boxRollSeconds: 4
+    #Seconds the rolled weapon can be taken from the box.
+    boxPickupSeconds: 12
+    #Uses of a box at one location before the teddy bear can appear and move it.
+    boxTeddyMinUses: 3
+    #Uses of a box at one location after which the teddy bear is guaranteed (0 = never forced).
+    boxTeddyMaxUses: 8
+    #Mystery box price during Fire Sale.
+    boxFireSaleCost: 10
+    #Wall-buy ammo costs gun price / this (BO2: 2). 0 = use the second price on the sign.
+    wallAmmoPriceDivisor: 2
+    #Wall-buy ammo price when holding the Pack-a-Punched version of the wall gun.
+    wallAmmoPackAPunchCost: 4500
     #Seconds the Death Machine power-up minigun is held before it is removed (BO2 ~30s).
     deathMachineDurationSeconds: 30
     #Pack-a-Punch first-pack cost while Bonfire Sale is active (also triggers a Fire Sale). BO2 ~1000.
@@ -121,9 +171,9 @@ config:
   ReviveSettings:
     ReviveTimer: 4
     ReviveRange: 2
-    MaxDownTime: 60
+    MaxDownTime: 45
     #Solo self-revive: seconds before Quick Revive auto-revives a lone downed player in a solo game.
-    SoloReviveDelaySeconds: 5
+    SoloReviveDelaySeconds: 10
   Economy:
     CostPerJoin: 0
     MoneyPerKill: 1
@@ -209,6 +259,8 @@ config:
     #BO2-fidelity visual feedback layer. Each toggle independently enables/disables one cue; all default true.
     #Ammo / reload readout in the action bar.
     hud: true
+    #Red screen-edge vignette while health is low (world border warning).
+    lowHealthVignette: true
     #Ambient cues on round change (round-start stinger + brief darkness).
     roundAmbience: true
     #Hit feedback particles (blood / headshot sparkle) and damage pop-up text on zombie hits.

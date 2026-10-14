@@ -1,15 +1,19 @@
 package com.theprogrammingturkey.comz.game.managers;
 
 import com.theprogrammingturkey.comz.COMZombies;
+import com.theprogrammingturkey.comz.game.visuals.MachineVisuals;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Sign;
 import org.bukkit.entity.Entity;
 import org.bukkit.block.data.BlockData;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * A physical machine in the world: a solid base block (always visible, even without the pack), an
- * optional 3D item display overlay that covers the block when the pack is on, an invisible
+ * 3D item model (pack guaranteed) or a block-display look-alike overlaying the block, an invisible
  * interaction hitbox that makes it right-clickable (forwarding to the machine's sign logic),
  * and a floating price text. The machine occupies the backing sign's own block, so the
  * sign's material, facing and text are snapshotted here and fully restored on removal. Kept together
@@ -28,7 +32,8 @@ public class MachineModel
 	/** The sign's four lines (with color codes), captured before overwrite and restored on removal. */
 	final String[] signLines;
 
-	Entity model;      // null when the pack isn't guaranteed for all players
+	/** Pack item model, or the block-display look-alike when the pack isn't guaranteed for all players. */
+	final List<Entity> visuals = new ArrayList<>();
 	Entity interaction;
 	Entity hologram;
 	String label;
@@ -50,8 +55,7 @@ public class MachineModel
 	{
 		try
 		{
-			if(model != null && !model.isDead())
-				model.remove();
+			MachineVisuals.remove(visuals);
 			if(interaction != null && !interaction.isDead())
 				interaction.remove();
 			if(hologram != null && !hologram.isDead())

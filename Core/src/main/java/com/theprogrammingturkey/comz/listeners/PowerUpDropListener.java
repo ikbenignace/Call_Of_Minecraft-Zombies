@@ -46,6 +46,8 @@ public class PowerUpDropListener implements Listener
 
 	private static final Map<Game, Map<UUID, DeathMachineGrant>> activeDeathMachines = new HashMap<>();
 
+	private static final Map<Game, Map<PowerUp, Long>> displayExpiry = new HashMap<>();
+
 	private static final class DeathMachineGrant
 	{
 		final WeaponInstance instance;
@@ -70,6 +72,7 @@ public class PowerUpDropListener implements Listener
 	 */
 	public static void cancelAllTimers(Game game)
 	{
+		displayExpiry.remove(game);
 		Map<PowerUp, Integer> byType = activeTimerTasks.remove(game);
 		if(byType != null)
 			for(int taskId : byType.values())
@@ -179,6 +182,11 @@ public class PowerUpDropListener implements Listener
 				case CARPENTER:
 					for(Barrier barrier : game.barrierManager.getBarriers())
 						barrier.repairFull();
+					for(Player pl : game.getPlayersInGame())
+					{
+						PointManager.INSTANCE.addPoints(pl, game.isDoublePoints() ? 400 : 200);
+						PointManager.INSTANCE.notifyPlayer(pl);
+					}
 					break;
 				case NUKE:
 					// Clear, recognisable nuke feedback (a green flash + title, NOT a weather change —
@@ -293,8 +301,12 @@ public class PowerUpDropListener implements Listener
 			}
 
 			if(duration != -1)
+			{
+				long expiresAt = System.currentTimeMillis() + duration * 50L;
+				displayExpiry.computeIfAbsent(game, g -> new HashMap<>()).put(powerUp, expiresAt);
 				for(Player pl : game.getPlayersInGame())
-					powerUpDisplayTimer(pl, powerUp, duration);
+					powerUpDisplayTimer(game, pl, powerUp, expiresAt);
+			}
 		}
 		else if(GameManager.INSTANCE.isEntityInGame(event.getEntity()))
 		{
@@ -302,17 +314,21 @@ public class PowerUpDropListener implements Listener
 		}
 	}
 
-	public void powerUpDisplayTimer(Player player, PowerUp powerUp, int duration)
+	/**
+	 * Action-bar countdown. Each chain remembers the expiry it was started for and stops as soon as a
+	 * refreshing pickup stores a newer one, so re-picking never stacks two flickering counters.
+	 */
+	private void powerUpDisplayTimer(Game game, Player player, PowerUp powerUp, long expiresAt)
 	{
-		if(!GameManager.INSTANCE.isPlayerInGame(player))
+		Map<PowerUp, Long> byType = displayExpiry.get(game);
+		if(byType == null || !Long.valueOf(expiresAt).equals(byType.get(powerUp)) || !GameManager.INSTANCE.isPlayerInGame(player))
+			return;
+		long remaining = expiresAt - System.currentTimeMillis();
+		if(remaining <= 0)
 			return;
 
-		player.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(ChatColor.RED + powerUp.getDisplay() + ": " + (duration / 20)));
-		COMZombies.scheduleTask(20, () ->
-		{
-			if(duration - 20 > 0)
-				powerUpDisplayTimer(player, powerUp, duration - 20);
-		});
+		player.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(ChatColor.RED + powerUp.getDisplay() + ": " + ((remaining + 999) / 1000)));
+		COMZombies.scheduleTask(20, () -> powerUpDisplayTimer(game, player, powerUp, expiresAt));
 	}
 
 	/**
@@ -343,7 +359,10 @@ public class PowerUpDropListener implements Listener
 			return;
 		}
 
-		final int slot = manager.getCorrectSlot(deathMachine);
+		if(active != null)
+			Bukkit.getScheduler().cancelTask(active.taskId);
+
+		final int slot = pickDeathMachineSlot(manager, deathMachine, player);
 		final WeaponInstance displaced = manager.getWeapon(slot);
 		final ItemStack savedStack = player.getInventory().getItem(slot);
 
@@ -356,6 +375,12 @@ public class PowerUpDropListener implements Listener
 		DeathMachineGrant grant = new DeathMachineGrant(deathMachineInstance, displaced, savedStack == null ? null : savedStack.clone(), slot);
 		grants.put(player.getUniqueId(), grant);
 		grant.taskId = COMZombies.scheduleTask(durationTicks, () -> expireDeathMachine(game, player, grant));
+	}
+
+	private static int pickDeathMachineSlot(PlayerWeaponManager manager, BaseGun deathMachine, Player player)
+	{
+		int held = player.getInventory().getHeldItemSlot();
+		return manager.getGun(held) != null ? held : manager.getCorrectSlot(deathMachine);
 	}
 
 	/**
@@ -388,9 +413,9 @@ public class PowerUpDropListener implements Listener
 		manager.removeWeapon(grant.instance);
 		if(grant.displaced != null)
 			manager.addWeapon(grant.displaced);
-		player.getInventory().setItem(grant.slot, grant.savedStack);
+		else
+			player.getInventory().setItem(grant.slot, grant.savedStack);
 
-		manager.updateWeapons();
 		player.updateInventory();
 	}
 

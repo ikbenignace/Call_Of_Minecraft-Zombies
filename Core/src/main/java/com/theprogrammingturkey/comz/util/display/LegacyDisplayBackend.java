@@ -2,6 +2,7 @@ package com.theprogrammingturkey.comz.util.display;
 
 import com.theprogrammingturkey.comz.util.EntitySpawner;
 import org.bukkit.Location;
+import org.bukkit.block.data.BlockData;
 import org.bukkit.World;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Entity;
@@ -23,6 +24,18 @@ public class LegacyDisplayBackend implements DisplayBackend
 	public boolean supportsHitboxes()
 	{
 		return false;
+	}
+
+	@Override
+	public boolean supportsBlockDisplays()
+	{
+		return false;
+	}
+
+	@Override
+	public Entity spawnBlock(Location loc, BlockData block, float cx, float cy, float cz, float sx, float sy, float sz, float yawDegrees, boolean glow)
+	{
+		return null;
 	}
 
 	@Override

@@ -4,10 +4,14 @@ import com.theprogrammingturkey.comz.COMZombies;
 import com.theprogrammingturkey.comz.economy.PointManager;
 import com.theprogrammingturkey.comz.game.Game;
 import com.theprogrammingturkey.comz.game.GameManager;
+import com.theprogrammingturkey.comz.config.ConfigManager;
 import com.theprogrammingturkey.comz.game.managers.WeaponManager;
+import com.theprogrammingturkey.comz.game.visuals.MachineLooks;
+import com.theprogrammingturkey.comz.game.visuals.MachineVisuals;
 import com.theprogrammingturkey.comz.game.weapons.Weapon;
 import com.theprogrammingturkey.comz.util.BlockUtils;
 import com.theprogrammingturkey.comz.util.CommandUtil;
+import com.theprogrammingturkey.comz.util.PackModels;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
@@ -28,7 +32,9 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.Vector;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class RandomBox
@@ -44,11 +50,16 @@ public class RandomBox
 	/** Floating price hologram spawned in-game above the chest; owned by this box. */
 	private Entity priceHologram;
 
+	/** Pack model or block look-alike drawn around the chest in-game; owned by this box. */
+	private final List<Entity> visuals = new ArrayList<>();
+
 	private Player openedBy;
 
 	private boolean running;
 	private boolean gunSelected;
 	private boolean isTeddyBear;
+	/** Spins at this location since the box last moved. */
+	private int useCount;
 	private Weapon weapon;
 	private Item item;
 	private ArmorStand namePlate;
@@ -66,9 +77,12 @@ public class RandomBox
 		this.isTeddyBear = false;
 	}
 
+	private static final int STEP_TICKS = 5;
+	private static final int STEPS_PER_SECOND = 20 / STEP_TICKS;
+
 	public void Start(Player player, int pointsNeeded)
 	{
-		if(boxGame == null)
+		if(boxGame == null || running)
 			return;
 
 		if(!(GameManager.INSTANCE.isPlayerInGame(player)))
@@ -80,16 +94,26 @@ public class RandomBox
 			return;
 		}
 
+		weapon = WeaponManager.getRandomWeapon(false, boxGame.getPlayersWeapons(player));
+		if(weapon == null)
+		{
+			CommandUtil.sendMessageToPlayer(player, ChatColor.RED + "There is nothing left in the box for you!");
+			return;
+		}
+
 		// In-game the box IS the chest at boxLoc (loadBox placed it there); no neighbour scan needed.
 		Location chestLocation = boxLoc;
 
+		PointManager.INSTANCE.takePoints(player, pointsNeeded);
+		PointManager.INSTANCE.notifyPlayer(player);
+
 		openedBy = player;
+		useCount++;
 
 		if(chestLocation != null)
 			COMZombies.nmsUtil.playChestAction(chestLocation, true);
 
 		running = true;
-		weapon = WeaponManager.getRandomWeapon(false, boxGame.getPlayersWeapons(player));
 		Location itemLoc = getBoxCenterLoc(chestLocation);
 
 		item = player.getWorld().dropItem(itemLoc, weapon.getStack());
@@ -101,12 +125,12 @@ public class RandomBox
 		namePlate.setCustomName(weapon.getName());
 		namePlate.setCustomNameVisible(true);
 
-		PointManager.INSTANCE.takePoints(player, pointsNeeded);
-		PointManager.INSTANCE.notifyPlayer(player);
+		final int rollSteps = Math.max(1, (int) Math.round(ConfigManager.getMainConfig().boxRollSeconds * STEPS_PER_SECOND));
+		final int pickupSteps = Math.max(1, (int) Math.round(ConfigManager.getMainConfig().boxPickupSeconds * STEPS_PER_SECOND));
 
-		int taskID = COMZombies.scheduleTask(0, 10, new Runnable()
+		int taskID = COMZombies.scheduleTask(0, STEP_TICKS, new Runnable()
 		{
-			int time = 10;
+			int time = rollSteps;
 
 			public void run()
 			{
@@ -117,16 +141,20 @@ public class RandomBox
 				{
 					if(time > 0)
 					{
-						weapon = WeaponManager.getRandomWeapon(false, boxGame.getPlayersWeapons(player));
+						Weapon rolled = WeaponManager.getRandomWeapon(false, boxGame.getPlayersWeapons(player));
+						if(rolled != null)
+							weapon = rolled;
 						item.setItemStack(weapon.getStack());
 						namePlate.setCustomName(weapon.getName());
-						com.theprogrammingturkey.comz.util.SoundUtil.play(player.getWorld(), boxLoc, com.theprogrammingturkey.comz.util.SoundConfig.get("box.spin", "BLOCK_NOTE_BLOCK_HARP"), org.bukkit.SoundCategory.MASTER, 1f, 1f);
+						if(time % 2 == 0)
+							com.theprogrammingturkey.comz.util.SoundUtil.play(player.getWorld(), boxLoc, com.theprogrammingturkey.comz.util.SoundConfig.get("box.spin", "BLOCK_NOTE_BLOCK_HARP"), org.bukkit.SoundCategory.MASTER, 1f, 1f);
 					}
 					else if(time == 0)
 					{
-						if(!boxGame.isFireSale() && !boxGame.boxManager.isMultiBox() && boxGame.getTeddyBearPercent() != 0 && COMZombies.rand.nextInt(boxGame.getTeddyBearPercent()) == 0)
+						if(teddyRolled())
 						{
 							CommandUtil.sendMessageToPlayer(player, ChatColor.DARK_RED + "Teddy Bear!!!!!!");
+							com.theprogrammingturkey.comz.util.SoundUtil.play(player.getWorld(), boxLoc, com.theprogrammingturkey.comz.util.SoundConfig.get("box.teddy", "ENTITY_WITHER_SPAWN"), org.bukkit.SoundCategory.MASTER, 1f, 1f);
 							ItemStack teddy = new ItemStack(Material.TOTEM_OF_UNDYING);
 							com.theprogrammingturkey.comz.util.PackModels.apply(teddy, "misc/box_teddy");
 							item.setItemStack(teddy);
@@ -144,6 +172,7 @@ public class RandomBox
 								COMZombies.scheduleTask(60, () ->
 								{
 									Bukkit.getScheduler().cancelTask(velTask);
+									useCount = 0;
 									boxGame.boxManager.teddyBear();
 									PointManager.INSTANCE.addPoints(player, pointsNeeded);
 									reset();
@@ -156,13 +185,14 @@ public class RandomBox
 							gunSelected = true;
 						}
 					}
-					else if(time == -20)
+					else if(time <= -pickupSteps)
 					{
 						reset();
 					}
 					else if(!isTeddyBear)
 					{
-							namePlate.setCustomName(weapon.getName() + " (" + (20 + time) + ")");
+						int secondsLeft = (pickupSteps + time + STEPS_PER_SECOND - 1) / STEPS_PER_SECOND;
+						namePlate.setCustomName(weapon.getName() + " (" + secondsLeft + ")");
 					}
 					time--;
 				}
@@ -170,6 +200,21 @@ public class RandomBox
 		});
 
 		boxes.put(this, taskID);
+	}
+
+	/** Teddy needs a few uses at this location first; the 1-in-N roll applies after that, and a cap forces it. */
+	private boolean teddyRolled()
+	{
+		if(boxGame.isFireSale() || boxGame.boxManager.isMultiBox())
+			return false;
+		int minUses = ConfigManager.getMainConfig().boxTeddyMinUses;
+		if(useCount <= minUses)
+			return false;
+		int maxUses = ConfigManager.getMainConfig().boxTeddyMaxUses;
+		if(maxUses > 0 && useCount >= maxUses)
+			return true;
+		int chance = boxGame.getTeddyBearPercent();
+		return chance != 0 && COMZombies.rand.nextInt(chance) == 0;
 	}
 
 	/**
@@ -251,7 +296,13 @@ public class RandomBox
 
 	public void pickUpWeapon(Player player)
 	{
-		boxGame.getPlayersWeapons(player).addWeapon(weapon);
+		if(!gunSelected || weapon == null)
+			return;
+		com.theprogrammingturkey.comz.game.managers.PlayerWeaponManager manager = boxGame.getPlayersWeapons(player);
+		if(weapon instanceof com.theprogrammingturkey.comz.game.weapons.BaseGun && manager.hasGun((com.theprogrammingturkey.comz.game.weapons.BaseGun) weapon))
+			manager.getGun((com.theprogrammingturkey.comz.game.weapons.BaseGun) weapon).maxAmmo();
+		else
+			manager.addWeapon(weapon);
 		com.theprogrammingturkey.comz.util.SoundUtil.play(player.getWorld(), player.getLocation(), com.theprogrammingturkey.comz.util.SoundConfig.get("box.pickup", "BLOCK_LAVA_POP"), org.bukkit.SoundCategory.MASTER, 1, 1);
 		reset();
 	}
@@ -305,7 +356,23 @@ public class RandomBox
 		Block block = boxLoc.getBlock();
 		// Only (re)place if it isn't already a chest — avoid wiping a mid-spin chest state.
 		if(block.getType() != Material.CHEST)
+		{
 			block.setType(Material.CHEST, false);
+			BlockData data = block.getBlockData();
+			if(data instanceof Directional && ((Directional) data).getFaces().contains(facing))
+			{
+				((Directional) data).setFacing(facing);
+				block.setBlockData(data, false);
+			}
+		}
+
+		// The chest stays (it carries the click and lid animation); the model / crate is drawn around it.
+		if(!MachineVisuals.anyAlive(visuals))
+		{
+			boolean usePack = PackModels.isPackEnabled() && ConfigManager.getMainConfig().resourcePackForce;
+			visuals.clear();
+			visuals.addAll(MachineVisuals.spawn(boxLoc, facing, MachineLooks.BOX, usePack));
+		}
 
 		if(priceHologram == null || priceHologram.isDead())
 		{
@@ -314,7 +381,7 @@ public class RandomBox
 			{
 				String label = ChatColor.AQUA + "Mystery Box " + ChatColor.YELLOW + "$" + getCost();
 				priceHologram = com.theprogrammingturkey.comz.util.DisplayEntityUtil.persistentText(
-						world, boxLoc.clone().add(0.5, 1.4, 0.5), label);
+						world, boxLoc.clone().add(0.5, MachineLooks.BOX.hologramY, 0.5), label);
 				if(priceHologram != null)
 					priceHologram.setPersistent(false);
 			}
@@ -327,6 +394,7 @@ public class RandomBox
 		// The lobby/edit view never shows a price hologram; this also clears the current box's
 		// hologram at game end, which reset() deliberately leaves standing mid-game.
 		removePriceHologram();
+		MachineVisuals.remove(visuals);
 		Block block = boxLoc.getBlock();
 		block.setType(Material.OAK_WALL_SIGN);
 		BlockData blockData = block.getBlockData();
@@ -350,6 +418,7 @@ public class RandomBox
 			return;
 		BlockUtils.setBlockToAir(boxLoc);
 		removePriceHologram();
+		MachineVisuals.remove(visuals);
 	}
 
 	private void removePriceHologram()
@@ -404,6 +473,6 @@ public class RandomBox
 
 	public int getCost()
 	{
-		return boxGame.isFireSale() ? 10 : boxCost;
+		return boxGame.isFireSale() ? ConfigManager.getMainConfig().boxFireSaleCost : boxCost;
 	}
 }

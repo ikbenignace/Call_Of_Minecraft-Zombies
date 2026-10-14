@@ -3,6 +3,8 @@ package com.theprogrammingturkey.comz.modern;
 import com.theprogrammingturkey.comz.util.EntitySpawner;
 import com.theprogrammingturkey.comz.util.display.DisplayBackend;
 import org.bukkit.Location;
+import org.bukkit.block.data.BlockData;
+import org.bukkit.entity.BlockDisplay;
 import org.bukkit.entity.Display;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Interaction;
@@ -28,6 +30,40 @@ public class ModernDisplayBackend implements DisplayBackend
 	public boolean supportsHitboxes()
 	{
 		return true;
+	}
+
+	@Override
+	public boolean supportsBlockDisplays()
+	{
+		return true;
+	}
+
+	@Override
+	public Entity spawnBlock(Location loc, BlockData block, float cx, float cy, float cz, float sx, float sy, float sz, float yawDegrees, boolean glow)
+	{
+		double yaw = Math.toRadians(yawDegrees);
+		float cos = (float) Math.cos(yaw);
+		float sin = (float) Math.sin(yaw);
+		// Left rotation turns the scaled box about its own origin, so the corner offset is rotated by hand
+		// to keep every part of a composite on the same pivot (the spawn location).
+		float tx = cx * cos + cz * sin;
+		float tz = -cx * sin + cz * cos;
+		return EntitySpawner.spawn(loc.getWorld(), loc, BlockDisplay.class, display ->
+		{
+			display.setBlock(block);
+			display.setBillboard(Display.Billboard.FIXED);
+			display.setTransformation(new Transformation(
+					new Vector3f(tx, cy, tz),
+					new AxisAngle4f((float) yaw, 0f, 1f, 0f),
+					new Vector3f(sx, sy, sz),
+					new AxisAngle4f(0f, 0f, 1f, 0f)));
+			if(glow)
+				display.setBrightness(new Display.Brightness(15, 15));
+			// A zero-size cull box makes the part pop out whenever its origin leaves the screen.
+			display.setDisplayWidth(4f);
+			display.setDisplayHeight(4f);
+			display.setViewRange(1.5f);
+		});
 	}
 
 	@Override

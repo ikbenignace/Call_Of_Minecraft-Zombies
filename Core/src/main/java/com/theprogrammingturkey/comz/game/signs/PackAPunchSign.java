@@ -1,18 +1,35 @@
 package com.theprogrammingturkey.comz.game.signs;
 
+import com.theprogrammingturkey.comz.COMZombies;
 import com.theprogrammingturkey.comz.config.ConfigManager;
 import com.theprogrammingturkey.comz.economy.PointManager;
 import com.theprogrammingturkey.comz.game.Game;
+import com.theprogrammingturkey.comz.game.GameManager;
 import com.theprogrammingturkey.comz.game.features.PerkType;
 import com.theprogrammingturkey.comz.game.managers.PlayerWeaponManager;
 import com.theprogrammingturkey.comz.game.weapons.GunInstance;
+import com.theprogrammingturkey.comz.game.weapons.WeaponInstance;
 import com.theprogrammingturkey.comz.util.CommandUtil;
+import com.theprogrammingturkey.comz.util.ParticleFX;
+import com.theprogrammingturkey.comz.util.SoundConfig;
+import com.theprogrammingturkey.comz.util.SoundUtil;
 import com.theprogrammingturkey.comz.util.display.Displays;
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
-import org.bukkit.Sound;
+import org.bukkit.SoundCategory;
+import org.bukkit.block.BlockFace;
+import org.bukkit.block.data.BlockData;
+import org.bukkit.block.data.Directional;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.block.SignChangeEvent;
+import org.bukkit.inventory.ItemStack;
+
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.UUID;
 
 public class PackAPunchSign implements IGameSign
 {
@@ -26,6 +43,67 @@ public class PackAPunchSign implements IGameSign
 	// onChange normalises the opt-in to "[Teleporter]" on line 3. The "pap" label on line 1
 	// is NOT used as the flag here, since it always contains "pap".
 
+	private static final int DEFAULT_COST = 5000;
+
+	/** One gun handed in to a machine: working, then waiting for its owner to take it. */
+	private static final class Session
+	{
+		final Game game;
+		final UUID owner;
+		final GunInstance gun;
+		final int slot;
+		final boolean refill;
+		final Location center;
+		final BlockFace facing;
+		Entity display;
+		boolean ready;
+		int workTask = -1;
+		int expireTask = -1;
+		int bobTask = -1;
+
+		Session(Game game, UUID owner, GunInstance gun, int slot, boolean refill, Location center, BlockFace facing)
+		{
+			this.game = game;
+			this.owner = owner;
+			this.gun = gun;
+			this.slot = slot;
+			this.refill = refill;
+			this.center = center;
+			this.facing = facing;
+		}
+	}
+
+	private static final Map<String, Session> SESSIONS = new HashMap<>();
+	private static final Map<String, BlockFace> FACINGS = new HashMap<>();
+
+	private static String key(Location loc)
+	{
+		return loc.getWorld().getName() + ":" + loc.getBlockX() + "," + loc.getBlockY() + "," + loc.getBlockZ();
+	}
+
+	/** Remembers which way a spawned machine faces, since its sign block is replaced while playing. */
+	public static void registerMachine(Location base, BlockFace facing)
+	{
+		FACINGS.put(key(base), facing);
+	}
+
+	/** Drops all sessions of a game (the held guns are lost) and the registered machines. */
+	public static void clearGame(Game game)
+	{
+		Iterator<Map.Entry<String, Session>> it = SESSIONS.entrySet().iterator();
+		while(it.hasNext())
+		{
+			Session session = it.next().getValue();
+			if(session.game == game)
+			{
+				release(session);
+				it.remove();
+			}
+		}
+		if(SESSIONS.isEmpty())
+			FACINGS.clear();
+	}
+
 	/**
 	 * Tier 2 — true when this PaP sign opts in to being teleporter-gated.
 	 * Detected via the keyword "tp" or "gated" on line index 3, case-insensitive.
@@ -38,6 +116,46 @@ public class PackAPunchSign implements IGameSign
 		return flag.contains("tp") || flag.contains("gated") || flag.contains("teleporter");
 	}
 
+	private static int signCost(Game game, String[] lines)
+	{
+		int signCost = DEFAULT_COST;
+		if(lines.length > 2 && lines[2] != null && ChatColor.stripColor(lines[2]).matches("[0-9]{1,5}"))
+			signCost = Integer.parseInt(ChatColor.stripColor(lines[2]));
+		return Game.effectivePaPCost(game.getPaPCostOverride(), signCost);
+	}
+
+	/**
+	 * Action-bar text for a player looking at or standing next to a machine, reflecting the gun in
+	 * their hand: "Pack-a-Punch [5000]" or "Refill Ammo [2000]".
+	 */
+	public static String prompt(Game game, Player player, Location machine, String[] lines)
+	{
+		Session session = SESSIONS.get(key(machine));
+		if(session != null)
+		{
+			if(!session.owner.equals(player.getUniqueId()))
+				return ChatColor.GRAY + "Pack-a-Punch in use";
+			return session.ready ? ChatColor.GREEN + "Take your " + session.gun.getType().getName() : ChatColor.LIGHT_PURPLE + "Upgrading...";
+		}
+		if(game.hasPower() && !game.isPowered())
+			return ChatColor.RED + "Pack-a-Punch " + ChatColor.GRAY + "- power required";
+
+		PlayerWeaponManager manager = game.getPlayersWeapons(player);
+		GunInstance gun = manager != null && manager.isHeldItemGun() ? manager.getGun(player.getInventory().getHeldItemSlot()) : null;
+		if(gun == null)
+			return ChatColor.LIGHT_PURPLE + "Pack-a-Punch " + ChatColor.YELLOW + "[" + signCost(game, lines) + "]";
+
+		boolean refill = gun.isPackOfPunched();
+		if(refill && !ConfigManager.getMainConfig().packAPunchRepackEnabled)
+			return ChatColor.GRAY + "Already Pack-a-Punched";
+		if(!refill && !gun.getType().isPackAPunchable())
+			return ChatColor.GRAY + "Cannot be Pack-a-Punched";
+
+		int cost = refill ? ConfigManager.getMainConfig().packAPunchRepackCost : signCost(game, lines);
+		ChatColor color = PointManager.INSTANCE.canBuy(player, cost) ? ChatColor.YELLOW : ChatColor.RED;
+		return ChatColor.LIGHT_PURPLE + (refill ? "Refill Ammo " : "Pack-a-Punch ") + color + "[" + cost + "]";
+	}
+
 	@Override
 	public void onBreak(Game game, Player player, Location location)
 	{
@@ -47,6 +165,19 @@ public class PackAPunchSign implements IGameSign
 	@Override
 	public void onInteract(Game game, Player player, Location location, String[] lines)
 	{
+		String key = key(location);
+		Session session = SESSIONS.get(key);
+		if(session != null)
+		{
+			if(!session.owner.equals(player.getUniqueId()))
+				CommandUtil.sendMessageToPlayer(player, ChatColor.RED + "The Pack-a-Punch is in use!");
+			else if(session.ready)
+				collect(key, session, player);
+			else
+				CommandUtil.sendMessageToPlayer(player, ChatColor.LIGHT_PURPLE + "Your gun is still being upgraded...");
+			return;
+		}
+
 		if(game.hasPower() && !game.isPowered())
 		{
 			CommandUtil.sendMessageToPlayer(player, ChatColor.RED + "You must turn on the power before You can Pack-A-punch!");
@@ -65,99 +196,213 @@ public class PackAPunchSign implements IGameSign
 		if(!manager.isHeldItemGun())
 		{
 			CommandUtil.sendMessageToPlayer(player, ChatColor.RED + "You must hold the gun you want to pack-a-punch!");
+			deny(player, location);
 			return;
 		}
 
-		GunInstance gun = manager.getGun(player.getInventory().getHeldItemSlot());
+		int slot = player.getInventory().getHeldItemSlot();
+		GunInstance gun = manager.getGun(slot);
+		boolean refill = gun.isPackOfPunched();
+		String gunName = gun.getType().getName();
 
-		if(gun.isPackOfPunched())
+		if(refill && !ConfigManager.getMainConfig().packAPunchRepackEnabled)
 		{
-			// Already Pack-A-Punched: optionally allow a re-pack that refills ammo for a fee.
-			if(!ConfigManager.getMainConfig().packAPunchRepackEnabled)
-			{
-				CommandUtil.sendMessageToPlayer(player, ChatColor.RED + "Your " + ChatColor.GOLD + gun.getType().getName() + ChatColor.RED + " is already Pack-A-Punched!");
-				return;
-			}
+			CommandUtil.sendMessageToPlayer(player, ChatColor.RED + "Your " + ChatColor.GOLD + gunName + ChatColor.RED + " is already Pack-A-Punched!");
+			deny(player, location);
+			return;
+		}
+		if(!refill && !gun.getType().isPackAPunchable())
+		{
+			CommandUtil.sendMessageToPlayer(player, ChatColor.RED + "Your " + ChatColor.GOLD + gunName + ChatColor.RED + " cannot be Pack-A-Punched!");
+			deny(player, location);
+			return;
+		}
 
-			int repackCost = ConfigManager.getMainConfig().packAPunchRepackCost;
-			if(PointManager.INSTANCE.canBuy(player, repackCost))
-			{
-				CommandUtil.sendMessageToPlayer(player, ChatColor.RED + "Your " + ChatColor.GOLD + gun.getType().getName() + ChatColor.RED + " was refilled");
-				com.theprogrammingturkey.comz.util.SoundUtil.play(player.getWorld(), player.getLocation(), com.theprogrammingturkey.comz.util.SoundConfig.get("packapunch", "BLOCK_ANVIL_USE"), org.bukkit.SoundCategory.MASTER, 1, 1);
-				gun.maxAmmo();
-				PointManager.INSTANCE.takePoints(player, repackCost);
-			}
+		int cost = refill ? ConfigManager.getMainConfig().packAPunchRepackCost : signCost(game, lines);
+		if(!PointManager.INSTANCE.canBuy(player, cost))
+		{
+			CommandUtil.sendMessageToPlayer(player, ChatColor.RED + "You do not have enough points to " + (refill ? "refill" : "Pack-A-Punch") + " your " + gunName + "!");
+			deny(player, location);
+			return;
+		}
+
+		PointManager.INSTANCE.takePoints(player, cost);
+		PointManager.INSTANCE.notifyPlayer(player);
+
+		manager.removeWeapon(gun);
+		player.getInventory().setItem(slot, null);
+
+		Location center = location.getBlock().getLocation().add(0.5, 0, 0.5);
+		Session started = new Session(game, player.getUniqueId(), gun, slot, refill, center, facingOf(location));
+		SESSIONS.put(key, started);
+
+		SoundUtil.play(center.getWorld(), center, SoundConfig.get("pap.upgrade", SoundConfig.get("packapunch", "BLOCK_ANVIL_USE")), SoundCategory.MASTER, 1, 1);
+		if(ConfigManager.getMainConfig().visualsPapFeedback)
+			ParticleFX.burst(center.getWorld(), center.clone().add(0, 1, 0), org.bukkit.Color.PURPLE, 24);
+		showGunInside(started, gun.getType().getStack());
+
+		CommandUtil.sendMessageToPlayer(player, ChatColor.LIGHT_PURPLE + "Upgrading your " + ChatColor.GOLD + gunName + ChatColor.LIGHT_PURPLE + "...");
+		started.workTask = COMZombies.scheduleTask(ticks(ConfigManager.getMainConfig().packAPunchWorkSeconds), () -> finishWork(key, started));
+	}
+
+	private static long ticks(double seconds)
+	{
+		return Math.max(1, Math.round(seconds * 20));
+	}
+
+	private static void deny(Player player, Location location)
+	{
+		SoundUtil.play(player, location, SoundConfig.get("pap.deny", "ENTITY_VILLAGER_NO"), SoundCategory.MASTER, 1, 1);
+	}
+
+	private static BlockFace facingOf(Location location)
+	{
+		BlockFace registered = FACINGS.get(key(location));
+		if(registered != null)
+			return registered;
+		BlockData data = location.getBlock().getBlockData();
+		return data instanceof Directional ? ((Directional) data).getFacing() : BlockFace.NORTH;
+	}
+
+	private static void showGunInside(Session session, ItemStack stack)
+	{
+		if(!Displays.supportsItemDisplays())
+			return;
+		Entity display = Displays.spawnItem(session.center, stack, 0.7f, 0f, 1.0f, false);
+		if(display == null)
+			return;
+		display.setPersistent(false);
+		session.display = display;
+	}
+
+	private static void finishWork(String key, Session session)
+	{
+		if(SESSIONS.get(key) != session)
+			return;
+		session.workTask = -1;
+		session.ready = true;
+
+		Player owner = Bukkit.getPlayer(session.owner);
+		SoundUtil.play(session.center.getWorld(), session.center, SoundConfig.get("pap.ready", "ENTITY_PLAYER_LEVELUP"), SoundCategory.MASTER, 1, 1);
+
+		if(session.display == null)
+		{
+			if(owner != null)
+				collect(key, session, owner);
 			else
-			{
-				CommandUtil.sendMessageToPlayer(player, ChatColor.RED + "You do not have enough points to re-pack your " + gun.getType().getName() + "!");
-			}
+				end(key, session);
 			return;
 		}
 
-		int cost = Game.effectivePaPCost(game.getPaPCostOverride(), Integer.parseInt(lines[2]));
-		if(PointManager.INSTANCE.canBuy(player, cost))
+		if(owner != null)
+			CommandUtil.sendMessageToPlayer(owner, ChatColor.GREEN + "Your gun is ready! Take it from the machine.");
+
+		if(!session.refill)
 		{
-			CommandUtil.sendMessageToPlayer(player, ChatColor.RED + "Your " + ChatColor.GOLD + gun.getType().getName() + ChatColor.RED + " was Pack-A-Punched");
-			player.getWorld().playSound(player.getLocation(), Sound.BLOCK_ANVIL_USE, 1, 1);
-			gun.setPackOfPunch();
-			PointManager.INSTANCE.takePoints(player, cost);
-			// BO2 PaP success feedback: title + jingle + particle burst (gated, self-contained helper).
-			packAPunchFeedback(player, location);
+			session.display.remove();
+			session.display = null;
+			showGunInside(session, session.gun.getType().getPackAPunchGun().getStack());
 		}
-		else
+		final Entity display = session.display;
+		if(display == null)
 		{
-			CommandUtil.sendMessageToPlayer(player, ChatColor.RED + "You do not have enough points to Pack-A-Punch your " + gun.getType().getName() + "!");
+			if(owner != null)
+				collect(key, session, owner);
+			else
+				end(key, session);
+			return;
 		}
-	}
+		float fx = session.facing.getModX() * 0.95f;
+		float fz = session.facing.getModZ() * 0.95f;
+		COMZombies.scheduleTask(2, () -> Displays.animate(display, fx, 1.0f, fz, 0.7f, 0f, 14));
 
-	/**
-	 * Celebratory audio/visual flourish played when a gun is freshly Pack-a-Punched.
-	 * Gated by the {@code visualsPapFeedback} config flag so cosmetics can be disabled.
-	 * Kept as a standalone helper to keep the success path readable and self-contained.
-	 */
-	private void packAPunchFeedback(Player player, Location location)
-	{
-		if(!ConfigManager.getMainConfig().visualsPapFeedback)
-			return;
-		// Big "UPGRADED!" splash so the player knows the upgrade landed.
-		player.sendTitle(ChatColor.GOLD + "" + ChatColor.BOLD + "UPGRADED!", ChatColor.GRAY + player.getInventory().getItemInMainHand().getType().name(), 5, 40, 10);
-		// Anvil clang into a level-up chord for the classic "powered up" cue.
-		org.bukkit.World world = player.getWorld();
-		com.theprogrammingturkey.comz.util.SoundUtil.play(world, location, "BLOCK_ANVIL_USE", org.bukkit.SoundCategory.MASTER, 1, 1);
-		com.theprogrammingturkey.comz.COMZombies.scheduleTask(6, () -> com.theprogrammingturkey.comz.util.SoundUtil.play(world, location, "ENTITY_PLAYER_LEVELUP", org.bukkit.SoundCategory.MASTER, 1, 1));
-		// Purple burst at the PaP sign — matches the Pack-a-Punch colour scheme.
-		com.theprogrammingturkey.comz.util.ParticleFX.burst(world, location, org.bukkit.Color.PURPLE, 24);
-		playInsertAnimation(player, location, world);
-	}
-
-	/**
-	 * BO2-fidelity: the gun is lowered into the Pack-a-Punch machine and lifted back out upgraded.
-	 * We reuse the player's actual held stack (it already carries the gun's 3D {@code item_model}) on an
-	 * item display. Pack-gated — without the pack the stack would render as its
-	 * plain base material, so we skip the display entirely and keep the sound/title feedback only.
-	 */
-	private void playInsertAnimation(Player player, Location location, org.bukkit.World world)
-	{
-		if(!com.theprogrammingturkey.comz.util.PackModels.isPackEnabled() || !Displays.supportsItemDisplays())
-			return;
-		org.bukkit.inventory.ItemStack gunStack = player.getInventory().getItemInMainHand().clone();
-		if(gunStack.getType().isAir())
-			return;
-
-		Location at = location.clone().add(0.5, 1.2, 0.5);
-		final org.bukkit.entity.Entity gun = Displays.spawnItem(at, gunStack, 0.7f, 0f, 0f, false);
-		if(gun == null)
-			return;
-		gun.setPersistent(false);
-
-		// Lower into the machine, hold while "upgrading", then lift the upgraded gun back out and remove.
-		Displays.animate(gun, 0f, -0.9f, 0f, 0.7f, 0f, 12);
-		com.theprogrammingturkey.comz.COMZombies.scheduleTask(28, () -> Displays.animate(gun, 0f, 0.2f, 0f, 0.7f, 180f, 12));
-		com.theprogrammingturkey.comz.COMZombies.scheduleTask(48, () ->
+		final float[] spin = {0f};
+		final boolean[] up = {true};
+		session.bobTask = COMZombies.scheduleTask(18, 20, () ->
 		{
-			if(!gun.isDead())
-				gun.remove();
+			if(display.isDead())
+				return;
+			spin[0] += 120f;
+			up[0] = !up[0];
+			Displays.animate(display, fx, up[0] ? 1.12f : 1.0f, fz, 0.7f, spin[0], 20);
 		});
+
+		session.expireTask = COMZombies.scheduleTask(ticks(ConfigManager.getMainConfig().packAPunchPickupSeconds), () -> expire(key, session));
+	}
+
+	private static void expire(String key, Session session)
+	{
+		if(SESSIONS.get(key) != session)
+			return;
+		session.expireTask = -1;
+		Player owner = Bukkit.getPlayer(session.owner);
+		if(owner != null)
+			CommandUtil.sendMessageToPlayer(owner, ChatColor.RED + "You waited too long - your " + ChatColor.GOLD + session.gun.getType().getName() + ChatColor.RED + " was lost!");
+		SoundUtil.play(session.center.getWorld(), session.center, SoundConfig.get("pap.deny", "ENTITY_VILLAGER_NO"), SoundCategory.MASTER, 1, 1);
+		end(key, session);
+	}
+
+	private static void collect(String key, Session session, Player player)
+	{
+		Game game = session.game;
+		if(game.getStatus() != Game.GameStatus.INGAME || !GameManager.INSTANCE.isPlayerInGame(player) || GameManager.INSTANCE.getGame(player) != game)
+		{
+			end(key, session);
+			return;
+		}
+
+		PlayerWeaponManager manager = game.getPlayersWeapons(player);
+		GunInstance gun = session.gun;
+		if(session.refill)
+			gun.maxAmmo();
+		else
+			gun.setPackOfPunch();
+
+		int slot = freeSlot(manager, game, player, session.slot);
+		WeaponInstance occupant = manager.getWeapon(slot);
+		if(occupant != null)
+			manager.removeWeapon(occupant);
+		gun.setSlot(slot);
+		manager.addWeapon(gun);
+		player.getInventory().setHeldItemSlot(slot);
+
+		SoundUtil.play(player, player.getLocation(), SoundConfig.get("pap.ready", "ENTITY_PLAYER_LEVELUP"), SoundCategory.MASTER, 1, 1);
+		CommandUtil.sendMessageToPlayer(player, ChatColor.RED + "Your " + ChatColor.GOLD + gun.getType().getName() + ChatColor.RED + (session.refill ? " was refilled" : " was Pack-A-Punched"));
+		if(ConfigManager.getMainConfig().visualsPapFeedback)
+			player.sendTitle(ChatColor.GOLD + "" + ChatColor.BOLD + (session.refill ? "REFILLED!" : "UPGRADED!"), ChatColor.GRAY + gun.getType().getName(), 5, 40, 10);
+		end(key, session);
+	}
+
+	/** The slot the gun came from when it is still free; otherwise another free gun slot; otherwise the original. */
+	private static int freeSlot(PlayerWeaponManager manager, Game game, Player player, int preferred)
+	{
+		if(manager.getWeapon(preferred) == null)
+			return preferred;
+		int gunSlots = game.perkManager.hasPerk(player, PerkType.MULE_KICK) ? 3 : 2;
+		for(int slot = 1; slot <= gunSlots; slot++)
+			if(manager.getWeapon(slot) == null)
+				return slot;
+		return preferred;
+	}
+
+	private static void end(String key, Session session)
+	{
+		release(session);
+		SESSIONS.remove(key, session);
+	}
+
+	private static void release(Session session)
+	{
+		if(session.workTask != -1)
+			Bukkit.getScheduler().cancelTask(session.workTask);
+		if(session.expireTask != -1)
+			Bukkit.getScheduler().cancelTask(session.expireTask);
+		if(session.bobTask != -1)
+			Bukkit.getScheduler().cancelTask(session.bobTask);
+		session.workTask = session.expireTask = session.bobTask = -1;
+		if(session.display != null && !session.display.isDead())
+			session.display.remove();
+		session.display = null;
 	}
 
 	@Override
@@ -168,7 +413,7 @@ public class PackAPunchSign implements IGameSign
 		int cost;
 		if(thirdLine == null || thirdLine.equalsIgnoreCase(""))
 		{
-			cost = 5000;
+			cost = DEFAULT_COST;
 		}
 		else
 		{
@@ -178,7 +423,7 @@ public class PackAPunchSign implements IGameSign
 			}
 			else
 			{
-				cost = 2000;
+				cost = DEFAULT_COST;
 				CommandUtil.sendMessageToPlayer(player, thirdLine + " is not a valid amount!");
 			}
 		}

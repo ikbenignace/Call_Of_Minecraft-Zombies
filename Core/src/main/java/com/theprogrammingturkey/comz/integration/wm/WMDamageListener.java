@@ -58,6 +58,9 @@ public class WMDamageListener implements Listener
 		BaseGun gun = WeaponManager.getGunByWmWeapon(event.getWeaponTitle());
 		float damage = gun != null ? gun.damage : (float) event.getFinalDamage();
 
+		if(game.perkManager.hasPerk(shooter, PerkType.DOUBLE_TAP))
+			damage *= (float) ConfigManager.getMainConfig().doubleTapDamageMultiplier;
+
 		boolean headshot = event.getPoint() == DamagePoint.HEAD;
 		if(headshot)
 		{

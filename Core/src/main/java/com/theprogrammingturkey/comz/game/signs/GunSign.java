@@ -1,15 +1,16 @@
 package com.theprogrammingturkey.comz.game.signs;
 
 import com.theprogrammingturkey.comz.COMZombies;
+import com.theprogrammingturkey.comz.config.ConfigManager;
 import com.theprogrammingturkey.comz.economy.PointManager;
 import com.theprogrammingturkey.comz.game.Game;
 import com.theprogrammingturkey.comz.game.managers.PlayerWeaponManager;
 import com.theprogrammingturkey.comz.game.managers.WeaponManager;
 import com.theprogrammingturkey.comz.game.weapons.BaseGun;
+import com.theprogrammingturkey.comz.game.weapons.GunInstance;
 import com.theprogrammingturkey.comz.util.CommandUtil;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
-import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 import org.bukkit.event.block.SignChangeEvent;
 
@@ -24,10 +25,19 @@ public class GunSign implements IGameSign
 	@Override
 	public void onInteract(Game game, Player player, Location location, String[] lines)
 	{
-		String line3 = lines[3];
-		int buyPoints = Integer.parseInt(line3.substring(0, line3.indexOf("/") - 1).trim());
-		int refillPoints = Integer.parseInt(line3.substring(line3.indexOf("/") + 2).trim());
-		BaseGun gunType = WeaponManager.getGun(lines[2]);
+		int buyPoints;
+		int refillPoints;
+		try
+		{
+			String line3 = ChatColor.stripColor(lines[3]);
+			buyPoints = Integer.parseInt(line3.substring(0, line3.indexOf("/")).trim());
+			refillPoints = Integer.parseInt(line3.substring(line3.indexOf("/") + 1).trim());
+		} catch(RuntimeException ex)
+		{
+			CommandUtil.sendMessageToPlayer(player, ChatColor.RED + "This wall gun has an invalid price!");
+			return;
+		}
+		BaseGun gunType = WeaponManager.getGun(ChatColor.stripColor(lines[2]));
 
 		if(gunType == null)
 		{
@@ -36,13 +46,24 @@ public class GunSign implements IGameSign
 		}
 
 		PlayerWeaponManager manager = game.getPlayersWeapons(player);
-		if(manager.hasGun(gunType))
+		GunInstance owned = manager.getGun(gunType);
+		GunInstance ownedPackAPunched = gunType.isPackAPunchable() ? manager.getGun(gunType.getPackAPunchGun()) : null;
+		if(owned != null || ownedPackAPunched != null)
 		{
-			if(PointManager.INSTANCE.canBuy(player, refillPoints))
+			GunInstance target = owned != null ? owned : ownedPackAPunched;
+			int ammoCost;
+			if(owned == null)
+				ammoCost = ConfigManager.getMainConfig().wallAmmoPackAPunchCost;
+			else if(ConfigManager.getMainConfig().wallAmmoPriceDivisor > 0)
+				ammoCost = buyPoints / ConfigManager.getMainConfig().wallAmmoPriceDivisor;
+			else
+				ammoCost = refillPoints;
+
+			if(PointManager.INSTANCE.canBuy(player, ammoCost))
 			{
-				manager.getGun(gunType).maxAmmo();
+				PointManager.INSTANCE.takePoints(player, ammoCost);
+				target.maxAmmo();
 				CommandUtil.sendMessageToPlayer(player, ChatColor.RED + "" + ChatColor.BOLD + "Filling ammo!");
-				PointManager.INSTANCE.takePoints(player, refillPoints);
 				PointManager.INSTANCE.notifyPlayer(player);
 			}
 			else
@@ -50,22 +71,17 @@ public class GunSign implements IGameSign
 				CommandUtil.sendMessageToPlayer(player, ChatColor.RED + "You don't have enough points!");
 			}
 		}
+		else if(PointManager.INSTANCE.canBuy(player, buyPoints))
+		{
+			PointManager.INSTANCE.takePoints(player, buyPoints);
+			manager.addWeapon(gunType);
+			CommandUtil.sendMessageToPlayer(player, ChatColor.RED + "" + ChatColor.BOLD + "You got the " + ChatColor.GOLD + "" + ChatColor.BOLD + gunType.getName() + ChatColor.RED + ChatColor.BOLD + "!");
+			com.theprogrammingturkey.comz.util.SoundUtil.play(player.getWorld(), player.getLocation(), com.theprogrammingturkey.comz.util.SoundConfig.get("gun.buy", "ENTITY_GHAST_SHOOT"), org.bukkit.SoundCategory.MASTER, 1, 1);
+			PointManager.INSTANCE.notifyPlayer(player);
+		}
 		else
 		{
-			int slot = manager.getCorrectSlot(gunType);
-			if(PointManager.INSTANCE.canBuy(player, buyPoints))
-			{
-				CommandUtil.sendMessageToPlayer(player, ChatColor.RED + "" + ChatColor.BOLD + "You got the " + ChatColor.GOLD + "" + ChatColor.BOLD + gunType.getName() + ChatColor.RED + ChatColor.BOLD + "!");
-				manager.removeWeapon(manager.getGun(slot));
-				manager.addWeapon(gunType.getNewInstance(player, slot));
-				com.theprogrammingturkey.comz.util.SoundUtil.play(player.getWorld(), player.getLocation(), com.theprogrammingturkey.comz.util.SoundConfig.get("gun.buy", "ENTITY_GHAST_SHOOT"), org.bukkit.SoundCategory.MASTER, 1, 1);
-				PointManager.INSTANCE.takePoints(player, buyPoints);
-				PointManager.INSTANCE.notifyPlayer(player);
-			}
-			else
-			{
-				CommandUtil.sendMessageToPlayer(player, ChatColor.RED + "You don't have enough points!");
-			}
+			CommandUtil.sendMessageToPlayer(player, ChatColor.RED + "You don't have enough points!");
 		}
 	}
 

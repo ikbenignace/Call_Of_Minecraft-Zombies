@@ -4,11 +4,15 @@ import com.theprogrammingturkey.comz.COMZombies;
 import com.theprogrammingturkey.comz.config.ConfigManager;
 import com.theprogrammingturkey.comz.game.Game;
 import com.theprogrammingturkey.comz.game.features.PerkType;
+import com.theprogrammingturkey.comz.game.builder.MachineSigns;
 import com.theprogrammingturkey.comz.game.signs.IGameSign;
+import com.theprogrammingturkey.comz.game.signs.PackAPunchSign;
+import com.theprogrammingturkey.comz.game.visuals.MachineLooks;
+import com.theprogrammingturkey.comz.game.visuals.MachineLooks.Look;
+import com.theprogrammingturkey.comz.game.visuals.MachineVisuals;
 import com.theprogrammingturkey.comz.listeners.SignListener;
 import com.theprogrammingturkey.comz.util.Compat;
 import com.theprogrammingturkey.comz.util.DisplayEntityUtil;
-import com.theprogrammingturkey.comz.util.ModelDisplay;
 import com.theprogrammingturkey.comz.util.PackModels;
 import com.theprogrammingturkey.comz.util.display.Displays;
 import org.bukkit.ChatColor;
@@ -31,8 +35,8 @@ import java.util.UUID;
 
 /**
  * BO2-fidelity machines. Each perk / Pack-a-Punch sign becomes a physical machine occupying the sign's
- * own block: a solid base block (always visible, even without the pack), a 3D item display
- * overlay that covers the block when the pack is guaranteed for all players, an invisible
+ * own block: a solid base block (always visible, even without the pack), a 3D item model
+ * (pack guaranteed for all players) or a block-display look-alike overlaying the block, an invisible
  * interaction hitbox so the machine is right-clickable, and a floating price
  * text. Right-clicking the interaction forwards to the backing sign's buy logic (the
  * sign's lines are snapshotted at spawn so buying works while the sign is hidden, and the sign is
@@ -65,62 +69,40 @@ public class MachineModelManager
 		if(!Displays.supportsHitboxes())
 			return;
 
-		Location min = game.arena.getMin();
-		Location max = game.arena.getMax();
-		int minCX = Math.min(min.getBlockX(), max.getBlockX()) >> 4;
-		int maxCX = Math.max(min.getBlockX(), max.getBlockX()) >> 4;
-		int minCZ = Math.min(min.getBlockZ(), max.getBlockZ()) >> 4;
-		int maxCZ = Math.max(min.getBlockZ(), max.getBlockZ()) >> 4;
-
-		for(int cx = minCX; cx <= maxCX; cx++)
-			for(int cz = minCZ; cz <= maxCZ; cz++)
-			{
-				if(!world.isChunkLoaded(cx, cz))
-					continue;
-				for(BlockState state : world.getChunkAt(cx, cz).getTileEntities())
-				{
-					if(!(state instanceof Sign))
-						continue;
-					if(!game.arena.containsBlock(state.getLocation()))
-						continue;
-					trySpawnForSign((Sign) state);
-				}
-			}
+		MachineSigns.forEachArenaSign(game, this::trySpawnForSign);
 	}
 
 	private void trySpawnForSign(Sign sign)
 	{
 		String type = ChatColor.stripColor(sign.getLine(1)).trim().toLowerCase();
-		String modelKey;
 		Material base;
 		String label;
 		if(type.equals("pack-a-punch"))
 		{
-			modelKey = "machine/pap";
 			base = Compat.materialOr(Material.OBSIDIAN, "LODESTONE");
-			label = ChatColor.LIGHT_PURPLE + "Pack-a-Punch " + ChatColor.YELLOW + "$" + ChatColor.stripColor(sign.getLine(2));
+			label = ChatColor.LIGHT_PURPLE + "Pack-a-Punch " + ChatColor.YELLOW + "[" + ChatColor.stripColor(sign.getLine(2)) + "]";
 		}
 		else if(type.equals("perk machine"))
 		{
 			PerkType perk = PerkType.getPerkType(ChatColor.stripColor(sign.getLine(2)));
 			if(perk == null)
 				return;
-			modelKey = perk.getMachineModelKey();
 			base = Material.BARREL;
-			label = ChatColor.AQUA + titleCase(perk.toString()) + ChatColor.YELLOW + " $" + ChatColor.stripColor(sign.getLine(3));
+			label = ChatColor.AQUA + titleCase(perk.toString()) + ChatColor.YELLOW + " [" + ChatColor.stripColor(sign.getLine(3)) + "]";
 		}
 		else
 		{
-			return; // mystery box owns its own visuals (chest + lid) via RandomBox
+			return; // mystery box owns its own visuals (chest + model) via RandomBox
 		}
-		if(modelKey == null)
+		Look look = MachineLooks.forSignLines(sign.getLines());
+		if(look == null)
 			return;
 
-		spawn(sign, modelKey, base, label);
+		spawn(sign, look, base, label);
 	}
 
-	/** Build the base block + overlay + interaction + hologram for one machine sign. */
-	private void spawn(Sign sign, String modelKey, Material base, String label)
+	/** Build the base block + visuals + interaction + hologram for one machine sign. */
+	private void spawn(Sign sign, Look look, Material base, String label)
 	{
 		Location signLoc = sign.getLocation();
 		World world = signLoc.getWorld();
@@ -136,26 +118,22 @@ public class MachineModelManager
 		MachineModel machine = new MachineModel(baseLoc, signLoc, sign.getType(), data, signLines);
 
 		baseLoc.getBlock().setType(base, false);
+		if(ChatColor.stripColor(signLines[1]).trim().equalsIgnoreCase("pack-a-punch"))
+			PackAPunchSign.registerMachine(baseLoc, facing);
 
-		float yaw = yawFromFace(facing);
-		Location centre = baseLoc.clone().add(0.5, 0.0, 0.5);
+		// The pack model is only used when the pack is enabled AND forced, so EVERY player has it (a single
+		// shared ItemDisplay would otherwise render as a missing-model cube for pack-less players); everyone
+		// else gets the block look-alike.
+		boolean usePack = PackModels.isPackEnabled() && ConfigManager.getMainConfig().resourcePackForce;
+		machine.visuals.addAll(MachineVisuals.spawn(baseLoc, facing, look, usePack));
 
-		// 3D overlay only when the pack is enabled AND forced (so EVERY player has it — a single shared
-		// ItemDisplay would otherwise render as a purple cube for pack-less players). Scaled slightly
-		// >1 so it fully covers the base block.
-		if(PackModels.isPackEnabled() && ConfigManager.getMainConfig().resourcePackForce)
-		{
-			Entity model = ModelDisplay.spawnModel(world, centre, modelKey, 1.01f, yaw);
-			machine.model = model;
-		}
-
-		// Invisible clickable hitbox covering the block.
-		Entity interaction = Displays.spawnHitbox(baseLoc.clone().add(0.5, 0.0, 0.5), 1.0f, 1.0f);
+		// Invisible clickable hitbox covering the whole machine.
+		Entity interaction = Displays.spawnHitbox(baseLoc.clone().add(0.5, 0.0, 0.5), look.hitWidth, look.hitHeight);
 		machine.interaction = interaction;
 		byInteraction.put(interaction.getUniqueId(), machine);
 
 		// Floating price above the machine.
-		Entity hologram = DisplayEntityUtil.persistentText(world, baseLoc.clone().add(0.5, 1.4, 0.5), label);
+		Entity hologram = DisplayEntityUtil.persistentText(world, baseLoc.clone().add(0.5, look.hologramY, 0.5), label);
 		machine.hologram = hologram;
 		machine.label = label;
 
@@ -195,6 +173,8 @@ public class MachineModelManager
 	{
 		if(game.getStatus() != Game.GameStatus.INGAME)
 			return true; // it's ours, but nothing to do outside a running game
+		if(!game.getLivingPlayers().contains(player) || game.downedPlayerManager.isDownedPlayer(player) || game.downedPlayerManager.isGhost(player))
+			return true;
 
 		// The backing sign has been overwritten by the machine's base block during play, so the buy path
 		// runs off the sign lines snapshotted at spawn rather than re-reading the world.
@@ -213,26 +193,10 @@ public class MachineModelManager
 		return s.isEmpty() ? s : Character.toUpperCase(s.charAt(0)) + s.substring(1);
 	}
 
-	private static float yawFromFace(BlockFace face)
-	{
-		switch(face)
-		{
-			case SOUTH:
-				return 0f;
-			case WEST:
-				return 90f;
-			case NORTH:
-				return 180f;
-			case EAST:
-				return 270f;
-			default:
-				return 0f;
-		}
-	}
-
 	/** Remove all machines: despawn entities and restore base blocks. Safe to call repeatedly. */
 	public void removeAll()
 	{
+		PackAPunchSign.clearGame(game);
 		for(MachineModel machine : machines)
 			machine.remove();
 		machines.clear();
@@ -247,11 +211,16 @@ public class MachineModelManager
 	{
 		public final Location centre;
 		public final String label;
+		/** Buy-logic location and snapshotted sign lines, for building per-player prompts. */
+		public final Location base;
+		public final String[] signLines;
 
-		MachineTarget(Location centre, String label)
+		MachineTarget(Location centre, String label, Location base, String[] signLines)
 		{
 			this.centre = centre;
 			this.label = label;
+			this.base = base;
+			this.signLines = signLines;
 		}
 	}
 
@@ -263,7 +232,7 @@ public class MachineModelManager
 	{
 		List<MachineTarget> out = new ArrayList<>(machines.size());
 		for(MachineModel m : machines)
-			out.add(new MachineTarget(m.baseLoc.clone().add(0.5, 0.5, 0.5), labelFor(m)));
+			out.add(new MachineTarget(m.baseLoc.clone().add(0.5, 0.5, 0.5), labelFor(m), m.baseLoc, m.signLines));
 		return out;
 	}
 

@@ -41,6 +41,7 @@ public class ZombiesHelpCommand
 			CommandUtil.sendMessageToPlayer(player, ChatColor.GREEN + "/zombies editspawns [arena]" + ChatColor.YELLOW + " - Enables Zombie spawn editing for the given arena.");
 			CommandUtil.sendMessageToPlayer(player, ChatColor.GREEN + "/zombies edit [arena]" + ChatColor.YELLOW + " - Puts you in arena creation mode for an old arena.");
 			CommandUtil.sendMessageToPlayer(player, ChatColor.GREEN + "/zombies enable [arena]" + ChatColor.YELLOW + " - Enables the given arena.");
+			CommandUtil.sendMessageToPlayer(player, ChatColor.GREEN + "/zombies dev" + ChatColor.YELLOW + " - Developer menu for testing (points, rounds, perks, guns, power-ups).");
 			CommandUtil.sendMessageToPlayer(player, ChatColor.RED + "/zombies help admin 3 - Type this for the next page of admin help!");
 		}
 		else if(page == 3)

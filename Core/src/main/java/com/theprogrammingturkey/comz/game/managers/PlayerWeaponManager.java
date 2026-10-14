@@ -100,7 +100,7 @@ public class PlayerWeaponManager
 	public void addWeapon(Weapon weapon)
 	{
 		int slot = this.getCorrectSlot(weapon);
-		weapons.remove(getWeapon(slot));
+		detach(getWeapon(slot));
 		addWeapon(weapon.getNewInstance(player, slot));
 	}
 
@@ -113,6 +113,7 @@ public class PlayerWeaponManager
 	{
 		if(weapon == null)
 			return;
+		weapon.setDetached(false);
 		weapons.add(weapon);
 		weapon.updateWeapon();
 		player.updateInventory();
@@ -188,14 +189,26 @@ public class PlayerWeaponManager
 	 */
 	public void removeWeapon(WeaponInstance gun)
 	{
-		weapons.remove(gun);
+		detach(gun);
+	}
+
+	private void detach(WeaponInstance weapon)
+	{
+		if(weapon == null)
+			return;
+		weapons.remove(weapon);
+		weapon.setDetached(true);
 	}
 
 	public WeaponInstance removeWeapon(int slot)
 	{
 		for(int i = weapons.size() - 1; i >= 0; i--)
 			if(weapons.get(i).getSlot() == slot)
-				return weapons.remove(i);
+			{
+				WeaponInstance removed = weapons.remove(i);
+				removed.setDetached(true);
+				return removed;
+			}
 		return null;
 	}
 
