@@ -40,6 +40,7 @@ public class DoorSign implements IGameSign
 		{
 			door.openDoor();
 			door.playerDoorOpenSound();
+			com.theprogrammingturkey.comz.util.SoundUtil.playKey(player, player.getLocation(), "door.buy", "ENTITY_EXPERIENCE_ORB_PICKUP", org.bukkit.SoundCategory.PLAYERS, 1f, 1f);
 			PointManager.INSTANCE.takePoints(player, door.getCost());
 			PointManager.INSTANCE.notifyPlayer(player);
 			CommandUtil.sendMessageToPlayer(player, ChatColor.GREEN + "Door opened!");

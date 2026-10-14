@@ -81,6 +81,7 @@ public class GameScoreboard
 	public void update()
 	{
 		round.setScore(game.getWave());
+		objective.setDisplayName(ChatColor.RED + "" + ChatColor.BOLD + "Round " + game.getWave());
 		zombiesLeft.setScore((game.spawnManager.getMobsToSpawn() - game.spawnManager.getMobsSpawned()) + game.spawnManager.getZombiesAlive());
 
 		for(Player player : playerScores.keySet())

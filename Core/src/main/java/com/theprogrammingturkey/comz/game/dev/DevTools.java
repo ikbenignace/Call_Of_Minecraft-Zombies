@@ -36,6 +36,11 @@ public final class DevTools
 		return GOD_PLAYERS.contains(player.getUniqueId());
 	}
 
+	public static void clearGod(Player player)
+	{
+		GOD_PLAYERS.remove(player.getUniqueId());
+	}
+
 	public static void toggleGod(Player player)
 	{
 		boolean enabled = GOD_PLAYERS.add(player.getUniqueId());

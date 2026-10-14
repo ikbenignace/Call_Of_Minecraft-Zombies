@@ -370,13 +370,19 @@ public class DownedPlayer implements Listener
 			{
 				player.sendMessage(ChatColor.RED + "" + ChatColor.BOLD + "You have died!");
 				//game.removePlayer(player);
-				game.downedPlayerManager.dropTombstone(game, player, downLocation, guns);
 				clearDownedState();
 				game.downedPlayerManager.downedPlayerRevived(this);
-				game.setDead(player);
-				//game.gamePlayers.remove(player);
 				PlayerStats stats = Leaderboard.getPlayerStatFromPlayer(player);
 				stats.setDeaths(stats.getDeaths() + 1);
+				try
+				{
+					game.downedPlayerManager.dropTombstone(game, player, downLocation, guns);
+				} catch(RuntimeException e)
+				{
+					COMZombies.log.log(java.util.logging.Level.WARNING, "Could not drop the tombstone for " + player.getName(), e);
+				}
+				// Last: setDead can end the game, which tears down tombstones dropped before it.
+				game.setDead(player);
 			}
 		});
 	}

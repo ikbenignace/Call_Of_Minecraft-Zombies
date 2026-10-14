@@ -22,21 +22,65 @@ public class GunSign implements IGameSign
 
 	}
 
-	@Override
-	public void onInteract(Game game, Player player, Location location, String[] lines)
+	/** {buy price, refill price} from a gun sign's price line, or null when malformed. */
+	public static int[] parsePrices(String[] lines)
 	{
-		int buyPoints;
-		int refillPoints;
 		try
 		{
 			String line3 = ChatColor.stripColor(lines[3]);
-			buyPoints = Integer.parseInt(line3.substring(0, line3.indexOf("/")).trim());
-			refillPoints = Integer.parseInt(line3.substring(line3.indexOf("/") + 1).trim());
+			return new int[]{Integer.parseInt(line3.substring(0, line3.indexOf("/")).trim()), Integer.parseInt(line3.substring(line3.indexOf("/") + 1).trim())};
 		} catch(RuntimeException ex)
+		{
+			return null;
+		}
+	}
+
+	private static int ammoCost(boolean basicOwned, int buyPoints, int refillPoints)
+	{
+		if(!basicOwned)
+			return ConfigManager.getMainConfig().wallAmmoPackAPunchCost;
+		if(ConfigManager.getMainConfig().wallAmmoPriceDivisor > 0)
+			return buyPoints / ConfigManager.getMainConfig().wallAmmoPriceDivisor;
+		return refillPoints;
+	}
+
+	/** Action-bar prompt for what this player would get from the wall gun given what they hold. */
+	public static String prompt(Game game, Player player, String[] lines)
+	{
+		int[] prices = parsePrices(lines);
+		BaseGun gun = WeaponManager.getGun(ChatColor.stripColor(lines[2]));
+		if(prices == null || gun == null)
+			return ChatColor.RED + "[F] Invalid wall gun";
+		PlayerWeaponManager manager = game.getPlayersWeapons(player);
+		boolean basicOwned = manager.getGun(gun) != null;
+		boolean upgradedOwned = gun.isPackAPunchable() && manager.getGun(gun.getPackAPunchGun()) != null;
+		int cost;
+		String text;
+		if(basicOwned || upgradedOwned)
+		{
+			cost = ammoCost(basicOwned, prices[0], prices[1]);
+			text = (basicOwned ? "Ammo" : "Upgraded Ammo") + " " + ChatColor.YELLOW + "[" + cost + "]";
+		}
+		else
+		{
+			cost = prices[0];
+			text = "Buy " + gun.getName() + " " + ChatColor.YELLOW + "[" + cost + "]";
+		}
+		ChatColor color = PointManager.INSTANCE.canBuy(player, cost) ? ChatColor.GREEN : ChatColor.RED;
+		return color + "[F] " + text;
+	}
+
+	@Override
+	public void onInteract(Game game, Player player, Location location, String[] lines)
+	{
+		int[] prices = parsePrices(lines);
+		if(prices == null)
 		{
 			CommandUtil.sendMessageToPlayer(player, ChatColor.RED + "This wall gun has an invalid price!");
 			return;
 		}
+		int buyPoints = prices[0];
+		int refillPoints = prices[1];
 		BaseGun gunType = WeaponManager.getGun(ChatColor.stripColor(lines[2]));
 
 		if(gunType == null)
@@ -51,13 +95,7 @@ public class GunSign implements IGameSign
 		if(owned != null || ownedPackAPunched != null)
 		{
 			GunInstance target = owned != null ? owned : ownedPackAPunched;
-			int ammoCost;
-			if(owned == null)
-				ammoCost = ConfigManager.getMainConfig().wallAmmoPackAPunchCost;
-			else if(ConfigManager.getMainConfig().wallAmmoPriceDivisor > 0)
-				ammoCost = buyPoints / ConfigManager.getMainConfig().wallAmmoPriceDivisor;
-			else
-				ammoCost = refillPoints;
+			int ammoCost = ammoCost(owned != null, buyPoints, refillPoints);
 
 			if(PointManager.INSTANCE.canBuy(player, ammoCost))
 			{

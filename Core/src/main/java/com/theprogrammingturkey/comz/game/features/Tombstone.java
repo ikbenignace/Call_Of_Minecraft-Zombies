@@ -5,7 +5,9 @@ import com.theprogrammingturkey.comz.config.ConfigManager;
 import com.theprogrammingturkey.comz.game.Game;
 import com.theprogrammingturkey.comz.game.managers.PerkManager;
 import com.theprogrammingturkey.comz.game.managers.PlayerWeaponManager;
+import com.theprogrammingturkey.comz.game.weapons.GunInstance;
 import com.theprogrammingturkey.comz.game.weapons.WeaponInstance;
+import com.theprogrammingturkey.comz.listeners.PowerUpDropListener;
 import com.theprogrammingturkey.comz.util.DisplayEntityUtil;
 import com.theprogrammingturkey.comz.util.EntitySpawner;
 import org.bukkit.Bukkit;
@@ -119,10 +121,32 @@ public class Tombstone
 
 	private static boolean hasEntityType(String name)
 	{
-		for(EntityType type : EntityType.values())
-			if(type.name().equals(name))
-				return true;
+		try
+		{
+			for(EntityType type : EntityType.values())
+				if(type.name().equals(name))
+					return true;
+		} catch(Throwable ignored)
+		{
+		}
 		return false;
+	}
+
+	/** The mannequin is found by a proximity lookup after a console summon; sweep by tag in case that missed it. */
+	private void sweepTaggedEntities()
+	{
+		World world = location.getWorld();
+		if(world == null)
+			return;
+		String tag = "comz_tomb_" + ownerId;
+		try
+		{
+			for(Entity e : world.getEntities())
+				if(!e.isDead() && e.getScoreboardTags().contains(tag))
+					e.remove();
+		} catch(RuntimeException ignored)
+		{
+		}
 	}
 
 	private ItemStack ownerHead()
@@ -159,18 +183,52 @@ public class Tombstone
 
 	private void reclaim(Player owner)
 	{
+		// Perks first: Mule Kick changes how many gun slots the guns below may use.
+		for(PerkType perk : perks)
+			PerkManager.givePerk(game, owner, perk);
+
 		PlayerWeaponManager manager = game.getPlayersWeapons(owner);
 		for(WeaponInstance gun : guns)
 		{
 			if(gun == null)
 				continue;
-			manager.removeWeapon(gun.getSlot());
+			gun.setSlot(reclaimSlot(owner, manager, gun));
+			WeaponInstance occupant = manager.getWeapon(gun.getSlot());
+			if(occupant != null)
+			{
+				if(PowerUpDropListener.isDeathMachine(occupant))
+					PowerUpDropListener.revertDeathMachine(game, owner);
+				manager.removeWeapon(gun.getSlot());
+			}
 			manager.addWeapon(gun);
 		}
-		for(PerkType perk : perks)
-			PerkManager.givePerk(game, owner, perk);
 		owner.sendMessage(ChatColor.GREEN + "You reclaimed your tombstone.");
 		game.downedPlayerManager.removeTombstone(this);
+	}
+
+	/** Prefers the original slot when empty or holding the respawn gun, then any free slot, then the respawn gun, then the original slot. */
+	private int reclaimSlot(Player owner, PlayerWeaponManager manager, WeaponInstance gun)
+	{
+		int original = gun.getSlot();
+		WeaponInstance atOriginal = manager.getWeapon(original);
+		if(atOriginal == null || isStartingGun(atOriginal))
+			return original;
+
+		int gunSlots = game.perkManager.hasPerk(owner, PerkType.MULE_KICK) ? 3 : 2;
+		for(int slot = 1; slot <= gunSlots; slot++)
+			if(manager.getWeapon(slot) == null)
+				return slot;
+		for(int slot = 1; slot <= gunSlots; slot++)
+			if(isStartingGun(manager.getWeapon(slot)))
+				return slot;
+		return original;
+	}
+
+	private boolean isStartingGun(WeaponInstance weapon)
+	{
+		return weapon instanceof GunInstance
+				&& !((GunInstance) weapon).isPackOfPunched()
+				&& ((GunInstance) weapon).getType().getName().equals(game.getStartingGun());
 	}
 
 	public void remove()
@@ -183,6 +241,7 @@ public class Tombstone
 		for(Entity e : new Entity[]{body, label, anchor})
 			if(e != null && !e.isDead())
 				e.remove();
+		sweepTaggedEntities();
 		body = label = anchor = null;
 	}
 }

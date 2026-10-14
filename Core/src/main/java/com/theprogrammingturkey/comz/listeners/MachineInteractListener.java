@@ -32,7 +32,8 @@ public class MachineInteractListener implements Listener
 		Game game = GameManager.INSTANCE.getGame(player);
 		if(game == null)
 			return;
-		if(game.machineModelManager.handleInteract(player, event.getRightClicked()))
+		if(game.machineModelManager.handleInteract(player, event.getRightClicked())
+				|| game.wallGunManager.handleInteract(player, event.getRightClicked()))
 			event.setCancelled(true);
 	}
 }

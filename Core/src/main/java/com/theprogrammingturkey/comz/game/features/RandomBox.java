@@ -69,6 +69,9 @@ public class RandomBox
 	private Weapon weapon;
 	private Item item;
 	private ArmorStand namePlate;
+	private int teddyLeaveTaskId = -1;
+	private int teddyRiseTaskId = -1;
+	private int teddyFinishTaskId = -1;
 
 
 	public RandomBox(Location loc, BlockFace facing, Game game, String boxId, int cost)
@@ -173,17 +176,30 @@ public class RandomBox
 							item.setCustomNameVisible(true);
 							isTeddyBear = true;
 
-							COMZombies.scheduleTask(40, () ->
+							teddyLeaveTaskId = COMZombies.scheduleTask(40, () ->
 							{
-								com.theprogrammingturkey.comz.util.SoundUtil.playKey(player.getWorld(), boxLoc, "box.leave", "ENTITY_ENDERMAN_TELEPORT", org.bukkit.SoundCategory.MASTER, 1f, 1f);
-								int velTask = COMZombies.scheduleTask(0, 5, () -> item.setVelocity(new Vector(0, 0.1, 0)));
-
-								COMZombies.scheduleTask(60, () ->
+								teddyLeaveTaskId = -1;
+								if(!isGameLive())
 								{
-									Bukkit.getScheduler().cancelTask(velTask);
+									reset();
+									return;
+								}
+								com.theprogrammingturkey.comz.util.SoundUtil.playKey(player.getWorld(), boxLoc, "box.leave", "ENTITY_ENDERMAN_TELEPORT", org.bukkit.SoundCategory.MASTER, 1f, 1f);
+								teddyRiseTaskId = COMZombies.scheduleTask(0, 5, () -> item.setVelocity(new Vector(0, 0.1, 0)));
+
+								teddyFinishTaskId = COMZombies.scheduleTask(60, () ->
+								{
+									teddyFinishTaskId = -1;
+									cancelTeddyTasks();
 									useCount = 0;
+									if(!isGameLive())
+									{
+										reset();
+										return;
+									}
 									boxGame.boxManager.teddyBear();
-									PointManager.INSTANCE.addPoints(player, pointsNeeded);
+									if(boxGame.getPlayersInGame().contains(player))
+										PointManager.INSTANCE.addPoints(player, pointsNeeded);
 									reset();
 								});
 							});
@@ -196,7 +212,7 @@ public class RandomBox
 							gunSelected = true;
 						}
 					}
-					else if(time <= -pickupSteps)
+					else if(time <= -pickupSteps && !isTeddyBear)
 					{
 						reset();
 					}
@@ -318,8 +334,27 @@ public class RandomBox
 		reset();
 	}
 
+	private boolean isGameLive()
+	{
+		return boxGame.getStatus() == Game.GameStatus.INGAME;
+	}
+
+	private void cancelTeddyTasks()
+	{
+		if(teddyLeaveTaskId != -1)
+			Bukkit.getScheduler().cancelTask(teddyLeaveTaskId);
+		if(teddyRiseTaskId != -1)
+			Bukkit.getScheduler().cancelTask(teddyRiseTaskId);
+		if(teddyFinishTaskId != -1)
+			Bukkit.getScheduler().cancelTask(teddyFinishTaskId);
+		teddyLeaveTaskId = -1;
+		teddyRiseTaskId = -1;
+		teddyFinishTaskId = -1;
+	}
+
 	public void reset()
 	{
+		cancelTeddyTasks();
 		gunSelected = false;
 		isTeddyBear = false;
 		if(item != null)

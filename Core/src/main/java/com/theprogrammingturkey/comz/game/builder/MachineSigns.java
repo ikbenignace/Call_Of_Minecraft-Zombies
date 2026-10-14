@@ -8,6 +8,9 @@ import com.theprogrammingturkey.comz.game.signs.IGameSign;
 import com.theprogrammingturkey.comz.listeners.SignListener;
 import com.theprogrammingturkey.comz.listeners.ResourcePackListener;
 import com.theprogrammingturkey.comz.util.PackModels;
+import com.theprogrammingturkey.comz.game.managers.WeaponManager;
+import com.theprogrammingturkey.comz.game.visuals.WallGunVisuals;
+import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.Material;
@@ -114,8 +117,23 @@ public final class MachineSigns
 	 * {@code MachineModelManager} / {@code RandomBox}: the pack model when {@code usePack}, else the block
 	 * look-alike. Empty when the sign is not a machine or the server has no display entities.
 	 */
+	public static boolean isWallGun(Sign sign)
+	{
+		return "gun".equalsIgnoreCase(ChatColor.stripColor(sign.getLine(1)).trim());
+	}
+
 	public static List<Entity> previewModel(Sign sign, boolean usePack)
 	{
+		if(isWallGun(sign))
+		{
+			List<Entity> preview = new ArrayList<>();
+			BlockData signData = sign.getBlockData();
+			BlockFace wallFacing = signData instanceof Directional ? ((Directional) signData).getFacing() : BlockFace.NORTH;
+			Entity model = WallGunVisuals.spawn(sign.getLocation(), wallFacing, WeaponManager.getGun(ChatColor.stripColor(sign.getLine(2))), usePack, 0.9);
+			if(model != null)
+				preview.add(model);
+			return preview;
+		}
 		Look look = MachineLooks.forSignLines(sign.getLines());
 		if(look == null)
 			return new ArrayList<>();

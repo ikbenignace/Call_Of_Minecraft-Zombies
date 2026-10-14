@@ -145,16 +145,35 @@ public class Door
 
 	public void playerDoorOpenSound()
 	{
-		// #57 — play the door-open sound to every in-game player at the door's first block, rather
-		// than a single world sound at one location. The old world-sound was inaudible to players
-		// far from that block (large doors) and silently no-op'd when the door had no saved blocks.
 		if(blocks.isEmpty())
 			return;
-		Block b = blocks.keySet().toArray(new Block[0])[0];
-		Location loc = b.getLocation();
-		String sound = com.theprogrammingturkey.comz.util.SoundConfig.get("door.open", "BLOCK_WOODEN_DOOR_OPEN");
-		for(Player pl : game.getPlayersInGame())
-			com.theprogrammingturkey.comz.util.SoundUtil.play(pl, loc, sound, org.bukkit.SoundCategory.MASTER, 1, 1);
+		// Positional at the middle of the door so big doors are heard from either side; metal doors
+		// slide open, everything else is debris that crumbles away.
+		double x = 0, y = 0, z = 0;
+		int metal = 0;
+		for(Map.Entry<Block, BlockData> entry : blocks.entrySet())
+		{
+			Block b = entry.getKey();
+			x += b.getX() + 0.5;
+			y += b.getY() + 0.5;
+			z += b.getZ() + 0.5;
+			if(isMetal(entry.getValue().getMaterial()))
+				metal++;
+		}
+		int n = blocks.size();
+		Location centre = new Location(game.getWorld(), x / n, y / n, z / n);
+		boolean metalDoor = metal * 2 >= n;
+		String sound = metalDoor
+				? com.theprogrammingturkey.comz.util.SoundConfig.get("door.open", "BLOCK_IRON_DOOR_OPEN")
+				: com.theprogrammingturkey.comz.util.SoundConfig.get("door.debris", "BLOCK_GRAVEL_BREAK");
+		com.theprogrammingturkey.comz.util.SoundUtil.play(game.getWorld(), centre, sound, org.bukkit.SoundCategory.BLOCKS, 1.5f, 1);
+	}
+
+	private static boolean isMetal(Material material)
+	{
+		String name = material.name();
+		return name.contains("IRON") || name.contains("COPPER") || name.contains("CHAIN") || name.endsWith("_DOOR")
+				|| name.endsWith("_TRAPDOOR") || name.contains("ANVIL") || name.contains("HOPPER");
 	}
 
 	private void loadSigns(JsonArray signsJsonArray)
@@ -212,7 +231,12 @@ public class Door
 			if(block.getType().equals(Material.AIR))
 				continue;
 
-			COMZombies.scheduleTask(interval, () -> BlockUtils.setBlockToAir(block));
+			final BlockData data = block.getBlockData();
+			COMZombies.scheduleTask(interval, () ->
+			{
+				com.theprogrammingturkey.comz.util.ParticleFX.blockVanish(block.getWorld(), block.getLocation(), data);
+				BlockUtils.setBlockToAir(block);
+			});
 			interval += 1;
 		}
 		isOpened = true;

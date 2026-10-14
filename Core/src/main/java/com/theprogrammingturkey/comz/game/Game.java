@@ -199,6 +199,7 @@ public class Game
 	 * resource pack is disabled.
 	 */
 	public MachineModelManager machineModelManager;
+	public WallGunManager wallGunManager;
 
 	/**
 	 * Alternative-interaction layer — proximity scan + F-to-buy for doors / machines (replaces the
@@ -249,6 +250,7 @@ public class Game
 		downedPlayerManager = new DownedPlayerManager();
 		signManager = new SignManager(this);
 		machineModelManager = new MachineModelManager(this);
+		wallGunManager = new WallGunManager(this);
 		proximityBuyManager = new ProximityBuyManager(this);
 
 		scoreboard = new GameScoreboard(this);
@@ -586,6 +588,7 @@ public class Game
 		signManager.updateGame();
 		// BO2-fidelity: stand up the 3D machine models next to their signs (pack-gated, no-op otherwise).
 		machineModelManager.spawnAll();
+		wallGunManager.spawnAll();
 		// Start the proximity-buy scan so doors/machines can be bought with F (config-gated, no-op off).
 		proximityBuyManager.start();
 		KitManager.giveOutKits(this);
@@ -831,6 +834,8 @@ public class Game
 	 */
 	public void removePlayer(Player player)
 	{
+		com.theprogrammingturkey.comz.game.signs.PackAPunchSign.onPlayerLeave(this, player);
+		com.theprogrammingturkey.comz.game.dev.DevTools.clearGod(player);
 		// Tier 3 — Who's Who: if the player leaves mid-ghost, tear down the ghost (cancel its task,
 		// strip glowing/effects) so it can never leak into a later state and the player no longer
 		// appears to hold the ghost's temporary loadout/perks.
@@ -1076,6 +1081,9 @@ public class Game
 
 		this.status = GameStatus.WAITING;
 
+		com.theprogrammingturkey.comz.game.signs.PackAPunchSign.refundGame(this);
+		for(GamePlayer v : gamePlayers.values())
+			com.theprogrammingturkey.comz.game.dev.DevTools.clearGod(v.getPlayer());
 		for(GamePlayer v : gamePlayers.values())
 		{
 			if(v.isInGame() || v.hasLeftGame() || v.isDead())

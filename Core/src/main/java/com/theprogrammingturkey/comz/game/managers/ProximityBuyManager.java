@@ -196,6 +196,18 @@ public class ProximityBuyManager
 			}
 		}
 
+		for(MachineModelManager.MachineTarget wallGun : game.wallGunManager.getTargets())
+		{
+			if(wallGun.centre.getWorld() == null || !wallGun.centre.getWorld().equals(player.getWorld()))
+				continue;
+			double dSq = distanceSqXZ(player.getLocation(), wallGun.centre.getX(), wallGun.centre.getZ());
+			if(dSq <= MACHINE_REACH * MACHINE_REACH && dSq < bestDistSq)
+			{
+				bestDistSq = dSq;
+				best = new BuyTarget(TargetType.WALL_GUN, wallGun.centre.clone(), com.theprogrammingturkey.comz.game.signs.GunSign.prompt(game, player, wallGun.signLines), wallGun.label);
+			}
+		}
+
 		// Mystery boxes: in-game they're a chest at boxLoc. Within BOX_REACH, F starts/picks the box.
 		for(com.theprogrammingturkey.comz.game.features.RandomBox box : game.boxManager.getActiveBoxes())
 		{
@@ -345,7 +357,7 @@ public class ProximityBuyManager
 	}
 
 	/** What kind of buyable the player is standing next to. Determines which buy path F triggers. */
-	public enum TargetType { DOOR, MACHINE, BOX }
+	public enum TargetType { DOOR, MACHINE, WALL_GUN, BOX }
 
 	/** A resolved buy target: its kind, the location to route the buy to, and the prompt text. */
 	public static final class BuyTarget

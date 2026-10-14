@@ -98,6 +98,17 @@ public final class ParticleFX
 		world.spawnParticle(Compat.SMOKE, loc.clone().add(0, 0.2, 0), 6, 0.3, 0.1, 0.3, 0.02);
 	}
 
+	/** Crumbs of the block itself plus dust, when a bought door or debris block disappears. */
+	public static void blockVanish(World world, Location loc, org.bukkit.block.data.BlockData data)
+	{
+		if(world == null)
+			return;
+		Location centre = loc.clone().add(0.5, 0.5, 0.5);
+		if(Compat.BLOCK != null)
+			world.spawnParticle(Compat.BLOCK, centre, 12, 0.3, 0.3, 0.3, 0.1, data);
+		world.spawnParticle(Compat.SMOKE, centre, 3, 0.3, 0.3, 0.3, 0.01);
+	}
+
 	/** Quick bright flash around a player, used when a power-up is grabbed. */
 	public static void grabFlash(World world, Location loc, Color color)
 	{

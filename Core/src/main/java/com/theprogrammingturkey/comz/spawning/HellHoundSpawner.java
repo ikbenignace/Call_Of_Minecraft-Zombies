@@ -3,8 +3,10 @@ package com.theprogrammingturkey.comz.spawning;
 import com.theprogrammingturkey.comz.COMZombies;
 import com.theprogrammingturkey.comz.game.Game;
 import com.theprogrammingturkey.comz.util.BlockUtils;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.Particle;
 import org.bukkit.World;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Mob;
@@ -26,7 +28,8 @@ public class HellHoundSpawner extends RoundSpawner
 		// player) instead of scanning a radius, so they never appear in locked areas.
 		Location location = loc.getLocation().clone().add(0.5, 0, 0.5);
 
-		world.strikeLightning(location);
+		world.strikeLightningEffect(location);
+		world.spawnParticle(Particle.FLAME, location, 40, 0.5, 0.4, 0.5, 0.05);
 
 		COMZombies.scheduleTask(10, () ->
 		{
@@ -47,6 +50,15 @@ public class HellHoundSpawner extends RoundSpawner
 		wolf.setHealth(strength);
 
 		setSpeed(wolf, 1.15f);
+
+		int[] trailTask = new int[1];
+		trailTask[0] = COMZombies.scheduleTask(0, 3, () ->
+		{
+			if(wolf.isValid())
+				wolf.getWorld().spawnParticle(Particle.FLAME, wolf.getLocation().add(0, 0.4, 0), 3, 0.25, 0.15, 0.25, 0.01);
+			else
+				Bukkit.getScheduler().cancelTask(trailTask[0]);
+		});
 
 		// #125 — removed the blanket 60-second auto-remove. The stuck-zombie teleporter in
 		// SpawnManager.checkStuck already handles dogs that can't reach players by teleporting them

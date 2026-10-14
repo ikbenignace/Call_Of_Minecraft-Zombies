@@ -262,6 +262,7 @@ public class EntityListener implements Listener
 	public void onPlayerQuit(PlayerQuitEvent e)
 	{
 		stopHealingTimer(e.getPlayer());
+		com.theprogrammingturkey.comz.game.dev.DevTools.clearGod(e.getPlayer());
 	}
 
 	/**

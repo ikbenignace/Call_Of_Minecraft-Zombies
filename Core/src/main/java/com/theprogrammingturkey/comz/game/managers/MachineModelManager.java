@@ -138,7 +138,34 @@ public class MachineModelManager
 		// the MachineModel and fully rebuilt on teardown).
 		Location baseLoc = signLoc.clone();
 		String[] signLines = sign.getLines().clone();
+
+		// Created before the sign block is overwritten: without a hitbox the machine can't be bought, so
+		// the plain sign stays in place instead.
+		Entity interaction = Displays.spawnHitbox(baseLoc.clone().add(0.5, 0.0, 0.5), look.hitWidth, look.hitHeight);
+		if(interaction == null)
+			return;
 		MachineModel machine = new MachineModel(baseLoc, signLoc, sign.getType(), data, signLines, facing, look);
+		machine.interaction = interaction;
+
+		try
+		{
+			buildMachine(machine, base, label, world);
+		} catch(RuntimeException e)
+		{
+			COMZombies.log.warning("Could not build the machine at " + baseLoc.getBlockX() + "," + baseLoc.getBlockY() + "," + baseLoc.getBlockZ() + ": " + e);
+			machine.remove();
+			return;
+		}
+		byInteraction.put(interaction.getUniqueId(), machine);
+		machines.add(machine);
+	}
+
+	private void buildMachine(MachineModel machine, Material base, String label, World world)
+	{
+		Location baseLoc = machine.baseLoc;
+		String[] signLines = machine.signLines;
+		BlockFace facing = machine.facing;
+		Look look = machine.look;
 
 		baseLoc.getBlock().setType(base, false);
 		if(ChatColor.stripColor(signLines[1]).trim().equalsIgnoreCase("pack-a-punch"))
@@ -157,17 +184,10 @@ public class MachineModelManager
 		if(look == MachineLooks.POWER_SWITCH && game.isPowered())
 			flipSwitch(machine, true);
 
-		// Invisible clickable hitbox covering the whole machine.
-		Entity interaction = Displays.spawnHitbox(baseLoc.clone().add(0.5, 0.0, 0.5), look.hitWidth, look.hitHeight);
-		machine.interaction = interaction;
-		byInteraction.put(interaction.getUniqueId(), machine);
-
 		// Floating price above the machine.
 		Entity hologram = DisplayEntityUtil.persistentText(world, baseLoc.clone().add(0.5, look.hologramY, 0.5), label);
 		machine.hologram = hologram;
 		machine.label = label;
-
-		machines.add(machine);
 	}
 
 	/**

@@ -9,6 +9,7 @@ import com.theprogrammingturkey.comz.game.features.PerkType;
 import com.theprogrammingturkey.comz.game.managers.PlayerWeaponManager;
 import com.theprogrammingturkey.comz.game.weapons.GunInstance;
 import com.theprogrammingturkey.comz.game.weapons.WeaponInstance;
+import com.theprogrammingturkey.comz.listeners.PowerUpDropListener;
 import com.theprogrammingturkey.comz.util.CommandUtil;
 import com.theprogrammingturkey.comz.util.ParticleFX;
 import com.theprogrammingturkey.comz.util.SoundConfig;
@@ -50,6 +51,8 @@ public class PackAPunchSign implements IGameSign
 	{
 		final Game game;
 		final UUID owner;
+		final Player ownerRef;
+		final int cost;
 		final GunInstance gun;
 		final int slot;
 		final boolean refill;
@@ -57,14 +60,18 @@ public class PackAPunchSign implements IGameSign
 		final BlockFace facing;
 		Entity display;
 		boolean ready;
+		boolean refunded;
 		int workTask = -1;
-		int expireTask = -1;
+		int watchTask = -1;
 		int bobTask = -1;
+		long pickupTicksLeft;
 
-		Session(Game game, UUID owner, GunInstance gun, int slot, boolean refill, Location center, BlockFace facing)
+		Session(Game game, Player owner, int cost, GunInstance gun, int slot, boolean refill, Location center, BlockFace facing)
 		{
 			this.game = game;
-			this.owner = owner;
+			this.owner = owner.getUniqueId();
+			this.ownerRef = owner;
+			this.cost = cost;
 			this.gun = gun;
 			this.slot = slot;
 			this.refill = refill;
@@ -72,6 +79,8 @@ public class PackAPunchSign implements IGameSign
 			this.facing = facing;
 		}
 	}
+
+	private static final int WATCH_TICKS = 5;
 
 	private static final Map<String, Session> SESSIONS = new HashMap<>();
 	private static final Map<String, BlockFace> FACINGS = new HashMap<>();
@@ -85,6 +94,30 @@ public class PackAPunchSign implements IGameSign
 	public static void registerMachine(Location base, BlockFace facing)
 	{
 		FACINGS.put(key(base), facing);
+	}
+
+	/** Refunds and frees every machine holding the leaving player's gun. */
+	public static void onPlayerLeave(Game game, Player player)
+	{
+		Iterator<Map.Entry<String, Session>> it = SESSIONS.entrySet().iterator();
+		while(it.hasNext())
+		{
+			Session session = it.next().getValue();
+			if(session.game == game && session.owner.equals(player.getUniqueId()))
+			{
+				refund(session);
+				release(session);
+				it.remove();
+			}
+		}
+	}
+
+	/** Refunds every session of a game; must run while the players' points still exist, before the game's points are cleared. */
+	public static void refundGame(Game game)
+	{
+		for(Session session : SESSIONS.values())
+			if(session.game == game)
+				refund(session);
 	}
 
 	/** Drops all sessions of a game (the held guns are lost) and the registered machines. */
@@ -233,7 +266,7 @@ public class PackAPunchSign implements IGameSign
 		player.getInventory().setItem(slot, null);
 
 		Location center = location.getBlock().getLocation().add(0.5, 0, 0.5);
-		Session started = new Session(game, player.getUniqueId(), gun, slot, refill, center, facingOf(location));
+		Session started = new Session(game, player, cost, gun, slot, refill, center, facingOf(location));
 		SESSIONS.put(key, started);
 
 		SoundUtil.play(center.getWorld(), center, SoundConfig.get("pap.upgrade", SoundConfig.get("packapunch", "BLOCK_ANVIL_USE")), SoundCategory.MASTER, 1, 1);
@@ -243,6 +276,7 @@ public class PackAPunchSign implements IGameSign
 
 		CommandUtil.sendMessageToPlayer(player, ChatColor.LIGHT_PURPLE + "Upgrading your " + ChatColor.GOLD + gunName + ChatColor.LIGHT_PURPLE + "...");
 		started.workTask = COMZombies.scheduleTask(ticks(ConfigManager.getMainConfig().packAPunchWorkSeconds), () -> finishWork(key, started));
+		started.watchTask = COMZombies.scheduleTask(WATCH_TICKS, WATCH_TICKS, () -> watch(key, started));
 	}
 
 	private static long ticks(double seconds)
@@ -289,8 +323,6 @@ public class PackAPunchSign implements IGameSign
 		{
 			if(owner != null)
 				collect(key, session, owner);
-			else
-				end(key, session);
 			return;
 		}
 
@@ -308,8 +340,6 @@ public class PackAPunchSign implements IGameSign
 		{
 			if(owner != null)
 				collect(key, session, owner);
-			else
-				end(key, session);
 			return;
 		}
 		float fx = session.facing.getModX() * 0.95f;
@@ -327,14 +357,63 @@ public class PackAPunchSign implements IGameSign
 			Displays.animate(display, fx, up[0] ? 1.12f : 1.0f, fz, 0.7f, spin[0], 20);
 		});
 
-		session.expireTask = COMZombies.scheduleTask(ticks(ConfigManager.getMainConfig().packAPunchPickupSeconds), () -> expire(key, session));
+		session.pickupTicksLeft = ticks(ConfigManager.getMainConfig().packAPunchPickupSeconds);
+	}
+
+	private static boolean isIncapacitated(Game game, Player player)
+	{
+		return game.downedPlayerManager.isDownedPlayer(player) || game.downedPlayerManager.isGhost(player);
+	}
+
+	private static boolean ownerGone(Session session, Player owner)
+	{
+		Game game = session.game;
+		return owner == null || game.getStatus() != Game.GameStatus.INGAME
+				|| GameManager.INSTANCE.getGame(owner) != game || !game.getLivingPlayers().contains(owner);
+	}
+
+	/**
+	 * Runs for the whole session: refunds when the owner is gone or dead, holds the pickup countdown
+	 * while the owner is downed, and hands over a gun that finished while the owner could not take it.
+	 */
+	private static void watch(String key, Session session)
+	{
+		if(SESSIONS.get(key) != session)
+			return;
+		Player owner = Bukkit.getPlayer(session.owner);
+		if(ownerGone(session, owner))
+		{
+			if(owner != null)
+				CommandUtil.sendMessageToPlayer(owner, ChatColor.YELLOW + "Your Pack-a-Punch was cancelled and " + session.cost + " points were refunded.");
+			refund(session);
+			end(key, session);
+			return;
+		}
+		if(!session.ready || isIncapacitated(session.game, owner))
+			return;
+		if(session.display == null)
+		{
+			collect(key, session, owner);
+			return;
+		}
+		session.pickupTicksLeft -= WATCH_TICKS;
+		if(session.pickupTicksLeft <= 0)
+			expire(key, session);
+	}
+
+	private static void refund(Session session)
+	{
+		if(session.refunded || session.cost <= 0 || !session.game.wasDisconnected(session.ownerRef))
+			return;
+		session.refunded = true;
+		PointManager.INSTANCE.addPoints(session.ownerRef, session.cost);
+		PointManager.INSTANCE.notifyPlayer(session.ownerRef);
 	}
 
 	private static void expire(String key, Session session)
 	{
 		if(SESSIONS.get(key) != session)
 			return;
-		session.expireTask = -1;
 		Player owner = Bukkit.getPlayer(session.owner);
 		if(owner != null)
 			CommandUtil.sendMessageToPlayer(owner, ChatColor.RED + "You waited too long - your " + ChatColor.GOLD + session.gun.getType().getName() + ChatColor.RED + " was lost!");
@@ -347,9 +426,12 @@ public class PackAPunchSign implements IGameSign
 		Game game = session.game;
 		if(game.getStatus() != Game.GameStatus.INGAME || !GameManager.INSTANCE.isPlayerInGame(player) || GameManager.INSTANCE.getGame(player) != game)
 		{
+			refund(session);
 			end(key, session);
 			return;
 		}
+		if(isIncapacitated(game, player))
+			return;
 
 		PlayerWeaponManager manager = game.getPlayersWeapons(player);
 		GunInstance gun = session.gun;
@@ -360,6 +442,11 @@ public class PackAPunchSign implements IGameSign
 
 		int slot = freeSlot(manager, game, player, session.slot);
 		WeaponInstance occupant = manager.getWeapon(slot);
+		if(occupant != null && PowerUpDropListener.isDeathMachine(occupant))
+		{
+			PowerUpDropListener.revertDeathMachine(game, player);
+			occupant = manager.getWeapon(slot);
+		}
 		if(occupant != null)
 			manager.removeWeapon(occupant);
 		gun.setSlot(slot);
@@ -373,7 +460,11 @@ public class PackAPunchSign implements IGameSign
 		end(key, session);
 	}
 
-	/** The slot the gun came from when it is still free; otherwise another free gun slot; otherwise the original. */
+	/**
+	 * The slot the gun came from when it is still free; otherwise another free gun slot; otherwise the
+	 * original. A slot holding an active Death Machine counts as occupied; the caller reverts it only
+	 * when every slot is taken.
+	 */
 	private static int freeSlot(PlayerWeaponManager manager, Game game, Player player, int preferred)
 	{
 		if(manager.getWeapon(preferred) == null)
@@ -395,11 +486,11 @@ public class PackAPunchSign implements IGameSign
 	{
 		if(session.workTask != -1)
 			Bukkit.getScheduler().cancelTask(session.workTask);
-		if(session.expireTask != -1)
-			Bukkit.getScheduler().cancelTask(session.expireTask);
+		if(session.watchTask != -1)
+			Bukkit.getScheduler().cancelTask(session.watchTask);
 		if(session.bobTask != -1)
 			Bukkit.getScheduler().cancelTask(session.bobTask);
-		session.workTask = session.expireTask = session.bobTask = -1;
+		session.workTask = session.watchTask = session.bobTask = -1;
 		if(session.display != null && !session.display.isDead())
 			session.display.remove();
 		session.display = null;

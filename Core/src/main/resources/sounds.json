@@ -42,7 +42,9 @@
   },
   "teleporter": "ENTITY_ENDERMAN_TELEPORT",
   "door": {
-    "open": "custom.global.door_slide"
+    "open": "custom.global.door_slide",
+    "debris": "custom.global.debris_vanish",
+    "buy": "custom.global.money"
   },
   "trap": "custom.trap.flame",
   "gun": {
