@@ -59,6 +59,13 @@ public final class Displays
 		return nonPersistent(backend.spawnItem(loc, stack, scale, yawDegrees, offsetY, faceViewer));
 	}
 
+	public static void setItem(Entity display, ItemStack stack)
+	{
+		if(display == null || display.isDead() || stack == null)
+			return;
+		backend.setItem(display, stack);
+	}
+
 	public static void setBrightness(Entity display, int block, int sky)
 	{
 		if(display == null || display.isDead())

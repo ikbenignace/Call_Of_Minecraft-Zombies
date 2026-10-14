@@ -8,6 +8,7 @@ import com.theprogrammingturkey.comz.config.ConfigManager;
 import com.theprogrammingturkey.comz.game.managers.WeaponManager;
 import com.theprogrammingturkey.comz.game.visuals.MachineLooks;
 import com.theprogrammingturkey.comz.game.visuals.MachineVisuals;
+import com.theprogrammingturkey.comz.game.visuals.WallGunVisuals;
 import com.theprogrammingturkey.comz.game.weapons.Weapon;
 import com.theprogrammingturkey.comz.util.BlockUtils;
 import com.theprogrammingturkey.comz.util.CommandUtil;
@@ -69,10 +70,14 @@ public class RandomBox
 	private int useCount;
 	private Weapon weapon;
 	private Item item;
+	/** BO-style weapon that rises out of the open box; replaces {@link #item} when display entities exist. */
+	private Entity display;
+	private boolean sinking;
 	private ArmorStand namePlate;
 	private int teddyLeaveTaskId = -1;
 	private int teddyRiseTaskId = -1;
 	private int teddyFinishTaskId = -1;
+	private int sinkTaskId = -1;
 
 
 	public RandomBox(Location loc, BlockFace facing, Game game, String boxId, int cost)
@@ -89,6 +94,13 @@ public class RandomBox
 
 	private static final int STEP_TICKS = 5;
 	private static final int STEPS_PER_SECOND = 20 / STEP_TICKS;
+	private static final float DISPLAY_SCALE = 0.8f;
+	private static final float RISE_BLOCKS = 0.6f;
+	/** Starting translation relative to the box centre point: the weapon begins hidden inside the chest. */
+	private static final float HIDDEN_OFFSET = -0.45f;
+	private static final float PACK_MODEL_LIFT = 0.13f;
+	private static final int SINK_TICKS = 12;
+	private static final float TEDDY_FLIGHT_BLOCKS = 3.0f;
 
 	public void Start(Player player, int pointsNeeded)
 	{
@@ -125,10 +137,15 @@ public class RandomBox
 		setLid(true);
 
 		running = true;
+		final int rollSteps = Math.max(1, (int) Math.round(ConfigManager.getMainConfig().boxRollSeconds * STEPS_PER_SECOND));
 		Location itemLoc = getBoxCenterLoc(chestLocation);
 
-		item = player.getWorld().dropItem(itemLoc, weapon.getStack());
-		item.setPersistent(false);
+		spawnWeaponDisplay(itemLoc, rollSteps * STEP_TICKS);
+		if(display == null)
+		{
+			item = player.getWorld().dropItem(itemLoc, weapon.getStack());
+			item.setPersistent(false);
+		}
 		namePlate = (ArmorStand) player.getWorld().spawnEntity(itemLoc.clone().add(0, -1.7, 0), EntityType.ARMOR_STAND);
 		namePlate.setVisible(false);
 		namePlate.setPersistent(false);
@@ -137,7 +154,6 @@ public class RandomBox
 		namePlate.setCustomName(weapon.getName());
 		namePlate.setCustomNameVisible(true);
 
-		final int rollSteps = Math.max(1, (int) Math.round(ConfigManager.getMainConfig().boxRollSeconds * STEPS_PER_SECOND));
 		final int pickupSteps = Math.max(1, (int) Math.round(ConfigManager.getMainConfig().boxPickupSeconds * STEPS_PER_SECOND));
 
 		int taskID = COMZombies.scheduleTask(0, STEP_TICKS, new Runnable()
@@ -146,9 +162,12 @@ public class RandomBox
 
 			public void run()
 			{
-				item.setTicksLived(5960);
-				item.setPickupDelay(1000);
-				item.setVelocity(new Vector(0, 0, 0));
+				if(item != null)
+				{
+					item.setTicksLived(5960);
+					item.setPickupDelay(1000);
+					item.setVelocity(new Vector(0, 0, 0));
+				}
 				if(boxGame.getStatus() == Game.GameStatus.INGAME)
 				{
 					if(time > 0)
@@ -156,7 +175,7 @@ public class RandomBox
 						Weapon rolled = WeaponManager.getRandomWeapon(false, boxGame.getPlayersWeapons(player));
 						if(rolled != null)
 							weapon = rolled;
-						item.setItemStack(weapon.getStack());
+						showStack(weapon.getStack());
 						namePlate.setCustomName(weapon.getName());
 						if(time % 2 == 0)
 							com.theprogrammingturkey.comz.util.SoundUtil.play(player.getWorld(), boxLoc, com.theprogrammingturkey.comz.util.SoundConfig.get("box.spin", "BLOCK_NOTE_BLOCK_HARP"), org.bukkit.SoundCategory.MASTER, 1f, 1f);
@@ -169,12 +188,19 @@ public class RandomBox
 							com.theprogrammingturkey.comz.util.SoundUtil.play(player.getWorld(), boxLoc, com.theprogrammingturkey.comz.util.SoundConfig.get("box.teddy", "ENTITY_WITHER_SPAWN"), org.bukkit.SoundCategory.MASTER, 1f, 1f);
 							ItemStack teddy = new ItemStack(Material.TOTEM_OF_UNDYING);
 							com.theprogrammingturkey.comz.util.PackModels.apply(teddy, "misc/box_teddy");
-							item.setItemStack(teddy);
-							namePlate.setCustomName("");
-							namePlate.setCustomNameVisible(false);
-							item.setGravity(false);
-							item.setCustomName("Teddy Bear");
-							item.setCustomNameVisible(true);
+							showStack(teddy);
+							if(display != null)
+							{
+								namePlate.setCustomName("Teddy Bear");
+							}
+							else
+							{
+								namePlate.setCustomName("");
+								namePlate.setCustomNameVisible(false);
+								item.setGravity(false);
+								item.setCustomName("Teddy Bear");
+								item.setCustomNameVisible(true);
+							}
 							isTeddyBear = true;
 
 							teddyLeaveTaskId = COMZombies.scheduleTask(40, () ->
@@ -186,7 +212,10 @@ public class RandomBox
 									return;
 								}
 								com.theprogrammingturkey.comz.util.SoundUtil.playKey(player.getWorld(), boxLoc, "box.leave", "ENTITY_ENDERMAN_TELEPORT", org.bukkit.SoundCategory.MASTER, 1f, 1f);
-								teddyRiseTaskId = COMZombies.scheduleTask(0, 5, () -> item.setVelocity(new Vector(0, 0.1, 0)));
+								if(display != null)
+									Displays.animate(display, 0f, HIDDEN_OFFSET + RISE_BLOCKS + TEDDY_FLIGHT_BLOCKS + displayLift(), 0f, DISPLAY_SCALE, displayYaw() + 360f, 60);
+								else
+									teddyRiseTaskId = COMZombies.scheduleTask(0, 5, () -> item.setVelocity(new Vector(0, 0.1, 0)));
 
 								teddyFinishTaskId = COMZombies.scheduleTask(60, () ->
 								{
@@ -215,9 +244,9 @@ public class RandomBox
 					}
 					else if(time <= -pickupSteps && !isTeddyBear)
 					{
-						reset();
+						sinkOrReset();
 					}
-					else if(!isTeddyBear)
+					else if(!isTeddyBear && !sinking)
 					{
 						int secondsLeft = (pickupSteps + time + STEPS_PER_SECOND - 1) / STEPS_PER_SECOND;
 						namePlate.setCustomName(weapon.getName() + " (" + secondsLeft + ")");
@@ -228,6 +257,56 @@ public class RandomBox
 		});
 
 		boxes.put(this, taskID);
+	}
+
+	private float displayYaw()
+	{
+		return WallGunVisuals.yaw(facing);
+	}
+
+	private float displayLift()
+	{
+		return PackModels.isPackEnabled() ? PACK_MODEL_LIFT : 0f;
+	}
+
+	private void spawnWeaponDisplay(Location itemLoc, int rollTicks)
+	{
+		if(!Displays.supportsItemDisplays())
+			return;
+		display = Displays.spawnItem(itemLoc, weapon.getStack(), DISPLAY_SCALE, displayYaw(), HIDDEN_OFFSET + displayLift(), false);
+		if(display == null)
+			return;
+		Displays.setBrightness(display, 12, 15);
+		final Entity rising = display;
+		COMZombies.scheduleTask(2, () -> Displays.animate(rising, 0f, HIDDEN_OFFSET + RISE_BLOCKS + displayLift(), 0f, DISPLAY_SCALE, displayYaw(), Math.max(1, rollTicks)));
+	}
+
+	private void showStack(ItemStack stack)
+	{
+		if(display != null)
+			Displays.setItem(display, stack);
+		else if(item != null)
+			item.setItemStack(stack);
+	}
+
+	/** Sinks the weapon back into the box once nobody took it, then resets. Falls back to an instant reset. */
+	private void sinkOrReset()
+	{
+		if(sinking)
+			return;
+		if(display == null || display.isDead())
+		{
+			reset();
+			return;
+		}
+		sinking = true;
+		gunSelected = false;
+		Displays.animate(display, 0f, HIDDEN_OFFSET + displayLift(), 0f, DISPLAY_SCALE, displayYaw(), SINK_TICKS);
+		sinkTaskId = COMZombies.scheduleTask(SINK_TICKS, () ->
+		{
+			sinkTaskId = -1;
+			reset();
+		});
 	}
 
 	/** Teddy needs a few uses at this location first; the 1-in-N roll applies after that, and a cap forces it. */
@@ -348,6 +427,9 @@ public class RandomBox
 			Bukkit.getScheduler().cancelTask(teddyRiseTaskId);
 		if(teddyFinishTaskId != -1)
 			Bukkit.getScheduler().cancelTask(teddyFinishTaskId);
+		if(sinkTaskId != -1)
+			Bukkit.getScheduler().cancelTask(sinkTaskId);
+		sinkTaskId = -1;
 		teddyLeaveTaskId = -1;
 		teddyRiseTaskId = -1;
 		teddyFinishTaskId = -1;
@@ -358,8 +440,17 @@ public class RandomBox
 		cancelTeddyTasks();
 		gunSelected = false;
 		isTeddyBear = false;
+		sinking = false;
 		if(item != null)
+		{
 			item.remove();
+			item = null;
+		}
+		if(display != null)
+		{
+			display.remove();
+			display = null;
+		}
 		if(namePlate != null)
 			namePlate.remove();
 		// In-game the chest sits at boxLoc; close its lid animation.

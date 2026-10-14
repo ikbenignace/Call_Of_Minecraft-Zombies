@@ -34,6 +34,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.Listener;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.FireworkMeta;
+import org.bukkit.potion.PotionEffect;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -109,6 +110,7 @@ public class DownedPlayer implements Listener
 		// armour-stand seat) could bypass, letting the player sprint at full pace while downed.
 		player.setSprinting(false);
 		applyDownVisuals();
+		applyDownedEffects();
 		scheduleTask();
 	}
 
@@ -143,6 +145,7 @@ public class DownedPlayer implements Listener
 		// (or a reused instance) can actually bleed out instead of looping fireworks forever.
 		bleedoutSuppressed = false;
 		removeDownVisuals();
+		removeDownedEffects();
 		player.setGameMode(GameMode.SURVIVAL);
 		player.setInvulnerable(false);
 		player.setWalkSpeed(0.2F);
@@ -184,9 +187,35 @@ public class DownedPlayer implements Listener
 		if(reviveIcon != null)
 		{
 			reviveIcon.setPersistent(false);
+			// The outline shows through walls so teammates can find a downed player.
+			reviveIcon.setGlowing(true);
 			player.addPassenger(reviveIcon);
 		}
 	}
+
+	/**
+	 * Slow, dimmed view while down. Effects are short and re-applied from the bleed-out tick so they
+	 * can never outlive the down state; the darkness pulse only exists from 1.19.
+	 */
+	private void applyDownedEffects()
+	{
+		if(Compat.SLOWNESS != null)
+			player.addPotionEffect(new PotionEffect(Compat.SLOWNESS, DOWNED_EFFECT_TICKS, 2, false, false, false), true);
+		if(Compat.DARKNESS != null && downTime % DARKNESS_PULSE_SECONDS == 0)
+			player.addPotionEffect(new PotionEffect(Compat.DARKNESS, DARKNESS_PULSE_TICKS, 0, false, false, false), true);
+	}
+
+	private void removeDownedEffects()
+	{
+		if(Compat.SLOWNESS != null)
+			player.removePotionEffect(Compat.SLOWNESS);
+		if(Compat.DARKNESS != null)
+			player.removePotionEffect(Compat.DARKNESS);
+	}
+
+	private static final int DOWNED_EFFECT_TICKS = 40;
+	private static final int DARKNESS_PULSE_TICKS = 60;
+	private static final int DARKNESS_PULSE_SECONDS = 6;
 
 	/** Removes the seat + revive icon and clears any active revive progress bar. Idempotent. */
 	private void removeDownVisuals()
@@ -360,6 +389,7 @@ public class DownedPlayer implements Listener
 		fireWorksTask = COMZombies.scheduleTask(0, 20, () ->
 		{
 			downTime++;
+			applyDownedEffects();
 			displayDown();
 			player.setHealth(1);
 			// #114 — keep re-asserting sprint-off each tick while downed, in case a client-side

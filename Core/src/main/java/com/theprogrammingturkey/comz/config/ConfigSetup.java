@@ -316,6 +316,7 @@ public class ConfigSetup
 	 * barrier is capped at this * 6 (the six repair stages). BO2-style flat repair reward.
 	 */
 	public int barrierRepairPoints;
+	public int barrierRepairRoundCap;
 
 	/**
 	 * #70 — Ticks between barrier damage stages when a zombie is breaking a barrier. Lower values
@@ -604,6 +605,7 @@ public class ConfigSetup
 		trapCooldownSeconds = plugin.getConfig().getInt("config.trap.cooldownSeconds", 60);
 		trapKillRadius = plugin.getConfig().getDouble("config.trap.killRadius", 4.0);
 		barrierRepairPoints = plugin.getConfig().getInt("config.barrier.repairPointsPerLevel", 10);
+		barrierRepairRoundCap = plugin.getConfig().getInt("config.barrier.repairPointsRoundCap", 50);
 		// #70 — configurable + round-scaled barrier break speed.
 		barrierBreakInterval = plugin.getConfig().getInt("config.barrier.breakInterval", 60);
 		barrierBreakIntervalMin = plugin.getConfig().getInt("config.barrier.breakIntervalMin", 20);

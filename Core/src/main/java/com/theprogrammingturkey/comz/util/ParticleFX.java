@@ -109,6 +109,26 @@ public final class ParticleFX
 		world.spawnParticle(Compat.SMOKE, centre, 3, 0.3, 0.3, 0.3, 0.01);
 	}
 
+	/** Splinters flying off a board a zombie just ripped away. */
+	public static void boardBreak(World world, Location centre, org.bukkit.block.data.BlockData data)
+	{
+		if(world == null)
+			return;
+		if(Compat.BLOCK != null)
+			world.spawnParticle(Compat.BLOCK, centre, 24, 0.5, 0.5, 0.5, 0.15, data);
+		world.spawnParticle(Compat.SMOKE, centre, 4, 0.4, 0.4, 0.4, 0.01);
+	}
+
+	/** Short impact puff where a board is hammered back into place. */
+	public static void boardSlam(World world, Location centre, org.bukkit.block.data.BlockData data)
+	{
+		if(world == null)
+			return;
+		if(Compat.BLOCK != null)
+			world.spawnParticle(Compat.BLOCK, centre, 10, 0.35, 0.35, 0.35, 0.05, data);
+		world.spawnParticle(Particle.CRIT, centre, 6, 0.3, 0.3, 0.3, 0.1);
+	}
+
 	/** Quick bright flash around a player, used when a power-up is grabbed. */
 	public static void grabFlash(World world, Location loc, Color color)
 	{

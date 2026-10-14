@@ -7,7 +7,6 @@ import com.theprogrammingturkey.comz.game.features.Barrier;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Sound;
-import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -92,10 +91,6 @@ public class BarrierRepairListener implements Listener
 			}
 
 			boolean fullyRepaired = target.repair(player);
-			Location signLoc = target.getRepairLoc();
-			World world = signLoc.getWorld();
-			if(world != null)
-				com.theprogrammingturkey.comz.util.SoundUtil.playKey(world, signLoc, "barrier.repair", "BLOCK_ANVIL_LAND", org.bukkit.SoundCategory.BLOCKS, 0.8F, 1.0F);
 
 			if(fullyRepaired)
 				stopRepairing(player.getUniqueId());

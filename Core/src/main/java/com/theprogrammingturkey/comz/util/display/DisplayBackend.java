@@ -34,6 +34,9 @@ public interface DisplayBackend
 	/** Interpolates a spawned item display to a new translation/scale/yaw. No-op for other entities. */
 	void animate(Entity display, float x, float y, float z, float scale, float yawDegrees, int durationTicks);
 
+	/** Swaps the item an item display shows. No-op for other entities. */
+	void setItem(Entity display, ItemStack stack);
+
 	/** Overrides the light a display is drawn with; a negative {@code block} restores the world light. No-op for other entities. */
 	void setBrightness(Entity display, int block, int sky);
 

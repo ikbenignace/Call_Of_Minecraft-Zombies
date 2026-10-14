@@ -662,7 +662,7 @@ public class Game
 			roundStartTask = -1;
 			for(Player pl : getPlayersAndSpectators())
 			{
-				pl.sendTitle(ChatColor.RED + "Round " + waveNumber, "", 10, 60, 10);
+				pl.sendTitle(ChatColor.WHITE + "Round " + waveNumber, "", 5, 30, 0);
 
 				// Round-start ambience: dramatic stinger + brief eerie darkness for buildup (additive to the title above).
 				if(ConfigManager.getMainConfig().visualsRoundAmbience)
@@ -686,15 +686,25 @@ public class Game
 				}
 			}
 
+			final int announcedRound = waveNumber;
+			COMZombies.scheduleTask(ROUND_TITLE_RED_DELAY_TICKS, () ->
+			{
+				if(status != GameStatus.INGAME || waveNumber != announcedRound)
+					return;
+				for(Player pl : getPlayersAndSpectators())
+					pl.sendTitle(ChatColor.RED + "Round " + announcedRound, "", 0, 40, 15);
+			});
+
 			spawnManager.startWave(waveNumber);
 			signManager.updateGame();
 			changingRound = false;
 			scoreboard.update();
-			for(Barrier b : barrierManager.getBarriers())
-				b.resetEarnedPoints();
+			barrierManager.resetRepairEarnings();
 		});
 
 	}
+
+	private static final int ROUND_TITLE_RED_DELAY_TICKS = 30;
 
 	private void internalAddPlayer(Player player, int points)
 	{

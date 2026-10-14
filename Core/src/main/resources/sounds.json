@@ -640,6 +640,7 @@
     "dryfire": "custom.weapon.dryfire"
   },
   "barrier": {
+    "break": "custom.global.wood_fall",
     "repair": "custom.global.windows.wood"
   },
   "power": {

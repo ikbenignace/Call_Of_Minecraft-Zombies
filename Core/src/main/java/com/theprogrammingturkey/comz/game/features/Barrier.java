@@ -5,8 +5,11 @@ import com.theprogrammingturkey.comz.economy.PointManager;
 import com.theprogrammingturkey.comz.game.Game;
 import com.theprogrammingturkey.comz.spawning.SpawnPoint;
 import com.theprogrammingturkey.comz.util.BlockUtils;
+import com.theprogrammingturkey.comz.util.ParticleFX;
+import com.theprogrammingturkey.comz.util.SoundUtil;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.SoundCategory;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.Sign;
@@ -37,8 +40,6 @@ public class Barrier implements Runnable
 
 	private int reward;
 
-	private final HashMap<Player, Integer> earnedPoints = new HashMap<>();
-
 	public Barrier(String id, Game game)
 	{
 		stage = 0;
@@ -54,6 +55,7 @@ public class Barrier implements Runnable
 			stage = 5;
 
 		game.updateBarrierDamage(stage, blocks.keySet());
+		boardBreakEffect();
 
 		if(stage >= 5)
 		{
@@ -95,19 +97,18 @@ public class Barrier implements Runnable
 		if(breaking)
 			return stage <= -1;
 
+		if(stage <= -1)
+			return true;
+
 		stage--;
 
-		if(stage < -1)
-			stage = -1;
-
 		game.updateBarrierDamage(stage, blocks.keySet());
-		int pointsEarned = earnedPoints.getOrDefault(player, 0);
-		// Global config reward per repair level (not per-barrier), capped at reward * 6 (the 6 stages).
+		boardRepairEffect();
 		int reward = com.theprogrammingturkey.comz.config.ConfigManager.getMainConfig().barrierRepairPoints;
-		if(pointsEarned < reward * 6)
+		int granted = game.barrierManager.claimRepairPoints(player, reward);
+		if(granted > 0)
 		{
-			earnedPoints.put(player, pointsEarned + reward);
-			PointManager.INSTANCE.addPoints(player, reward);
+			PointManager.INSTANCE.addPoints(player, granted);
 			PointManager.INSTANCE.notifyPlayer(player);
 		}
 
@@ -135,9 +136,43 @@ public class Barrier implements Runnable
 		this.breaking = false;
 	}
 
-	public void resetEarnedPoints()
+	private Location effectCentre()
 	{
-		earnedPoints.replaceAll((p, v) -> 0);
+		double x = 0, y = 0, z = 0;
+		for(Block b : blocks.keySet())
+		{
+			x += b.getX() + 0.5;
+			y += b.getY() + 0.5;
+			z += b.getZ() + 0.5;
+		}
+		int n = Math.max(1, blocks.size());
+		return new Location(game.getWorld(), x / n, y / n, z / n);
+	}
+
+	private BlockData boardData()
+	{
+		for(BlockData data : blocks.values())
+			if(data != null)
+				return data;
+		return Material.OAK_PLANKS.createBlockData();
+	}
+
+	private void boardBreakEffect()
+	{
+		if(blocks.isEmpty())
+			return;
+		Location centre = effectCentre();
+		ParticleFX.boardBreak(game.getWorld(), centre, boardData());
+		SoundUtil.playKey(game.getWorld(), centre, "barrier.break", "BLOCK_WOOD_BREAK", SoundCategory.BLOCKS, 1f, 0.9f);
+	}
+
+	private void boardRepairEffect()
+	{
+		if(blocks.isEmpty())
+			return;
+		Location centre = effectCentre();
+		ParticleFX.boardSlam(game.getWorld(), centre, boardData());
+		SoundUtil.playKey(game.getWorld(), centre, "barrier.repair", "BLOCK_ANVIL_LAND", SoundCategory.BLOCKS, 0.8f, 1f);
 	}
 
 	public void addBarrierBlock(Location loc)

@@ -33,7 +33,7 @@ public final class WallGunVisuals
 	 * Yaw that makes the barrel run along the wall. Gun models have their barrel on the Z axis, so walls
 	 * facing north/south need a quarter turn and walls facing east/west none.
 	 */
-	static float yaw(BlockFace facing)
+	public static float yaw(BlockFace facing)
 	{
 		switch(facing)
 		{

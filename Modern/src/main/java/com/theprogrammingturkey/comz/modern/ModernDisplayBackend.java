@@ -90,6 +90,13 @@ public class ModernDisplayBackend implements DisplayBackend
 	}
 
 	@Override
+	public void setItem(Entity entity, ItemStack stack)
+	{
+		if(entity instanceof ItemDisplay)
+			((ItemDisplay) entity).setItemStack(stack);
+	}
+
+	@Override
 	public void setBrightness(Entity entity, int block, int sky)
 	{
 		if(!(entity instanceof Display))

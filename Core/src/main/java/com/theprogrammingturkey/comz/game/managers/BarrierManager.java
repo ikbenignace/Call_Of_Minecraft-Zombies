@@ -21,8 +21,11 @@ import org.bukkit.entity.Mob;
 import org.bukkit.entity.Player;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.UUID;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
@@ -31,6 +34,7 @@ public class BarrierManager
 {
 	private final Game game;
 	private final List<Barrier> barriers = new ArrayList<>();
+	private final Map<UUID, Integer> repairEarnings = new HashMap<>();
 
 	public BarrierManager(Game game)
 	{
@@ -202,6 +206,22 @@ public class BarrierManager
 	public List<Barrier> getBarriers()
 	{
 		return barriers;
+	}
+
+	/** Grants repair points up to the per-round cap shared by every barrier; returns what was actually granted. */
+	public int claimRepairPoints(Player player, int wanted)
+	{
+		int cap = com.theprogrammingturkey.comz.config.ConfigManager.getMainConfig().barrierRepairRoundCap;
+		int earned = repairEarnings.getOrDefault(player.getUniqueId(), 0);
+		int granted = Math.max(0, Math.min(wanted, cap - earned));
+		if(granted > 0)
+			repairEarnings.put(player.getUniqueId(), earned + granted);
+		return granted;
+	}
+
+	public void resetRepairEarnings()
+	{
+		repairEarnings.clear();
 	}
 
 	public int getTotalBarriers()

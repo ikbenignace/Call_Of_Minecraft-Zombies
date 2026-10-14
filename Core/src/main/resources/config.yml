@@ -216,8 +216,10 @@ config:
     #Tier 3 - percentage fee (0-100) taken off a Bank deposit; the remainder is banked. BO2-style levy. Bank balance persists across games per player UUID.
     depositFeePercent: 10
   barrier:
-    #Points awarded per barrier repair level (global, not per-barrier). Capped at repairPointsPerLevel * 6 total per barrier.
+    #Points awarded per barrier repair level (global, not per-barrier). Total per round is limited by repairPointsRoundCap.
     repairPointsPerLevel: 10
+    #Most points one player can earn from repairing boards each round, across all barriers. Black Ops 2 caps this at 50.
+    repairPointsRoundCap: 50
     #Issue #70 — ticks between barrier damage stages when a zombie is breaking it. Lower = faster.
     #Scales down by one tick per round above 1, down to breakIntervalMin. Original hard-coded value was 60.
     breakInterval: 60

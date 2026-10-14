@@ -50,6 +50,11 @@ public class LegacyDisplayBackend implements DisplayBackend
 	}
 
 	@Override
+	public void setItem(Entity display, ItemStack stack)
+	{
+	}
+
+	@Override
 	public void setBrightness(Entity display, int block, int sky)
 	{
 	}
