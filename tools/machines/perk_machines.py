@@ -117,10 +117,10 @@ def speed_cola():
 
 
 def double_tap():
-    paint('dt_brown', (104, 36, 26), wear=0.05)
-    paint('dt_dark', (62, 24, 20))
-    paint('dt_gold', (200, 146, 40))
-    MATERIALS['dt_corr'] = Material(ribs((126, 112, 96), count=12, vertical=False, depth=0.5), mode='stretch')
+    paint('dt_brown', (206, 166, 46), wear=0.05)
+    paint('dt_dark', (176, 132, 38))
+    paint('dt_gold', (156, 38, 26))
+    MATERIALS['dt_corr'] = Material(ribs((128, 134, 118), count=12, vertical=False, depth=0.5), mode='stretch')
 
     def cap(d, W, H):
         for i in range(28):
@@ -128,13 +128,13 @@ def double_tap():
             x, y = W * (0.5 + 0.44 * math.cos(a)), H * (0.5 + 0.44 * math.sin(a))
             d.ellipse((x - W * 0.07, y - H * 0.07, x + W * 0.07, y + H * 0.07), fill=(214, 168, 70, 255))
         d.ellipse((W * 0.06, H * 0.06, W * 0.94, H * 0.94), fill=(214, 168, 70, 255))
-        d.ellipse((W * 0.14, H * 0.14, W * 0.86, H * 0.86), fill=(78, 40, 24, 255))
-        d.ellipse((W * 0.18, H * 0.18, W * 0.82, H * 0.82), fill=(236, 224, 196, 255))
-        d.ellipse((W * 0.24, H * 0.24, W * 0.76, H * 0.76), fill=(226, 120, 30, 255))
-        sym_bullets(d, W, H, (250, 240, 215, 255), (250, 240, 215, 255))
+        d.ellipse((W * 0.14, H * 0.14, W * 0.86, H * 0.86), fill=(110, 56, 30, 255))
+        d.ellipse((W * 0.18, H * 0.18, W * 0.82, H * 0.82), fill=(248, 240, 214, 255))
+        d.ellipse((W * 0.26, H * 0.26, W * 0.74, H * 0.74), fill=(214, 62, 30, 255))
+        sym_burst(d, W, H, (252, 214, 70, 255), (255, 250, 220, 255))
     graphic('dt_cap', 8, 8, cap)
-    graphic('dt_logo', 12, 4.6, logo_text((74, 30, 22, 255), [("Double Tap", 'script', 36, (232, 178, 70, 255), 0.5)]))
-    graphic('dt_cents', 2.4, 2.4, logo_text(None, [("10¢", 'block', 22, (232, 178, 70, 255), 0.5)]))
+    graphic('dt_logo', 12, 4.6, logo_text((84, 46, 24, 255), [("Double Tap", 'script', 36, (250, 224, 130, 255), 0.5)]))
+    graphic('dt_cents', 2.4, 2.4, logo_text(None, [("10¢", 'block', 22, (150, 40, 26, 255), 0.5)]))
     g = new_gun('perk_double_tap')
     box(g, 1, 0, 2.5, 15, 1.2, 13.5, 'base_dark', name='plinth')
     box(g, 1.5, 1.2, 3, 14.5, 9, 13, 'dt_dark', name='body_lower')
@@ -219,7 +219,7 @@ def stamin_up():
 
 
 def phd_flopper():
-    paint('phd_purple', (104, 44, 142), wear=0.04)
+    paint('phd_purple', (196, 124, 38), wear=0.05)
     paint('phd_dark', (50, 42, 58))
     paint('phd_rust', (120, 66, 40))
     graphic('phd_emblem', 6, 6, emblem(0, (190, 190, 200, 255), (110, 60, 160, 255), (160, 60, 190, 255), sym_burst, (255, 220, 255, 255), (255, 240, 120, 255)))
@@ -247,29 +247,48 @@ def phd_flopper():
 
 
 def deadshot():
-    paint('ds_dark', (58, 60, 62), wear=0.05)
-    paint('ds_light', (96, 102, 100))
-    paint('ds_olive', (84, 94, 66))
-    graphic('ds_sign', 9.6, 6, logo_text((120, 132, 108, 255), [("DEADSHOT", 'block', 22, (40, 50, 40, 255), 0.4), ("Daiquiri", 'script', 24, (40, 50, 40, 255), 0.72)]))
-    graphic('ds_emblem', 7, 4.4, lambda d, W, H: (
-        d.pieslice((0, -H * 0.9, W - 1, H * 1.0), 0, 180, fill=(140, 200, 80, 255)),
-        d.pieslice((W * 0.06, -H * 0.74, W * 0.94, H * 0.86), 0, 180, fill=(70, 120, 50, 255)),
-        d.ellipse((W * 0.42, H * 0.18, W * 0.58, H * 0.6), outline=(240, 245, 240, 255), width=2 * SS)))
-    lit('ds_drink', (150, 40, 54), (230, 110, 120))
+    paint('ds_dark', (50, 52, 50), wear=0.05)
+    paint('ds_light', (122, 128, 92))
+    paint('ds_olive', (120, 126, 82), wear=0.06)
+    paint('ds_rim', (150, 152, 112), wear=0.05)
+    paint('ds_lime', (120, 168, 60))
+    graphic('ds_sign', 9.6, 6, lambda d, W, H: (
+        rect(d, 0, 0, 1, 1, (176, 180, 140, 255), W, H),
+        rect(d, 0.04, 0.05, 0.96, 0.95, (98, 112, 88, 255), W, H),
+        text_center(d, W, H, "DEADSHOT", 'block', 22, (232, 232, 200, 255), cy=0.4),
+        text_center(d, W, H, "Daiquiri", 'script', 24, (232, 232, 200, 255), cy=0.72)))
+
+    def lime(d, W, H):
+        d.pieslice((0, -H * 0.9, W - 1, H * 1.0), 0, 180, fill=(210, 232, 170, 255))
+        d.pieslice((W * 0.05, -H * 0.76, W * 0.95, H * 0.88), 0, 180, fill=(96, 150, 56, 255))
+        for k in range(1, 5):
+            x = W * (0.5 + 0.4 * math.cos(math.pi * k / 5))
+            d.line([(W * 0.5, 0), (x, H * 0.78 * math.sin(math.pi * k / 5))], fill=(160, 205, 110, 255), width=SS)
+        cx, cy = W * 0.5, H * 0.34
+        d.ellipse((cx - W * 0.17, cy - W * 0.17, cx + W * 0.17, cy + W * 0.17), outline=(244, 246, 240, 255), width=2 * SS)
+        d.line([(cx, cy - W * 0.24), (cx, cy + W * 0.24)], fill=(244, 246, 240, 255), width=SS)
+        d.line([(cx - W * 0.24, cy), (cx + W * 0.24, cy)], fill=(244, 246, 240, 255), width=SS)
+    graphic('ds_emblem', 7, 4.4, lime)
+    lit('ds_drink', (150, 30, 44), (230, 90, 100))
+    MATERIALS['ds_glass'] = Material(brushed((116, 100, 84), amount=0.02, streak=0.02, wear=0.0))
     g = new_gun('perk_deadshot')
     for x, z in ((3.6, 4.4), (12.4, 4.4), (3.6, 11.6), (12.4, 11.6)):
         box(g, x - 0.5, 0, z - 0.5, x + 0.5, 5.4, z + 0.5, 'ds_dark', name='leg')
-    box(g, 2.5, 5, 3, 13.5, 17, 13, 'ds_dark', name='cooler')
-    box(g, 2.2, 16.6, 2.8, 13.8, 17.6, 13.2, 'ds_light', name='lid')
-    plate(g, 3.2, 9.4, 12.8, 15.6, 3.0, 'ds_sign')
-    box(g, 4.6, 6, 2.2, 11.4, 9.2, 3.0, 'ds_light', name='tray')
-    box(g, 5, 6.4, 2.1, 11, 8.6, 3.0, 'coin_dark', name='tray_recess')
-    box(g, 6.4, 8.8, 2.4, 7.2, 9.6, 3.0, STEEL, name='tap')
-    box(g, 8.8, 8.8, 2.4, 9.6, 9.6, 3.0, STEEL, name='tap')
-    gx = 9.4
-    g.cyl('y', (gx, C), 0.6, 17.4, 21.4, 'glass_pale', seg=8, name='stem')
+    box(g, 2.5, 5, 3, 13.5, 17, 13, 'ds_olive', name='cooler')
+    box(g, 11.8, 5, 2.9, 13.6, 17, 13.1, 'ds_dark', name='side_panel')
+    box(g, 2.2, 5, 2.9, 3.0, 17, 13.1, 'ds_dark', name='side_panel')
+    box(g, 2.2, 16.6, 2.8, 13.8, 17.6, 13.2, 'ds_rim', name='lid')
+    plate(g, 3.2, 9.4, 11.6, 15.6, 3.0, 'ds_sign')
+    box(g, 3.6, 5.8, 2.2, 11.4, 9.2, 3.0, 'ds_rim', name='tray')
+    box(g, 4.0, 6.2, 2.1, 11.0, 8.6, 3.0, 'coin_dark', name='tray_recess')
+    box(g, 4.4, 7.0, 2.0, 10.6, 7.5, 3.0, 'ds_rim', name='tray_grate')
+    box(g, 5.8, 8.8, 2.4, 6.6, 9.6, 3.0, STEEL, name='tap')
+    box(g, 9.0, 8.8, 2.4, 9.8, 9.6, 3.0, STEEL, name='tap')
+    box(g, 11.9, 6, 2.7, 13.0, 8, 3.0, 'green_light', name='vent_light')
+    gx = 8.8
+    g.cyl('y', (gx, C), 0.6, 17.4, 21.4, 'ds_rim', seg=8, name='stem')
     for r, y0, y1 in ((1.4, 20.8, 21.6), (2.6, 21.6, 22.4), (3.6, 22.4, 23.4), (4.4, 23.4, 24.6), (4.8, 24.6, 26.2)):
-        g.cyl('y', (gx, C), r, y0, y1, 'glass_pale', seg=16, name='glass')
+        g.cyl('y', (gx, C), r, y0, y1, 'ds_glass', seg=16, name='glass')
     g.cyl('y', (gx, C), 4.4, 25.6, 26.5, 'ds_drink', seg=16, name='drink')
     box(g, 11.6, 17, 12, 13, 24.4, 13.6, 'ds_dark', name='mount')
     box(g, 8.4, 24, 13.2, 15.4, 28.4, 13.6, 'ds_emblem', faces={'north': 'ds_emblem'}, name='wedge')
@@ -315,7 +334,7 @@ def mule_kick():
 
 
 def electric_cherry():
-    paint('ec_blue', (46, 84, 132), wear=0.05)
+    paint('ec_blue', (74, 58, 46), wear=0.06)
     paint('ec_rust', (118, 76, 42), wear=0.06)
     paint('ec_dark', (46, 46, 52), wear=0.05)
     graphic('ec_emblem', 8.4, 8.4, emblem(0, (230, 230, 235, 255), (40, 90, 170, 255), (44, 96, 190, 255), sym_cherry, (214, 36, 36, 255), (90, 200, 90, 255)))
@@ -344,8 +363,8 @@ def electric_cherry():
 
 
 def tombstone():
-    paint('stone', (136, 136, 130), wear=0.0, streak=0.02, amount=0.13)
-    paint('stone_dark', (84, 84, 82), wear=0.0, streak=0.02, amount=0.12)
+    paint('stone', (132, 86, 54), wear=0.03, streak=0.04, amount=0.1)
+    paint('stone_dark', (62, 42, 34), wear=0.03, streak=0.04, amount=0.1)
     graphic('tomb_logo', 7.2, 4.2, logo_text((196, 192, 176, 255), [("Tombstone", 'serif', 26, (60, 60, 56, 255), 0.35), ("SODA", 'block', 22, (60, 90, 50, 255), 0.75)]))
     graphic('tomb_emblem', 6.6, 6.6, emblem(0, (170, 170, 164, 255), (110, 140, 90, 255), (200, 196, 180, 255), sym_tomb, (70, 70, 66, 255), (200, 196, 180, 255)))
     graphic('tomb_lights', 2.8, 11, lambda d, W, H: (
@@ -382,53 +401,65 @@ def lifebuoy(g, r_in, r_out, y0, y1):
 
 
 def whos_who():
-    paint('ww_blue', (44, 104, 164), wear=0.04)
-    paint('ww_yellow', (228, 172, 40))
+    paint('ww_blue', (44, 112, 168), wear=0.04)
+    paint('ww_yellow', (230, 176, 42), wear=0.05)
     paint('ww_white', (226, 228, 224))
     paint('ww_red', (196, 44, 36))
-    graphic('ww_emblem', 4.4, 4.4, emblem(0, (230, 230, 230, 255), (40, 90, 160, 255), (240, 240, 240, 255), sym_seven, (40, 100, 170, 255), (230, 60, 40, 255)))
-    graphic('ww_bottle', 1.8, 3.6, lambda d, W, H: (
-        rect(d, 0, 0, 1, 1, (44, 104, 164, 255), W, H),
-        rect(d, 0.3, 0.45, 0.7, 0.9, (246, 240, 220, 255), W, H, 0.05),
-        rect(d, 0.4, 0.15, 0.6, 0.5, (246, 240, 220, 255), W, H)))
+    graphic('ww_emblem', 5.2, 5.2, emblem(0, (230, 230, 230, 255), (40, 90, 160, 255), (240, 240, 240, 255), sym_seven, (40, 100, 170, 255), (230, 60, 40, 255)))
+    graphic('ww_plate', 6.4, 6.4, lambda d, W, H: rect(d, 0, 0, 1, 1, (230, 176, 42, 255), W, H, 0.3))
+    graphic('ww_bottle', 2.2, 4.2, lambda d, W, H: (
+        rect(d, 0, 0, 1, 1, (230, 176, 42, 255), W, H, 0.12),
+        rect(d, 0.12, 0.08, 0.88, 0.92, (44, 112, 168, 255), W, H, 0.1),
+        rect(d, 0.3, 0.45, 0.7, 0.86, (246, 240, 220, 255), W, H, 0.05),
+        rect(d, 0.4, 0.14, 0.6, 0.5, (246, 240, 220, 255), W, H)))
     g = new_gun('perk_whos_who')
     box(g, 3, 0, 3, 13, 1.4, 13, 'ww_yellow', name='plinth')
     g.cyl('y', (C, C), 5, 1.4, 20, 'ww_blue', seg=8, name='barrel')
-    box(g, 5.4, 1.4, 2.7, 6.2, 20, 3.2, 'ww_yellow', name='stripe_l')
-    box(g, 9.8, 1.4, 2.7, 10.6, 20, 3.2, 'ww_yellow', name='stripe_r')
-    plate(g, 6.4, 5.6, 9.6, 9, 3.0, 'ww_bottle')
-    plate(g, 6, 15.2, 10, 19.2, 2.9, 'ww_emblem')
+    g.cyl('y', (C, C), 5.2, 1.4, 3.2, 'ww_yellow', seg=8, name='base_band')
+    g.cyl('y', (C, C), 5.2, 18.2, 20.2, 'ww_yellow', seg=8, name='top_band')
+    box(g, 5.2, 3.2, 2.7, 6.4, 18.2, 3.2, 'ww_yellow', name='stripe_l')
+    box(g, 9.6, 3.2, 2.7, 10.8, 18.2, 3.2, 'ww_yellow', name='stripe_r')
+    box(g, 7.8, 3.2, 2.68, 8.2, 18.2, 3.1, 'ww_yellow', name='seam')
+    plate(g, 6.9, 4.6, 9.1, 8.8, 3.0, 'ww_bottle')
+    plate(g, 5.4, 14.2, 10.6, 19.4, 2.9, 'ww_plate')
+    plate(g, 5.7, 14.5, 10.3, 19.1, 2.8, 'ww_emblem')
     g.cyl('y', (C, C), 4.2, 20, 21.4, 'ww_yellow', seg=8, name='shoulder')
     lifebuoy(g, 5.2, 7.5, 10.8, 13.2)
     for r, y0, y1 in ((3.5, 21.4, 22.4), (3.2, 22.4, 23.4), (2.6, 23.4, 24.2), (1.8, 24.2, 24.9), (0.9, 24.9, 25.4)):
-        g.cyl('y', (C, C), r, y0, y1, 'glass_green', seg=16, name='dome')
+        g.cyl('y', (C, C), r, y0, y1, 'glass_pale', seg=16, name='dome')
     box(g, 7.7, 21.4, 7.7, 8.3, 26.6, 8.3, 'ww_blue', name='antenna')
     return finish(g)
 
 
 def vulture_aid():
-    paint('va_green', (74, 92, 42), wear=0.05)
-    paint('va_brown', (96, 64, 38))
-    paint('va_brass', (182, 142, 62), wear=0.03)
-    paint('va_cream', (212, 198, 156))
-    graphic('va_emblem', 5.4, 5.4, emblem(0, (190, 150, 70, 255), (250, 245, 230, 255), (96, 116, 60, 255), sym_vulture, (240, 230, 190, 255), (240, 190, 70, 255)))
+    paint('va_red', (178, 44, 30), wear=0.06)
+    paint('va_red_dark', (120, 28, 22))
+    paint('va_brass', (200, 156, 58), wear=0.03)
+    paint('va_cream', (214, 198, 158))
+    graphic('va_emblem', 5.4, 5.4, emblem(0, (110, 64, 30, 255), (214, 170, 70, 255), (244, 238, 220, 255), sym_vulture, (190, 40, 30, 255), (190, 40, 30, 255)))
     graphic('va_vpanel', 6.4, 8.4, lambda d, W, H: (
-        poly(d, [(0.0, 0.0), (1.0, 0.0), (1.0, 0.3), (0.5, 1.0), (0.0, 0.3)], (214, 200, 158, 255), W, H),
-        poly(d, [(0.1, 0.06), (0.9, 0.06), (0.9, 0.28), (0.5, 0.88), (0.1, 0.28)], (200, 184, 140, 255), W, H)))
+        poly(d, [(0.0, 0.0), (1.0, 0.0), (1.0, 0.3), (0.5, 1.0), (0.0, 0.3)], (200, 150, 54, 255), W, H),
+        poly(d, [(0.06, 0.04), (0.94, 0.04), (0.94, 0.28), (0.5, 0.9), (0.06, 0.28)], (222, 206, 168, 255), W, H)))
+    graphic('va_ten', 2.6, 1.0, lambda d, W, H: (
+        rect(d, 0, 0, 1, 1, (216, 210, 190, 255), W, H),
+        text_center(d, W, H, "10c", 'block', 8, (60, 50, 40, 255))))
     g = new_gun('perk_vulture_aid')
     for x, z in ((3.5, 4.5), (12.5, 4.5), (3.5, 11.5), (12.5, 11.5)):
         box(g, x - 0.6, 0, z - 0.6, x + 0.6, 3, z + 0.6, 'va_brass', name='foot')
     box(g, 2.5, 3, 3, 13.5, 3.8, 13, 'va_brass', name='base_trim')
-    box(g, 2.5, 3.8, 3, 13.5, 17, 13, 'va_green', name='body')
+    box(g, 2.5, 3.8, 3, 13.5, 17, 13, 'va_red', name='body')
+    box(g, 2.5, 3.8, 2.9, 3.1, 17, 3.1, 'va_brass', name='edge_trim')
+    box(g, 12.9, 3.8, 2.9, 13.5, 17, 3.1, 'va_brass', name='edge_trim')
     for x0, y0, y1 in ((3, 17, 18.6), (3.8, 18.6, 20.2), (4.6, 20.2, 21.6)):
-        box(g, x0, y0, 3.2, 16 - x0, y1, 12.8, 'va_green', name='shoulder')
-    arch(g, C, 21.6, 3.4, 3.2, 12.8, 'va_green')
+        box(g, x0, y0, 3.2, 16 - x0, y1, 12.8, 'va_red', name='shoulder')
+    arch(g, C, 21.6, 3.4, 3.2, 12.8, 'va_red')
     plate(g, 4.8, 11.6, 11.2, 20.0, 3.0, 'va_vpanel')
     emblem_lamp(g, C, 20.4, 2.9, 2.7, 'va_brass', 'va_emblem', depth=1.2)
-    box(g, 4.5, 6.6, 2.4, 11.5, 8.4, 3.0, 'amber_light', name='slot')
+    box(g, 4.5, 6.6, 2.4, 11.5, 8.4, 3.0, 'coin_dark', name='slot')
     box(g, 4.2, 6.2, 2.2, 11.8, 6.7, 3.0, 'va_brass', name='slot_lip')
+    box(g, 4.2, 8.4, 2.2, 11.8, 8.8, 3.0, 'va_brass', name='slot_lip')
+    plate(g, 9.6, 10.4, 12.4, 11.4, 3.0, 'va_ten')
     box(g, 4, 9.8, 2.6, 5.6, 10.8, 3.0, 'va_brass', name='coin_a')
-    box(g, 10.4, 9.8, 2.6, 12, 11.2, 3.0, 'va_cream', name='coin_b')
     box(g, 13.5, 7, 6.5, 14.8, 14, 9.5, 'va_brass', name='pump')
     box(g, 14.4, 12, 7.2, 15.2, 15, 7.8, 'va_brass', name='pump_handle')
     box(g, 7.4, 24.6, 7.4, 8.6, 25.8, 8.6, 'va_brass', name='bulb_stem')

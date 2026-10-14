@@ -10,7 +10,7 @@ PACK = os.path.join(os.path.dirname(__file__), '..', '..', 'resourcepack', 'comz
 MODELS = os.path.join(PACK, 'minecraft', 'models', 'custom', 'item', 'machines')
 ITEMS = os.path.join(PACK, 'comz', 'items', 'machine')
 
-LID_PARTS = ('lid_frame', 'lid_top', 'strap_top', 'hasp', 'latch_plate')
+LID_PARTS = ('lid_frame', 'lid_top', 'strap_top', 'hasp', 'latch_plate', 'chain', 'padlock', 'padlock_shackle')
 LID_ANGLE = float(os.environ.get('LID_ANGLE', 45))
 
 
