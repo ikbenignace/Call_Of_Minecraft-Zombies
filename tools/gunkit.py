@@ -765,7 +765,8 @@ class Gun:
         """Texture the side faces from a reference side view (see tools/photo_tex.py)."""
         self._photo_args = (path, flip)
 
-    def save(self, display=None, pap=True):
+    def save(self, display=None, pap=True, subdir='3d_guns', detail=True):
+        """subdir/detail let non-gun models (machines) reuse the pipeline without gun-specific extras."""
         if not getattr(self, '_photo_args', None):
             refs_file = os.path.join(ROOT, 'tools/guns/photo_refs.json')
             refs = json.load(open(refs_file)) if os.path.exists(refs_file) else {}
@@ -779,14 +780,15 @@ class Gun:
         if getattr(self, '_photo_args', None):
             from photo_tex import PhotoRef
             self.photo = PhotoRef(self._photo_args[0], self.elements, self._photo_args[1])
-        self.auto_detail()
+        if detail:
+            self.auto_detail()
         for e in self.elements:
             for f in (e['faces'] or {}).values():
                 self._mat_index(f)
         self._fit_offset()
         img, uv, size = self._paint()
         texref = 'custom/custom/' + self.name
-        model_path = os.path.join(PACK, 'models/custom/item/3d_guns', self.name + '.json')
+        model_path = os.path.join(PACK, 'models/custom/item', subdir, self.name + '.json')
         tex_path = os.path.join(PACK, 'textures/custom/custom', self.name + '.png')
         model = self.model_json(texref, display, uv, size)
         json.dump(model, open(model_path, 'w'), indent=1)
