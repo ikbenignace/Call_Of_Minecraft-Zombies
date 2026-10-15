@@ -781,5 +781,13 @@
   "player": {
     "downed": "ENTITY_PLAYER_BIG_FALL",
     "revive": "ENTITY_PLAYER_LEVELUP"
+  },
+  "trigger": {
+    "step": "BLOCK_NOTE_BLOCK_CHIME",
+    "complete": "UI_TOAST_CHALLENGE_COMPLETE",
+    "fail": "custom.global.deny",
+    "denied": "custom.global.deny",
+    "song": "MUSIC_DISC_CAT",
+    "perk_reveal": "BLOCK_BEACON_ACTIVATE"
   }
 }

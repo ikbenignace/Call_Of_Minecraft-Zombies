@@ -252,6 +252,9 @@ public class ProximityBuyManager
 				candidates.add(new Candidate(new BuyTarget(TargetType.PROP, centre, prompt, null, null, prop), dSq, aimBox(centre, 0.6, 0.7), false));
 		}
 
+		for(TriggerManager.InteractPoint point : game.triggerManager.interactPoints(player))
+			candidates.add(new Candidate(new BuyTarget(point, game.triggerManager.prompt(point, player)), point.distanceSq, aimBox(point.centre, 0.5, 0.6), false));
+
 		for(TransportManager.CallTarget call : game.transportManager.findCallTargets(player))
 			candidates.add(new Candidate(new BuyTarget(call, game.transportManager.prompt(player, call)), call.distanceSq,
 					aimBox(com.theprogrammingturkey.comz.game.features.Transport.toLocation(player.getWorld(), call.point).add(0, 0.5, 0), 0.6, 1.0), false));
@@ -438,7 +441,7 @@ public class ProximityBuyManager
 	}
 
 	/** What kind of buyable the player is standing next to. Determines which buy path F triggers. */
-	public enum TargetType { DOOR, MACHINE, WALL_GUN, BOX, PROP, TRANSPORT }
+	public enum TargetType { DOOR, MACHINE, WALL_GUN, BOX, PROP, TRANSPORT, TRIGGER }
 
 	/** A resolved buy target: its kind, the location to route the buy to, and the prompt text. */
 	public static final class BuyTarget
@@ -452,6 +455,7 @@ public class ProximityBuyManager
 		public final Door door;
 		public final SignPropManager.Prop prop;
 		public final TransportManager.CallTarget transport;
+		public final TriggerManager.InteractPoint trigger;
 
 		BuyTarget(TransportManager.CallTarget transport, String prompt)
 		{
@@ -462,6 +466,19 @@ public class ProximityBuyManager
 			this.door = null;
 			this.prop = null;
 			this.transport = transport;
+			this.trigger = null;
+		}
+
+		BuyTarget(TriggerManager.InteractPoint trigger, String prompt)
+		{
+			this.type = TargetType.TRIGGER;
+			this.location = null;
+			this.prompt = prompt;
+			this.machineLabel = null;
+			this.door = null;
+			this.prop = null;
+			this.transport = null;
+			this.trigger = trigger;
 		}
 
 		BuyTarget(TargetType type, Location location, String prompt, String machineLabel, Door door, SignPropManager.Prop prop)
@@ -473,6 +490,7 @@ public class ProximityBuyManager
 			this.door = door;
 			this.prop = prop;
 			this.transport = null;
+			this.trigger = null;
 		}
 
 		BuyTarget(TargetType type, Location location, String prompt, String machineLabel)

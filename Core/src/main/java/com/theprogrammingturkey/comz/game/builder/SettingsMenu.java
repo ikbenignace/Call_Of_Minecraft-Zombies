@@ -2,6 +2,7 @@ package com.theprogrammingturkey.comz.game.builder;
 
 import com.theprogrammingturkey.comz.game.Game;
 import com.theprogrammingturkey.comz.game.GameManager;
+import com.theprogrammingturkey.comz.game.managers.PerkPoolManager;
 import com.theprogrammingturkey.comz.game.managers.WeaponManager;
 import com.theprogrammingturkey.comz.game.weapons.BaseGun;
 import org.bukkit.Bukkit;
@@ -27,7 +28,7 @@ public class SettingsMenu implements InventoryHolder
 {
 	private static final int SLOT_MIN = 10, SLOT_MAX = 11, SLOT_TEDDY = 12, SLOT_DOG = 13,
 			SLOT_GUN = 14, SLOT_AMMO = 15, SLOT_NIGHT = 16, SLOT_MULTIBOX = 22,
-			SLOT_GRAVITY = 19, SLOT_JUMP = 20, SLOT_FOG = 21;
+			SLOT_GRAVITY = 19, SLOT_JUMP = 20, SLOT_FOG = 21, SLOT_PAP_LOCKED = 23, SLOT_PERK_POOL = 24, SLOT_POOL_REVEAL = 25;
 
 	private final Game game;
 	private final Inventory inv;
@@ -58,6 +59,11 @@ public class SettingsMenu implements InventoryHolder
 		inv.setItem(SLOT_GRAVITY, item(Material.FEATHER, "Gravity", decimal(game.environmentManager.getGravity()), "1.0 = normal, 0.4 = moon; left +0.1 / right -0.1 (shift 0.5)"));
 		inv.setItem(SLOT_JUMP, item(Material.RABBIT_FOOT, "Jump boost", decimal(game.environmentManager.getJumpBoost()), "jump height multiplier; left +0.1 / right -0.1 (shift 0.5)"));
 		inv.setItem(SLOT_FOG, toggle(Material.BLACK_STAINED_GLASS, "Fog (darkness)", game.environmentManager.hasFog()));
+		inv.setItem(SLOT_PAP_LOCKED, toggle(Material.ENCHANTING_TABLE, "Pack-a-Punch locked until a trigger", game.isPackAPunchLockedByDefault()));
+		inv.setItem(SLOT_PERK_POOL, item(Material.BREWING_STAND, "Perk placement", game.perkPoolManager.getMode().key(),
+				"fixed / random_on_open (" + game.perkPoolManager.getSpots().size() + " pool spots); click to switch"));
+		inv.setItem(SLOT_POOL_REVEAL, item(Material.OAK_DOOR, "Pooled perks appear on", game.perkPoolManager.isRevealOnDoor() ? "door open" : "trigger only",
+				"click to switch"));
 	}
 
 	/** Apply a click on {@code slot}; returns true if it was a settings slot (so the caller re-renders). */
@@ -99,6 +105,15 @@ public class SettingsMenu implements InventoryHolder
 				break;
 			case SLOT_FOG:
 				game.environmentManager.setFog(!game.environmentManager.hasFog());
+				break;
+			case SLOT_PAP_LOCKED:
+				game.setPackAPunchLocked(!game.isPackAPunchLockedByDefault());
+				break;
+			case SLOT_PERK_POOL:
+				game.perkPoolManager.setMode(game.perkPoolManager.getMode() == PerkPoolManager.Mode.FIXED ? PerkPoolManager.Mode.RANDOM_ON_OPEN : PerkPoolManager.Mode.FIXED);
+				break;
+			case SLOT_POOL_REVEAL:
+				game.perkPoolManager.setRevealOnDoor(!game.perkPoolManager.isRevealOnDoor());
 				break;
 			default:
 				return false;

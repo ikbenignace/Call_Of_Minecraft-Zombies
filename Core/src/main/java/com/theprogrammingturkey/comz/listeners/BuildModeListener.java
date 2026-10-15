@@ -111,6 +111,12 @@ public class BuildModeListener implements Listener
 			zoneInteract(player, session, zonePreset, clicked, event.getAction(), player.isSneaking());
 			return;
 		}
+		String triggerVariant = com.theprogrammingturkey.comz.game.builder.TriggerBuilder.heldVariant(player, session);
+		if(triggerVariant != null)
+		{
+			com.theprogrammingturkey.comz.game.builder.TriggerBuilder.interact(player, session, triggerVariant, clicked, event.getBlockFace(), event.getAction(), player.isSneaking());
+			return;
+		}
 		if(session.holdingTransportTool(player))
 		{
 			transportInteract(player, session, clicked, event.getBlockFace(), event.getAction(), player.isSneaking());
@@ -139,6 +145,9 @@ public class BuildModeListener implements Listener
 		int slot = player.getInventory().getHeldItemSlot();
 		BuildTool tool = BuildTool.fromSlot(slot);
 		if(tool == null)
+			return;
+
+		if(com.theprogrammingturkey.comz.game.builder.TriggerBuilder.onSwap(player, session))
 			return;
 
 		// While a transport is being built, F belongs to it: cycle its style, or finish it with Sneak + F.

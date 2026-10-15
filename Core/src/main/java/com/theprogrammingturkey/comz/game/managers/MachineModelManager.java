@@ -76,6 +76,13 @@ public class MachineModelManager
 		MachineSigns.forEachArenaSign(game, this::trySpawnForSign);
 	}
 
+	/** Builds the machine for one sign placed during play (a revealed pooled perk); no-op without hitboxes. */
+	public void spawnFromSign(Sign sign)
+	{
+		if(Displays.supportsHitboxes())
+			trySpawnForSign(sign);
+	}
+
 	private void trySpawnForSign(Sign sign)
 	{
 		String type = ChatColor.stripColor(sign.getLine(1)).trim().toLowerCase();

@@ -212,9 +212,8 @@ public class PowerUpManager
 	 * @param mob   to get location from
 	 * @param stack to drop on the ground
 	 */
-	private void dropItem(Entity mob, ItemStack stack, PowerUp powerUp)
+	private void dropItem(Location loc, ItemStack stack, PowerUp powerUp)
 	{
-		Location loc = mob.getLocation();
 		Item droppedItem = loc.getWorld().dropItem(loc, stack);
 		droppedItem.setVelocity(new Vector());
 		// Make the pickup unmistakable: a glowing item (outline through walls) with a themed beam.
@@ -225,7 +224,7 @@ public class PowerUpManager
 		final int lifetimeTicks = (int) Math.round(ConfigManager.getMainConfig().perkLife * 20);
 		// Spawn the countdown nameplate ABOVE the dropped item (was -1.7 below, which buried it under
 		// the floor in most arenas and made the pickup timer invisible).
-		ArmorStand namePlate = (ArmorStand) mob.getWorld().spawnEntity(droppedItem.getLocation().clone().add(0, 1.2, 0), EntityType.ARMOR_STAND);
+		ArmorStand namePlate = (ArmorStand) loc.getWorld().spawnEntity(droppedItem.getLocation().clone().add(0, 1.2, 0), EntityType.ARMOR_STAND);
 		namePlate.setVisible(false);
 		namePlate.setGravity(false);
 		namePlate.setAI(false);
@@ -322,8 +321,15 @@ public class PowerUpManager
 
 	public void dropPowerUp(Entity mob, PowerUp powerUp)
 	{
+		dropPowerUp(mob.getLocation(), powerUp);
+	}
+
+	public void dropPowerUp(Location location, PowerUp powerUp)
+	{
+		if(location.getWorld() == null || powerUp == PowerUp.NONE)
+			return;
 		ItemStack stack = new ItemStack(powerUp.getMaterial(), 1);
 		com.theprogrammingturkey.comz.util.PackModels.apply(stack, powerUp.getModelKey());
-		dropItem(mob, stack, powerUp);
+		dropItem(location, stack, powerUp);
 	}
 }

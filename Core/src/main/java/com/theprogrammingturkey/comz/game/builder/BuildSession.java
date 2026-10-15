@@ -118,6 +118,8 @@ public class BuildSession
 
 	private int transportPreviewTask = -1;
 
+	private final TriggerDraft triggerDraft = new TriggerDraft();
+
 	public BuildSession(Player player, Game game)
 	{
 		this.game = game;
@@ -292,6 +294,11 @@ public class BuildSession
 				continue;
 			loc.getWorld().spawnParticle(Compat.HAPPY_VILLAGER, loc.clone().add(0.5, 1.2, 0.5), 12, 0.3, 0.3, 0.3, 0);
 		}
+	}
+
+	public TriggerDraft getTriggerDraft()
+	{
+		return triggerDraft;
 	}
 
 	public Transport getTransportInProgress()

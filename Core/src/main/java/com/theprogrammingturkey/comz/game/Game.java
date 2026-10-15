@@ -124,6 +124,9 @@ public class Game
 
 	private boolean forceNight;
 
+	/** Arena setting: Pack-a-Punch starts locked and needs an enable_pack_a_punch trigger target. */
+	private boolean packAPunchLocked;
+
 	/**
 	 * Arena contained in the game.
 	 */
@@ -182,10 +185,11 @@ public class Game
 	 */
 	public BuildableManager buildableManager;
 
-	/**
-	 * Tier 4 — the arena's easter-egg quest engine (per-arena multi-step objective)
-	 */
-	public QuestManager questManager;
+	/** Step sequences that unlock things (Pack-a-Punch gates, easter eggs, songs); also runs legacy quests. */
+	public TriggerManager triggerManager;
+
+	/** Perk machines that appear at random pool spots when doors open. */
+	public PerkPoolManager perkPoolManager;
 
 	/**
 	 * contains all of the downed players in the game
@@ -259,7 +263,8 @@ public class Game
 		trapManager = new TrapManager(this);
 		transportManager = new TransportManager(this);
 		buildableManager = new BuildableManager(this);
-		questManager = new QuestManager(this);
+		triggerManager = new TriggerManager(this);
+		perkPoolManager = new PerkPoolManager(this);
 		downedPlayerManager = new DownedPlayerManager();
 		signManager = new SignManager(this);
 		machineModelManager = new MachineModelManager(this);
@@ -369,6 +374,16 @@ public class Game
 			machineModelManager.onPowerChanged(false);
 	}
 
+	public boolean isPackAPunchLockedByDefault()
+	{
+		return packAPunchLocked;
+	}
+
+	public void setPackAPunchLocked(boolean locked)
+	{
+		packAPunchLocked = locked;
+	}
+
 	/**
 	 * Turns on the power for the game
 	 */
@@ -383,6 +398,7 @@ public class Game
 			if(world != null)
 				com.theprogrammingturkey.comz.util.SoundUtil.playKey(pl, pl.getLocation(), "power.on", "ENTITY_LIGHTNING_BOLT_THUNDER", org.bukkit.SoundCategory.MASTER, 1, 1);
 		}
+		triggerManager.onPowerOn();
 	}
 
 	/**
@@ -602,6 +618,8 @@ public class Game
 		}
 		nextWave();
 		signManager.updateGame();
+		// Pooled perk signs come off the walls before machines are built from the remaining signs.
+		perkPoolManager.start();
 		// BO2-fidelity: stand up the 3D machine models next to their signs (pack-gated, no-op otherwise).
 		machineModelManager.spawnAll();
 		wallGunManager.spawnAll();
@@ -610,6 +628,7 @@ public class Game
 		proximityBuyManager.start();
 		environmentManager.start();
 		transportManager.start();
+		triggerManager.start();
 		KitManager.giveOutKits(this);
 	}
 
@@ -648,8 +667,7 @@ public class Game
 		// Re-arm the per-round power-up drop cap for the new round.
 		powerUpManager.resetRoundDrops();
 
-		// Tier 4 — fire any "reach round N" easter-egg quest step now that the round advanced.
-		questManager.onRoundReached(waveNumber);
+		triggerManager.onRoundReached();
 
 		//get death and downed players and let them respawn or revive
 		// Offline dead players respawn via the rejoin path in addPlayer instead.
@@ -1172,7 +1190,7 @@ public class Game
 		// tombstone snapshots and any lingering Who's Who ghost so a re-used Game object starts the
 		// next session clean (otherwise solo self-revive uses would never replenish between games).
 		downedPlayerManager.reset();
-		questManager.reset();
+		triggerManager.stop();
 		buildableManager.resetAll();
 		trapManager.resetAll();
 		teleporterManager.resetSessionState();
@@ -1213,6 +1231,7 @@ public class Game
 		machineModelManager.removeAll();
 		wallGunManager.removeAll();
 		signPropManager.removeAll();
+		perkPoolManager.restore();
 	}
 
 	public enum GameStatus
@@ -1254,6 +1273,8 @@ public class Game
 		maxAmmoReplishClip = CustomConfig.getBoolean(arenaSettingsJson, "max_ammo_replenish_clip", false);
 
 		forceNight = CustomConfig.getBoolean(arenaSettingsJson, "force_night", false);
+		packAPunchLocked = CustomConfig.getBoolean(arenaSettingsJson, "pap_locked", false);
+		perkPoolManager.load(arenaSaveJson, arenaSettingsJson);
 		environmentManager.load(arenaSettingsJson);
 
 		arena.loadArena(arenaSaveJson, world);
@@ -1302,8 +1323,10 @@ public class Game
 		if(arenaSaveJson.has("buildables"))
 			buildableManager.loadAllBuildablesToGame(arenaSaveJson.get("buildables").getAsJsonArray());
 
+		if(arenaSaveJson.has("triggers") && arenaSaveJson.get("triggers").isJsonArray())
+			triggerManager.load(arenaSaveJson.get("triggers").getAsJsonArray());
 		if(arenaSaveJson.has("quest"))
-			questManager.load(arenaSaveJson.get("quest"));
+			triggerManager.loadLegacyQuest(arenaSaveJson.get("quest"));
 
 		if(arenaSaveJson.has("zones"))
 			zoneManager.load(arenaSaveJson.get("zones").getAsJsonArray());
@@ -1331,6 +1354,8 @@ public class Game
 		arena.saveArena(arenaSaveJson);
 		arenaSaveJson.addProperty("power_setup", powerSetup);
 		arenaSettingsJson.addProperty("force_night", forceNight);
+		arenaSettingsJson.addProperty("pap_locked", packAPunchLocked);
+		perkPoolManager.save(arenaSaveJson, arenaSettingsJson);
 		environmentManager.save(arenaSettingsJson);
 
 		arenaSettingsJson.add("powerup_settings", powerUpManager.save());
@@ -1343,7 +1368,7 @@ public class Game
 		arenaSaveJson.add("traps", trapManager.save());
 		arenaSaveJson.add("transports", transportManager.save());
 		arenaSaveJson.add("buildables", buildableManager.save());
-		arenaSaveJson.add("quest", questManager.save());
+		arenaSaveJson.add("triggers", triggerManager.save());
 		arenaSaveJson.add("zones", zoneManager.save());
 
 		return gamejson;

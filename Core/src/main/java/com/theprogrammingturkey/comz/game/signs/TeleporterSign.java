@@ -62,6 +62,12 @@ public class TeleporterSign implements IGameSign
 					return;
 				}
 
+				if(game.triggerManager.isTeleporterLocked(teleporterName))
+				{
+					CommandUtil.sendMessageToPlayer(player, ChatColor.RED + "This teleporter is locked.");
+					return;
+				}
+
 				ConfigSetup cfg = ConfigManager.getMainConfig();
 
 				// 0k — recharge/cooldown gate. Check before charging points so a recharging
