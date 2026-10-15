@@ -2348,5 +2348,104 @@
       "custom/round/gameover7",
       "custom/round/gameover8"
     ]
+  },
+  "custom.egg.115": {
+    "category": "music",
+    "sounds": [
+      {
+        "name": "custom/egg/115",
+        "stream": true
+      }
+    ]
+  },
+  "custom.egg.abra": {
+    "category": "music",
+    "sounds": [
+      {
+        "name": "custom/egg/abra",
+        "stream": true
+      }
+    ]
+  },
+  "custom.egg.beauty": {
+    "category": "music",
+    "sounds": [
+      {
+        "name": "custom/egg/beauty",
+        "stream": true
+      }
+    ]
+  },
+  "custom.egg.cominghome": {
+    "category": "music",
+    "sounds": [
+      {
+        "name": "custom/egg/cominghome",
+        "stream": true
+      }
+    ]
+  },
+  "custom.egg.lullaby": {
+    "category": "music",
+    "sounds": [
+      {
+        "name": "custom/egg/lullaby",
+        "stream": true
+      }
+    ]
+  },
+  "custom.egg.not_ready_a7x": {
+    "category": "music",
+    "sounds": [
+      {
+        "name": "custom/egg/not_ready_a7x",
+        "stream": true
+      }
+    ]
+  },
+  "custom.egg.pareidolia": {
+    "category": "music",
+    "sounds": [
+      {
+        "name": "custom/egg/pareidolia",
+        "stream": true
+      }
+    ]
+  },
+  "custom.egg.phonecall": {
+    "category": "music",
+    "sounds": [
+      {
+        "name": "custom/egg/phonecall",
+        "stream": true
+      }
+    ]
+  },
+  "custom.egg.wontbackdown": {
+    "category": "music",
+    "sounds": [
+      {
+        "name": "custom/egg/wontbackdown",
+        "stream": true
+      }
+    ]
+  },
+  "custom.egg.egg_find": {
+    "category": "master",
+    "sounds": [
+      "custom/egg/egg_find"
+    ]
+  },
+  "custom.egg.egg_loop": {
+    "category": "master",
+    "sounds": [
+      "custom/egg/egg_loop"
+    ]
+  },
+  "custom.egg.phone_loop": {
+    "category": "master",
+    "sounds": [
+      "custom/egg/phone_loop"
+    ]
   }
 }
