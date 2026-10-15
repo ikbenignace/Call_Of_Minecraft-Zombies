@@ -351,6 +351,30 @@ public class MachineModelManager
 		return out;
 	}
 
+	/**
+	 * Every perk machine in the arena (block centre to perk), from the spawned machine models plus any perk signs
+	 * still standing (servers without machine models keep plain signs). Der Wunderfizz is not a single perk and is
+	 * left out.
+	 */
+	public Map<Location, PerkType> getPerkMachines()
+	{
+		Map<Location, PerkType> out = new java.util.LinkedHashMap<>();
+		for(MachineModel m : machines)
+			addPerkMachine(out, m.baseLoc, m.signLines);
+		MachineSigns.forEachArenaSign(game, sign -> addPerkMachine(out, sign.getLocation(), sign.getLines()));
+		return out;
+	}
+
+	private static void addPerkMachine(Map<Location, PerkType> out, Location block, String[] lines)
+	{
+		if(lines == null || lines.length < 3 || !ChatColor.stripColor(lines[1]).trim().equalsIgnoreCase("perk machine"))
+			return;
+		PerkType perk = PerkType.getPerkType(ChatColor.stripColor(lines[2]).trim());
+		if(perk == null || perk == PerkType.DER_WUNDERFIZZ)
+			return;
+		out.put(block.getBlock().getLocation().add(0.5, 0.5, 0.5), perk);
+	}
+
 	private String labelFor(MachineModel m)
 	{
 		if(m.label != null)

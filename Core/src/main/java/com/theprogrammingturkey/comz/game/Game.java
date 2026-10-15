@@ -29,6 +29,8 @@ import com.theprogrammingturkey.comz.listeners.customEvents.GameStartEvent;
 import com.theprogrammingturkey.comz.spawning.RoundSpawnType;
 import com.theprogrammingturkey.comz.spawning.SpawnManager;
 import com.theprogrammingturkey.comz.spawning.SpawnPoint;
+import com.theprogrammingturkey.comz.spawning.special.SpecialEnemyManager;
+import com.theprogrammingturkey.comz.spawning.special.SpecialEnemyType;
 import com.theprogrammingturkey.comz.util.BlockUtils;
 import com.theprogrammingturkey.comz.util.CommandUtil;
 import com.theprogrammingturkey.comz.util.Compat;
@@ -219,6 +221,9 @@ public class Game
 	/** Arena gravity / jump / fog plus the per-zone effects, applied while the game runs. */
 	public EnvironmentManager environmentManager;
 
+	/** Space monkeys, thieves, bosses and other catalogue specials enabled by the arena's special_enemies setting. */
+	public SpecialEnemyManager specialEnemyManager;
+
 	/**
 	 * Scoreboard used to manage players points
 	 */
@@ -270,6 +275,7 @@ public class Game
 		proximityBuyManager = new ProximityBuyManager(this);
 		zoneManager = new ZoneManager(this);
 		environmentManager = new EnvironmentManager(this);
+		specialEnemyManager = new SpecialEnemyManager(this);
 
 		scoreboard = new GameScoreboard(this);
 	}
@@ -584,6 +590,7 @@ public class Game
 			}
 		}
 		spawnManager.update();
+		specialEnemyManager.start();
 
 		for(LivingEntity entity : arena.getWorld().getLivingEntities())
 		{
@@ -701,6 +708,14 @@ public class Game
 						break;
 					case HELL_HOUNDS:
 						com.theprogrammingturkey.comz.util.SoundUtil.play(pl, pl.getLocation(), com.theprogrammingturkey.comz.util.SoundConfig.get("round.dogs", "ENTITY_ENDER_DRAGON_GROWL"), org.bukkit.SoundCategory.MASTER, ConfigManager.getMainConfig().roundSoundVolume, 1);
+						break;
+					case SPECIAL:
+						SpecialEnemyType special = spawnManager.getSpecialRoundType();
+						if(special != null)
+						{
+							com.theprogrammingturkey.comz.util.SoundUtil.play(pl, pl.getLocation(), com.theprogrammingturkey.comz.util.SoundConfig.get(special.soundKey("round"), "ENTITY_ENDER_DRAGON_GROWL"), org.bukkit.SoundCategory.MASTER, ConfigManager.getMainConfig().roundSoundVolume, 1);
+							pl.sendTitle(ChatColor.WHITE + "Round " + waveNumber, ChatColor.RED + special.displayName, 5, 30, 0);
+						}
 						break;
 				}
 			}
@@ -1152,6 +1167,7 @@ public class Game
 		}
 		spawnManager.killAll(false);
 		spawnManager.reset();
+		specialEnemyManager.stop();
 		powerUpManager.clearAll();
 		com.theprogrammingturkey.comz.listeners.PowerUpDropListener.cancelAllTimers(this);
 		// Cancel any outstanding heal timers for players leaving this game so the recurring heal
@@ -1261,6 +1277,7 @@ public class Game
 
 		forceNight = CustomConfig.getBoolean(arenaSettingsJson, "force_night", false);
 		environmentManager.load(arenaSettingsJson);
+		specialEnemyManager.load(arenaSettingsJson);
 
 		arena.loadArena(arenaSaveJson, world);
 		status = GameStatus.WAITING;
@@ -1338,6 +1355,7 @@ public class Game
 		arenaSaveJson.addProperty("power_setup", powerSetup);
 		arenaSettingsJson.addProperty("force_night", forceNight);
 		environmentManager.save(arenaSettingsJson);
+		specialEnemyManager.save(arenaSettingsJson);
 
 		arenaSettingsJson.add("powerup_settings", powerUpManager.save());
 		arenaSaveJson.add("zombie_spawns", spawnManager.save());
@@ -1586,7 +1604,7 @@ public class Game
 
 		// Tier 2 — Insta-Kill must not instantly remove a last-zombie crawler, otherwise it would
 		// auto-end the round players are deliberately holding. Crawlers take normal damage instead.
-		if(isInstaKill() && !com.theprogrammingturkey.comz.spawning.ZombieSpawner.isCrawler(mob))
+		if(isInstaKill() && !com.theprogrammingturkey.comz.spawning.ZombieSpawner.isCrawler(mob) && !specialEnemyManager.isInstaKillImmune(mob))
 		{
 			if(mob instanceof Zombie)
 				player.getWorld().playSound(mob.getLocation(), Sound.ENTITY_ZOMBIE_DEATH, 1f, 1f);
@@ -1594,8 +1612,9 @@ public class Game
 				player.getWorld().playSound(mob.getLocation(), Sound.ENTITY_GENERIC_EXPLODE, 1f, 1f);
 
 			powerUpManager.powerUpDrop(mob, player);
+			specialEnemyManager.onKilled(mob, player);
 			mob.remove();
-			int killScore = killPoints(ConfigManager.getMainConfig().pointsOnKill, headshotKill, meleeKill,
+			int killScore = killPoints(specialEnemyManager.killPoints(mob, ConfigManager.getMainConfig().pointsOnKill), headshotKill, meleeKill,
 					ConfigManager.getMainConfig().headshotKillBonus, ConfigManager.getMainConfig().meleeKillBonus, isDoublePoints());
 			PointManager.INSTANCE.addPoints(player, killScore);
 			com.theprogrammingturkey.comz.util.PointPopup.show(player, mob, killScore);
@@ -1626,8 +1645,9 @@ public class Game
 				player.getWorld().playSound(mob.getLocation(), Sound.ENTITY_GENERIC_EXPLODE, 1f, 1f);
 
 			powerUpManager.powerUpDrop(mob, player);
+			specialEnemyManager.onKilled(mob, player);
 			mob.remove();
-			int killScore = killPoints(ConfigManager.getMainConfig().pointsOnKill, headshotKill, meleeKill,
+			int killScore = killPoints(specialEnemyManager.killPoints(mob, ConfigManager.getMainConfig().pointsOnKill), headshotKill, meleeKill,
 					ConfigManager.getMainConfig().headshotKillBonus, ConfigManager.getMainConfig().meleeKillBonus, isDoublePoints());
 			PointManager.INSTANCE.addPoints(player, killScore);
 			com.theprogrammingturkey.comz.util.PointPopup.show(player, mob, killScore);
@@ -1669,7 +1689,7 @@ public class Game
 		}
 		else
 		{
-			mob.setCustomNameVisible(false);
+			mob.setCustomNameVisible(specialEnemyManager.showsName(mob));
 		}
 	}
 

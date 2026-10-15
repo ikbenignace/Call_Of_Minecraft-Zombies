@@ -811,5 +811,57 @@
   "player": {
     "downed": "ENTITY_PLAYER_BIG_FALL",
     "revive": "ENTITY_PLAYER_LEVELUP"
+  },
+  "special": {
+    "space_monkey": {
+      "spawn": "ENTITY_PARROT_IMITATE_ZOMBIE",
+      "ambient": "ENTITY_PARROT_AMBIENT",
+      "attack": "ENTITY_WITCH_CELEBRATE",
+      "death": "ENTITY_PARROT_DEATH",
+      "round": "ENTITY_EVOKER_PREPARE_SUMMON"
+    },
+    "thief": {
+      "spawn": "ENTITY_EVOKER_PREPARE_WOLOLO",
+      "ambient": "ENTITY_ZOMBIE_VILLAGER_AMBIENT",
+      "attack": "ENTITY_ITEM_PICKUP",
+      "death": "ENTITY_ZOMBIE_VILLAGER_DEATH",
+      "round": "ENTITY_ELDER_GUARDIAN_CURSE"
+    },
+    "george_romero": {
+      "spawn": "ENTITY_WITHER_SPAWN",
+      "ambient": "ENTITY_RAVAGER_AMBIENT",
+      "attack": "ENTITY_RAVAGER_ROAR",
+      "death": "ENTITY_RAVAGER_DEATH",
+      "round": "ENTITY_WITHER_SPAWN"
+    },
+    "astronaut": {
+      "spawn": "ENTITY_ELDER_GUARDIAN_CURSE",
+      "ambient": "ENTITY_ZOMBIE_AMBIENT",
+      "attack": "ENTITY_ENDERMAN_SCREAM",
+      "death": "ENTITY_ZOMBIE_DEATH",
+      "round": "ENTITY_ELDER_GUARDIAN_CURSE"
+    },
+    "cosmonaut": {
+      "spawn": "ENTITY_ELDER_GUARDIAN_CURSE",
+      "ambient": "ENTITY_HUSK_AMBIENT",
+      "attack": "ENTITY_WITCH_CELEBRATE",
+      "death": "ENTITY_HUSK_DEATH",
+      "round": "ENTITY_ELDER_GUARDIAN_CURSE"
+    },
+    "napalm": {
+      "spawn": "ENTITY_BLAZE_AMBIENT",
+      "ambient": "BLOCK_FIRE_AMBIENT",
+      "attack": "ENTITY_CREEPER_PRIMED",
+      "death": "ENTITY_BLAZE_DEATH",
+      "explode": "ENTITY_GENERIC_EXPLODE",
+      "round": "ENTITY_BLAZE_SHOOT"
+    },
+    "shrieker": {
+      "spawn": "ENTITY_GHAST_WARN",
+      "ambient": "ENTITY_ZOMBIE_VILLAGER_AMBIENT",
+      "attack": "ENTITY_GHAST_SCREAM",
+      "death": "ENTITY_GHAST_DEATH",
+      "round": "ENTITY_GHAST_SCREAM"
+    }
   }
 }
