@@ -31,6 +31,12 @@ public interface DisplayBackend
 	 */
 	Entity spawnBlock(Location loc, BlockData block, float cx, float cy, float cz, float sx, float sy, float sz, float yawDegrees, boolean glow);
 
+	/**
+	 * A thin straight bar of {@code block} from {@code from} to {@code from + (dx, dy, dz)} with a square
+	 * cross-section of {@code thickness} blocks, e.g. a zipline rope.
+	 */
+	Entity spawnLine(Location from, double dx, double dy, double dz, BlockData block, float thickness);
+
 	/** Interpolates a spawned item display to a new translation/scale/yaw. No-op for other entities. */
 	void animate(Entity display, float x, float y, float z, float scale, float yawDegrees, int durationTicks);
 

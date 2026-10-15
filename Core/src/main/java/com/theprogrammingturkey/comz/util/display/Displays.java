@@ -52,6 +52,13 @@ public final class Displays
 		return nonPersistent(backend.spawnBlock(loc, block, cx, cy, cz, sx, sy, sz, yawDegrees, glow));
 	}
 
+	public static Entity spawnLine(Location from, double dx, double dy, double dz, BlockData block, float thickness)
+	{
+		if(from.getWorld() == null || block == null)
+			return null;
+		return nonPersistent(backend.spawnLine(from, dx, dy, dz, block, thickness));
+	}
+
 	public static Entity spawnItem(Location loc, ItemStack stack, float scale, float yawDegrees, float offsetY, boolean faceViewer)
 	{
 		if(loc.getWorld() == null)

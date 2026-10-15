@@ -73,6 +73,11 @@ public class OnInventoryChangeEvent implements Listener
 			{
 				game.wallGunManager.handleInteractByCentre(player, target.location);
 			}
+			else if(target.type == ProximityBuyManager.TargetType.TRANSPORT && target.transport != null)
+			{
+				if(com.theprogrammingturkey.comz.game.managers.BuyDebounce.tryAcquire(player))
+					game.transportManager.use(player, target.transport);
+			}
 			else if(target.type == ProximityBuyManager.TargetType.BOX && target.location != null)
 			{
 				com.theprogrammingturkey.comz.game.features.RandomBox box = game.boxManager.getBox(target.location);

@@ -197,6 +197,8 @@ public class DownedPlayerManager
 	{
 		// Must be read before setPlayerDown(), which clears the player's perks.
 		boolean hasQuickRevive = game.perkManager.hasPerk(player, PerkType.QUICK_REVIVE);
+		// A rider must be on solid ground before the down seat is spawned at their feet.
+		game.transportManager.dismount(player);
 		DownedPlayer down = new DownedPlayer(player, game);
 		down.setPlayerDown();
 		downedPlayers.add(down);

@@ -13,6 +13,7 @@ import org.bukkit.entity.TextDisplay;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.Transformation;
 import org.joml.AxisAngle4f;
+import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
 /**
@@ -63,6 +64,25 @@ public class ModernDisplayBackend implements DisplayBackend
 			display.setDisplayWidth(4f);
 			display.setDisplayHeight(4f);
 			display.setViewRange(1.5f);
+		});
+	}
+
+	@Override
+	public Entity spawnLine(Location from, double dx, double dy, double dz, BlockData block, float thickness)
+	{
+		float length = (float) Math.sqrt(dx * dx + dy * dy + dz * dz);
+		if(length <= 0f)
+			return null;
+		Quaternionf rotation = new Quaternionf().rotationTo(0f, 0f, 1f, (float) dx, (float) dy, (float) dz);
+		// The unit block grows from its corner, so shift it by half the thickness (in the rotated frame) to centre the bar on the line.
+		Vector3f offset = rotation.transform(new Vector3f(-thickness / 2f, -thickness / 2f, 0f));
+		return EntitySpawner.spawn(from.getWorld(), from, BlockDisplay.class, display ->
+		{
+			display.setBlock(block);
+			display.setBillboard(Display.Billboard.FIXED);
+			display.setTransformation(new Transformation(offset, rotation, new Vector3f(thickness, thickness, length), new Quaternionf()));
+			display.setDisplayWidth(length + 1f);
+			display.setDisplayHeight(length + 1f);
 		});
 	}
 

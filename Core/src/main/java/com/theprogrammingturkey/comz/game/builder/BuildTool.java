@@ -37,8 +37,10 @@ public enum BuildTool
 	public static final List<String> MACHINE_VARIANTS =
 			Collections.unmodifiableList(Arrays.asList("Mystery Box", "Pack-a-Punch", "Ammo Crate", "Grenade", "Fridge", "Bank", "Power"));
 
+	public static final String TRANSPORT_VARIANT = "Transport";
+
 	public static final List<String> FEATURE_VARIANTS =
-			Collections.unmodifiableList(Arrays.asList("Trap", "Buildable", "Quest"));
+			Collections.unmodifiableList(Arrays.asList("Trap", "Buildable", "Quest", TRANSPORT_VARIANT));
 
 	public static final List<String> LOBBY_VARIANTS =
 			Collections.unmodifiableList(Arrays.asList("Join", "Spectate", "Kit"));

@@ -8,10 +8,12 @@ import com.theprogrammingturkey.comz.game.builder.BuildModeManager;
 import com.theprogrammingturkey.comz.game.builder.BuildSession;
 import com.theprogrammingturkey.comz.game.builder.BuildTool;
 import com.theprogrammingturkey.comz.game.builder.MachineSigns;
+import com.theprogrammingturkey.comz.game.builder.TransportOptions;
 import com.theprogrammingturkey.comz.game.features.Barrier;
 import com.theprogrammingturkey.comz.game.features.BuildableItems;
 import com.theprogrammingturkey.comz.game.features.Door;
 import com.theprogrammingturkey.comz.game.features.PerkType;
+import com.theprogrammingturkey.comz.game.features.Transport;
 import com.theprogrammingturkey.comz.game.signs.IGameSign;
 import com.theprogrammingturkey.comz.game.weapons.BaseGun;
 import com.theprogrammingturkey.comz.game.managers.WeaponManager;
@@ -99,6 +101,11 @@ public class BuildModeListener implements Listener
 			barrierInteract(player, session, clicked, event.getAction(), player.isSneaking());
 			return;
 		}
+		if(session.holdingTransportTool(player))
+		{
+			transportInteract(player, session, clicked, event.getBlockFace(), event.getAction(), player.isSneaking());
+			return;
+		}
 
 		if(event.getAction() == Action.RIGHT_CLICK_BLOCK)
 		{
@@ -123,6 +130,16 @@ public class BuildModeListener implements Listener
 		BuildTool tool = BuildTool.fromSlot(slot);
 		if(tool == null)
 			return;
+
+		// While a transport is being built, F belongs to it: cycle its style, or finish it with Sneak + F.
+		if(session.getTransportInProgress() != null && session.holdingTransportTool(player))
+		{
+			if(player.isSneaking())
+				finalizeTransport(player, session);
+			else
+				cycleTransportStyle(player, session);
+			return;
+		}
 
 		// Room-aware tools cycle the ACTIVE ROOM (which door's room new spawns/barriers attach to);
 		// every other tool cycles its placement variant.
@@ -819,6 +836,108 @@ public class BuildModeListener implements Listener
 		barrier.setRepairLoc(spot.getLocation());
 		barrier.setSignFacing(face);
 		return true;
+	}
+
+	/**
+	 * Transport editor (Feature tool, Transport variant). Right-click adds a waypoint where the rider's feet
+	 * will be, sneak-right-click adds a call point, F cycles the style, Sneak + F finishes. Left-click undoes
+	 * the last point while building, otherwise removes the transport there; sneak-left-click edits its options.
+	 */
+	private void transportInteract(Player player, BuildSession session, Block clicked, BlockFace face, Action action, boolean sneaking)
+	{
+		Game game = session.getGame();
+		Block spot = clicked.getRelative(face);
+		org.bukkit.util.Vector point = new org.bukkit.util.Vector(spot.getX() + 0.5, spot.getY(), spot.getZ() + 0.5);
+		Transport building = session.getTransportInProgress();
+
+		if(action == Action.RIGHT_CLICK_BLOCK)
+		{
+			if(session.onPlaceCooldown())
+				return;
+			if(sneaking)
+			{
+				if(building == null)
+				{
+					msg(player, ChatColor.RED + "Place the waypoints first (right-click), then sneak-right-click to add call points.");
+					return;
+				}
+				session.addTransportPoint(point, false);
+				transportFeedback(player, session, spot, ChatColor.GOLD + "Call point added");
+				return;
+			}
+			if(building == null)
+			{
+				building = new Transport(game.transportManager.nextId(), Transport.Style.ZIPLINE);
+				session.startTransport(building);
+				msg(player, ChatColor.GOLD + "New transport " + building.getId() + ChatColor.GRAY
+						+ ": right-click = waypoint, sneak-right-click = call point, F = style, left-click = undo, Sneak + F = finish.");
+			}
+			session.addTransportPoint(point, true);
+			transportFeedback(player, session, spot, ChatColor.GREEN + "Waypoint " + building.getWaypoints().size() + " added");
+			return;
+		}
+
+		if(action != Action.LEFT_CLICK_BLOCK)
+			return;
+		if(building != null)
+		{
+			session.undoTransportPoint();
+			if(building.getWaypoints().isEmpty() && building.getCallPoints().isEmpty())
+			{
+				session.clearTransportInProgress();
+				manager.actionBar(player, ChatColor.YELLOW + "Transport discarded");
+				return;
+			}
+			transportFeedback(player, session, spot, ChatColor.RED + "Last point removed");
+			return;
+		}
+
+		Transport existing = game.transportManager.findNear(point, 3.0D);
+		if(existing == null)
+		{
+			msg(player, ChatColor.GRAY + "No transport point near there.");
+			return;
+		}
+		if(sneaking)
+		{
+			session.setPendingTransportOptions(existing);
+			TransportOptions.prompt(player, existing);
+			return;
+		}
+		game.transportManager.removeTransport(existing.getId());
+		msg(player, ChatColor.YELLOW + "Removed transport " + existing.getId() + " (" + existing.displayName() + ").");
+	}
+
+	private void transportFeedback(Player player, BuildSession session, Block spot, String what)
+	{
+		Transport building = session.getTransportInProgress();
+		spot.getWorld().spawnParticle(Compat.HAPPY_VILLAGER, spot.getLocation().add(0.5, 0.5, 0.5), 6, 0.3, 0.3, 0.3, 0);
+		manager.actionBar(player, what + ChatColor.GRAY + " - " + building.getStyle().getLabel() + ", " + building.getWaypoints().size()
+				+ " waypoint(s), " + building.getCallPoints().size() + " call point(s). F = style, Sneak + F = finish.");
+	}
+
+	private void cycleTransportStyle(Player player, BuildSession session)
+	{
+		Transport building = session.getTransportInProgress();
+		building.setStyle(building.getStyle().next());
+		building.applyStyleDefaults();
+		manager.actionBar(player, ChatColor.AQUA + "Style: " + building.getStyle().getLabel() + ChatColor.GRAY + " (cost " + building.getCost()
+				+ ", cooldown " + building.getCooldownSeconds() + "s, speed " + building.getSpeed() + ")");
+	}
+
+	private void finalizeTransport(Player player, BuildSession session)
+	{
+		Transport building = session.getTransportInProgress();
+		if(building.getWaypoints().size() < 2)
+		{
+			msg(player, ChatColor.RED + "A transport needs at least two waypoints (right-click to add them).");
+			return;
+		}
+		session.getGame().transportManager.addTransport(building);
+		session.clearTransportInProgress();
+		msg(player, ChatColor.GREEN + "" + ChatColor.BOLD + "Transport created" + ChatColor.GREEN + " " + building.getId() + ".");
+		session.setPendingTransportOptions(building);
+		TransportOptions.prompt(player, building);
 	}
 
 	private boolean isComzSign(Block block)
