@@ -752,8 +752,11 @@ def parse_landers(fn_root):
     price = PRICE.search(buy)
     power = read(os.path.join(fn_root, 'maps', 'power', 'power.mcfunction')) if os.path.exists(os.path.join(fn_root, 'maps', 'power', 'power.mcfunction')) else ''
     start = pads[min(pads)]
-    return [transport('Lander %d' % n, 'platform', arc(start, pads[n]), int(price.group(1)) if price else 0, True,
-                      'lander' in power.lower()) for n in sorted(pads) if n != min(pads)]
+    landers = [transport('Lander %d' % n, 'platform', arc(start, pads[n]), int(price.group(1)) if price else 0, True,
+                         'lander' in power.lower()) for n in sorted(pads) if n != min(pads)]
+    for lander in landers:
+        lander['speed'] = 12.0
+    return landers
 
 
 def parse_elevators(fn_root):
@@ -973,6 +976,25 @@ def pad_source(fn_root, folder):
     return None
 
 
+def friendly_name(label):
+    """A player-facing name for a travel function: tpaloop -> Teleporter A, zipline_boat -> Zipline (boat)."""
+    label = re.sub(r'_?(loop|active)$', '', label.lower())
+    m = re.fullmatch(r'tp([a-z])', label)
+    if m:
+        return 'Teleporter ' + m.group(1).upper()
+    words = {'tp': 'teleporter', 'teleporters': 'teleporter', 'iceslide': 'ice slide', 'ziplinetodoc': 'zipline',
+             'ziplinetomain': 'zipline', 'pap': 'Pack-a-Punch'}
+    parts = [words.get(w, w) for w in label.split('_') if w]
+    if not parts:
+        return 'Transport'
+    if len(parts) >= 3 and parts[1] == 'to':
+        return '%s to the %s' % (parts[0].capitalize(), ' '.join(parts[2:]).capitalize())
+    head = parts[0][0].upper() + parts[0][1:]
+    if len(parts) == 2 and len(parts[1]) == 1:
+        return '%s %s' % (head, parts[1].upper())
+    return head + (' (%s)' % ' '.join(parts[1:]) if len(parts) > 1 else '')
+
+
 def parse_transports(fn_root):
     """Absolute player teleports in the map's travel functions. Short hops in a row are a ride along a path;
     otherwise it is a teleporter to its last stop (the longest stop of a tour)."""
@@ -1008,7 +1030,7 @@ def parse_transports(fn_root):
             else:
                 target = points[-1]
             points = [points[0], target]
-        out.append({'name': 'Imported ' + label, 'style': style, 'points': points, 'cost': int(price.group(1)) if price else 0})
+        out.append({'name': friendly_name(label), 'label': label, 'style': style, 'points': points, 'cost': int(price.group(1)) if price else 0})
     return dedupe_transports(out)
 
 
@@ -1234,13 +1256,21 @@ def build(world, datapacks, map_name, arena, world_name, index):
     for t in travel:
         if not all(lo[0] - 40 <= p[0] <= hi[0] + 40 and lo[2] - 40 <= p[2] <= hi[2] + 40 for p in t['points']):
             continue
-        t['id'] = re.sub(r'[^a-z0-9]+', '_', t['name'].lower().replace('imported ', '')).strip('_')
+        t['id'] = re.sub(r'[^a-z0-9]+', '_', t.get('label', t['name']).lower()).strip('_')
         transport_json.append({'id': t['id'], 'name': t['name'], 'style': t['style'], 'cost': t['cost'],
-                               'requires_power': t.get('requires_power', False), 'cooldown_seconds': 0, 'speed': speeds[t['style']],
+                               'requires_power': t.get('requires_power', False), 'cooldown_seconds': 0,
+                               'speed': t.get('speed', speeds[t['style']]),
                                'two_way': t.get('two_way', False), 'platform_size': 3,
                                'waypoints': [{'x': p[0], 'y': p[1], 'z': p[2]} for p in t['points']], 'call_points': []})
         report.append('transport %s: %s, %d points%s%s' % (t['name'], t['style'], len(t['points']), ', two-way' if t.get('two_way') else '',
                                                          ', %d points' % t['cost'] if t['cost'] else ''))
+
+    # Riders must stay inside the arena all the way: landers arc high above the map.
+    for t in transport_json:
+        for w in t['waypoints']:
+            for i, k in enumerate('xyz'):
+                lo[i] = min(lo[i], math.floor(w[k]) - (2 if k == 'y' else 4))
+                hi[i] = max(hi[i], math.ceil(w[k]) + (8 if k == 'y' else 4))
 
     settings = {'pap_locked': False, 'perk_pool_mode': 'fixed'}
     triggers, zones, pool_spots = [], [], []

@@ -35,8 +35,8 @@ import java.util.Map;
 /**
  * {@code /zombies importmap <arena>} — applies {@code plugins/COM_Zombies/import/<arena>.json}, produced by
  * {@code tools/mapimport/extract_map.py} from a standalone command-block map: replaces the arena's spawns,
- * doors, barriers, mystery boxes, traps, transports, zones, triggers and perk pool spots (keeping its bounds,
- * spawn points and settings when it already exists, apart from the environment, Pack-a-Punch gate, perk pool
+ * doors, barriers, mystery boxes, traps, transports, zones, triggers and perk pool spots (keeping its spawn
+ * points and settings when it already exists, growing its bounds to cover the import, apart from the environment, Pack-a-Punch gate, perk pool
  * and special enemy settings found in the import's {@code settings}), writes the map's buy and power signs,
  * removes the map's own plank box and then converts the buy signs.
  */
@@ -45,7 +45,7 @@ public class ImportMapCommand extends SubCommand
 	private static final String[] REPLACED = {"zombie_spawns", "mystery_boxes", "barriers", "doors", "traps", "transports", "power_setup",
 			"zones", "triggers", "perk_pool_spots"};
 	private static final String[] IMPORTED_SETTINGS = {"gravity", "jump_boost", "fog", "pap_locked", "perk_pool_mode", "perk_pool_reveal", "special_enemies"};
-	private static final String[] KEPT_WHEN_PRESENT = {"p1", "p2", "player_spawn", "spectator_spawn", "lobby_spawn"};
+	private static final String[] KEPT_WHEN_PRESENT = {"player_spawn", "spectator_spawn", "lobby_spawn"};
 
 	public ImportMapCommand(COMZPermission permission)
 	{
@@ -118,6 +118,7 @@ public class ImportMapCommand extends SubCommand
 		for(String key : KEPT_WHEN_PRESENT)
 			if(!save.has(key) || save.get(key).isJsonNull())
 				save.add(key, importedSave.get(key));
+		growBounds(save, importedSave);
 		save.addProperty("world_name", world.getName());
 		repairSettings(arenaJson.getAsJsonObject("settings"));
 		mergeSettings(arenaJson.getAsJsonObject("settings"), imported.getAsJsonObject("settings"));
@@ -151,6 +152,37 @@ public class ImportMapCommand extends SubCommand
 		if(imported.has("report"))
 			for(JsonElement line : imported.getAsJsonArray("report"))
 				COMZombies.log.info("[import " + name + "] " + line.getAsString());
+	}
+
+	/**
+	 * Keeps the arena's own bounds but grows them to cover everything the import needs (a lander's flight
+	 * above the map, say), so riders are never told to return to the arena.
+	 */
+	private static void growBounds(JsonObject save, JsonObject imported)
+	{
+		if(!save.has("p1") || !save.has("p2") || save.get("p1").isJsonNull() || save.get("p2").isJsonNull())
+		{
+			save.add("p1", imported.get("p1"));
+			save.add("p2", imported.get("p2"));
+			return;
+		}
+		JsonObject[] corners = {save.getAsJsonObject("p1"), save.getAsJsonObject("p2"), imported.getAsJsonObject("p1"), imported.getAsJsonObject("p2")};
+		JsonObject min = new JsonObject();
+		JsonObject max = new JsonObject();
+		for(String axis : new String[]{"x", "y", "z"})
+		{
+			double lo = Double.MAX_VALUE;
+			double hi = -Double.MAX_VALUE;
+			for(JsonObject corner : corners)
+			{
+				lo = Math.min(lo, corner.get(axis).getAsDouble());
+				hi = Math.max(hi, corner.get(axis).getAsDouble());
+			}
+			min.addProperty(axis, lo);
+			max.addProperty(axis, hi);
+		}
+		save.add("p1", min);
+		save.add("p2", max);
 	}
 
 	private static JsonObject newArena()
