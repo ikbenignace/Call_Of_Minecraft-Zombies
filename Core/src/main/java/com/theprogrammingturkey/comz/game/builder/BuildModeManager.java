@@ -4,6 +4,7 @@ import com.theprogrammingturkey.comz.game.Game;
 import com.theprogrammingturkey.comz.game.GameManager;
 import com.theprogrammingturkey.comz.game.features.Door;
 import com.theprogrammingturkey.comz.game.features.Zone;
+import com.theprogrammingturkey.comz.game.features.Transport;
 import com.theprogrammingturkey.comz.util.BlockUtils;
 import com.theprogrammingturkey.comz.util.CommandUtil;
 import net.md_5.bungee.api.ChatMessageType;
@@ -79,6 +80,7 @@ public final class BuildModeManager
 		session.startZoneOutlines(player);
 		giveToolbar(player, session);
 		player.getInventory().setHeldItemSlot(0);
+		session.startTransportPreview(player);
 
 		CommandUtil.sendMessageToPlayer(player, ChatColor.GREEN + "" + ChatColor.BOLD + "Build mode" + ChatColor.GREEN + " for arena " + ChatColor.AQUA + game.getName());
 		CommandUtil.sendMessageToPlayer(player, ChatColor.GRAY + "Scroll = switch tool, " + ChatColor.YELLOW + "F" + ChatColor.GRAY + " = cycle variant, right-click = place, left-click = remove.");
@@ -93,6 +95,9 @@ public final class BuildModeManager
 		if(session == null)
 			return;
 		warnRoomProgressionIssues(player, session);
+		session.stopTransportPreview();
+		if(session.getTransportInProgress() != null)
+			CommandUtil.sendMessageToPlayer(player, ChatColor.YELLOW + "Note: an unfinished transport was discarded (finish it with Sneak + F).");
 		session.cancelEditInProgress(); // revert any in-place door/barrier edit before tearing down markers
 		session.stopZoneOutlines();
 		session.removeAllPreviews();
@@ -266,7 +271,8 @@ public final class BuildModeManager
 	public boolean hasPendingPriceEdit(Player player)
 	{
 		BuildSession session = sessions.get(player.getUniqueId());
-		return session != null && (session.getPendingPriceSign() != null || session.getPendingPriceDoor() != null);
+		return session != null && (session.getPendingPriceSign() != null || session.getPendingPriceDoor() != null
+				|| session.getPendingTransportOptions() != null);
 	}
 
 	/**
@@ -280,6 +286,14 @@ public final class BuildModeManager
 		BuildSession session = sessions.get(player.getUniqueId());
 		if(session == null)
 			return;
+
+		Transport pendingTransport = session.getPendingTransportOptions();
+		if(pendingTransport != null)
+		{
+			session.setPendingTransportOptions(null);
+			TransportOptions.apply(player, pendingTransport, message);
+			return;
+		}
 
 		// Drain whichever target was armed. The door path is the sign-free counterpart: it targets a Door
 		// directly instead of a sign Location, so it works when useDoorSigns=false has removed the signs.

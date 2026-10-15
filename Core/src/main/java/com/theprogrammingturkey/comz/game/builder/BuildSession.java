@@ -5,6 +5,7 @@ import com.theprogrammingturkey.comz.game.Game;
 import com.theprogrammingturkey.comz.game.features.Barrier;
 import com.theprogrammingturkey.comz.game.features.Door;
 import com.theprogrammingturkey.comz.game.features.Zone;
+import com.theprogrammingturkey.comz.game.features.Transport;
 import com.theprogrammingturkey.comz.game.visuals.MachineLooks;
 import com.theprogrammingturkey.comz.game.visuals.MachineVisuals;
 import com.theprogrammingturkey.comz.spawning.SpawnPoint;
@@ -14,6 +15,7 @@ import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.Color;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -24,6 +26,7 @@ import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.util.Vector;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -104,6 +107,16 @@ public class BuildSession
 
 	private int zoneOutlineTask = -1;
 	private int zoneOutlineTicks;
+	/** A transport whose waypoints are being placed with the Feature tool's Transport variant, or null. */
+	private Transport transportInProgress;
+
+	/** Order the in-progress points were added in (true = waypoint, false = call point), for undo. */
+	private final List<Boolean> transportHistory = new ArrayList<>();
+
+	/** Transport awaiting typed options via chat (after finishing or sneak-left-clicking it), or null. */
+	private Transport pendingTransportOptions;
+
+	private int transportPreviewTask = -1;
 
 	public BuildSession(Player player, Game game)
 	{
@@ -279,6 +292,112 @@ public class BuildSession
 				continue;
 			loc.getWorld().spawnParticle(Compat.HAPPY_VILLAGER, loc.clone().add(0.5, 1.2, 0.5), 12, 0.3, 0.3, 0.3, 0);
 		}
+	}
+
+	public Transport getTransportInProgress()
+	{
+		return transportInProgress;
+	}
+
+	public void startTransport(Transport transport)
+	{
+		transportInProgress = transport;
+		transportHistory.clear();
+	}
+
+	public void clearTransportInProgress()
+	{
+		transportInProgress = null;
+		transportHistory.clear();
+	}
+
+	public void addTransportPoint(Vector point, boolean waypoint)
+	{
+		if(transportInProgress == null)
+			return;
+		(waypoint ? transportInProgress.getWaypoints() : transportInProgress.getCallPoints()).add(point);
+		transportHistory.add(waypoint);
+	}
+
+	/** Removes the most recently added point; returns false when there was nothing to undo. */
+	public boolean undoTransportPoint()
+	{
+		if(transportInProgress == null || transportHistory.isEmpty())
+			return false;
+		boolean waypoint = transportHistory.remove(transportHistory.size() - 1);
+		List<Vector> points = waypoint ? transportInProgress.getWaypoints() : transportInProgress.getCallPoints();
+		if(!points.isEmpty())
+			points.remove(points.size() - 1);
+		return true;
+	}
+
+	public Transport getPendingTransportOptions()
+	{
+		return pendingTransportOptions;
+	}
+
+	public void setPendingTransportOptions(Transport transport)
+	{
+		this.pendingTransportOptions = transport;
+	}
+
+	/** True while the Feature tool is held with its Transport variant selected. */
+	public boolean holdingTransportTool(Player player)
+	{
+		BuildTool tool = BuildTool.fromSlot(player.getInventory().getHeldItemSlot());
+		return tool == BuildTool.FEATURE && BuildTool.TRANSPORT_VARIANT.equals(tool.variantLabel(getVariant(tool)));
+	}
+
+	/** Draws every transport path (and the one being built) to the builder while the Transport tool is held. */
+	public void startTransportPreview(Player player)
+	{
+		stopTransportPreview();
+		transportPreviewTask = com.theprogrammingturkey.comz.COMZombies.scheduleTask(5L, 5L, () ->
+		{
+			if(!player.isOnline() || !holdingTransportTool(player))
+				return;
+			for(Transport transport : game.transportManager.getTransports())
+				drawTransport(player, transport, Color.AQUA, Color.YELLOW);
+			if(transportInProgress != null)
+				drawTransport(player, transportInProgress, Color.LIME, Color.ORANGE);
+		});
+	}
+
+	public void stopTransportPreview()
+	{
+		if(transportPreviewTask != -1)
+		{
+			Bukkit.getScheduler().cancelTask(transportPreviewTask);
+			transportPreviewTask = -1;
+		}
+	}
+
+	private static void drawTransport(Player player, Transport transport, Color pathColor, Color callColor)
+	{
+		Particle dustType = Compat.DUST;
+		if(dustType == null)
+			return;
+		Particle.DustOptions path = new Particle.DustOptions(pathColor, 0.8f);
+		Particle.DustOptions node = new Particle.DustOptions(Color.WHITE, 1.4f);
+		Particle.DustOptions call = new Particle.DustOptions(callColor, 1.6f);
+		double lift = transport.getStyle() == Transport.Style.ZIPLINE ? Transport.ROPE_HEIGHT : 0.2D;
+		List<Vector> points = transport.getWaypoints();
+		for(int i = 0; i < points.size(); i++)
+		{
+			Vector a = points.get(i);
+			player.spawnParticle(dustType, a.getX(), a.getY() + 0.2, a.getZ(), 2, 0.05, 0.05, 0.05, 0, node);
+			if(i == 0)
+				continue;
+			Vector from = points.get(i - 1);
+			double len = from.distance(a);
+			for(double d = 0; d <= len; d += 0.5)
+			{
+				Vector p = from.clone().add(a.clone().subtract(from).multiply(len <= 0 ? 0 : d / len));
+				player.spawnParticle(dustType, p.getX(), p.getY() + lift, p.getZ(), 1, 0, 0, 0, 0, path);
+			}
+		}
+		for(Vector c : transport.effectiveCallPoints())
+			player.spawnParticle(dustType, c.getX(), c.getY() + 0.6, c.getZ(), 3, 0.15, 0.3, 0.15, 0, call);
 	}
 
 	public Location getPendingPriceSign()

@@ -174,6 +174,9 @@ public class Game
 	 */
 	public TrapManager trapManager;
 
+	/** Ziplines, platforms, carts and elevators of this arena. */
+	public TransportManager transportManager;
+
 	/**
 	 * Tier 4 — contains all of the parts-collection / assembly buildable stations in the game
 	 */
@@ -254,6 +257,7 @@ public class Game
 		powerUpManager = new PowerUpManager();
 		teleporterManager = new TeleporterManager(this);
 		trapManager = new TrapManager(this);
+		transportManager = new TransportManager(this);
 		buildableManager = new BuildableManager(this);
 		questManager = new QuestManager(this);
 		downedPlayerManager = new DownedPlayerManager();
@@ -605,6 +609,7 @@ public class Game
 		// Start the proximity-buy scan so doors/machines can be bought with F (config-gated, no-op off).
 		proximityBuyManager.start();
 		environmentManager.start();
+		transportManager.start();
 		KitManager.giveOutKits(this);
 	}
 
@@ -863,6 +868,7 @@ public class Game
 		com.theprogrammingturkey.comz.game.signs.PackAPunchSign.onPlayerLeave(this, player);
 		com.theprogrammingturkey.comz.game.features.Wunderfizz.onPlayerLeave(this, player);
 		com.theprogrammingturkey.comz.game.dev.DevTools.clearGod(player);
+		transportManager.dismount(player);
 		// Tier 3 — Who's Who: if the player leaves mid-ghost, tear down the ghost (cancel its task,
 		// strip glowing/effects) so it can never leak into a later state and the player no longer
 		// appears to hold the ghost's temporary loadout/perks.
@@ -1109,6 +1115,8 @@ public class Game
 
 		this.status = GameStatus.WAITING;
 
+		// Riders are put back on solid ground before players are reset and sent out of the arena.
+		transportManager.stop();
 		com.theprogrammingturkey.comz.game.signs.PackAPunchSign.refundGame(this);
 		environmentManager.stop();
 		for(GamePlayer v : gamePlayers.values())
@@ -1288,6 +1296,9 @@ public class Game
 		if(arenaSaveJson.has("traps"))
 			trapManager.loadAllTrapsToGame(arenaSaveJson.get("traps").getAsJsonArray());
 
+		if(arenaSaveJson.has("transports"))
+			transportManager.loadAllTransportsToGame(arenaSaveJson.get("transports").getAsJsonArray());
+
 		if(arenaSaveJson.has("buildables"))
 			buildableManager.loadAllBuildablesToGame(arenaSaveJson.get("buildables").getAsJsonArray());
 
@@ -1330,6 +1341,7 @@ public class Game
 		arenaSaveJson.add("doors", doorManager.save());
 		arenaSaveJson.add("teleporters", teleporterManager.save());
 		arenaSaveJson.add("traps", trapManager.save());
+		arenaSaveJson.add("transports", transportManager.save());
 		arenaSaveJson.add("buildables", buildableManager.save());
 		arenaSaveJson.add("quest", questManager.save());
 		arenaSaveJson.add("zones", zoneManager.save());

@@ -39,6 +39,12 @@ public class LegacyDisplayBackend implements DisplayBackend
 	}
 
 	@Override
+	public Entity spawnLine(Location from, double dx, double dy, double dz, BlockData block, float thickness)
+	{
+		return null;
+	}
+
+	@Override
 	public Entity spawnItem(Location loc, ItemStack stack, float scale, float yawDegrees, float offsetY, boolean faceViewer)
 	{
 		return null;

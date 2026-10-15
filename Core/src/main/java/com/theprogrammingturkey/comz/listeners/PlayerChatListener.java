@@ -37,7 +37,9 @@ public class PlayerChatListener implements Listener
 		if(com.theprogrammingturkey.comz.game.builder.BuildModeManager.INSTANCE.hasPendingPriceEdit(player))
 		{
 			playerChat.setCancelled(true);
-			COMZombies.scheduleTask(1, () -> com.theprogrammingturkey.comz.game.builder.BuildModeManager.INSTANCE.handlePriceChat(player, message));
+			// The raw text: transport options ("cost=500 name=Main Zipline") need their spaces.
+			String typed = playerChat.getMessage().trim();
+			COMZombies.scheduleTask(1, () -> com.theprogrammingturkey.comz.game.builder.BuildModeManager.INSTANCE.handlePriceChat(player, typed));
 			return;
 		}
 

@@ -252,6 +252,10 @@ public class ProximityBuyManager
 				candidates.add(new Candidate(new BuyTarget(TargetType.PROP, centre, prompt, null, null, prop), dSq, aimBox(centre, 0.6, 0.7), false));
 		}
 
+		for(TransportManager.CallTarget call : game.transportManager.findCallTargets(player))
+			candidates.add(new Candidate(new BuyTarget(call, game.transportManager.prompt(player, call)), call.distanceSq,
+					aimBox(com.theprogrammingturkey.comz.game.features.Transport.toLocation(player.getWorld(), call.point).add(0, 0.5, 0), 0.6, 1.0), false));
+
 		return choose(player, candidates);
 	}
 
@@ -434,7 +438,7 @@ public class ProximityBuyManager
 	}
 
 	/** What kind of buyable the player is standing next to. Determines which buy path F triggers. */
-	public enum TargetType { DOOR, MACHINE, WALL_GUN, BOX, PROP }
+	public enum TargetType { DOOR, MACHINE, WALL_GUN, BOX, PROP, TRANSPORT }
 
 	/** A resolved buy target: its kind, the location to route the buy to, and the prompt text. */
 	public static final class BuyTarget
@@ -447,6 +451,18 @@ public class ProximityBuyManager
 		public final String machineLabel;
 		public final Door door;
 		public final SignPropManager.Prop prop;
+		public final TransportManager.CallTarget transport;
+
+		BuyTarget(TransportManager.CallTarget transport, String prompt)
+		{
+			this.type = TargetType.TRANSPORT;
+			this.location = null;
+			this.prompt = prompt;
+			this.machineLabel = null;
+			this.door = null;
+			this.prop = null;
+			this.transport = transport;
+		}
 
 		BuyTarget(TargetType type, Location location, String prompt, String machineLabel, Door door, SignPropManager.Prop prop)
 		{
@@ -456,6 +472,7 @@ public class ProximityBuyManager
 			this.machineLabel = machineLabel;
 			this.door = door;
 			this.prop = prop;
+			this.transport = null;
 		}
 
 		BuyTarget(TargetType type, Location location, String prompt, String machineLabel)

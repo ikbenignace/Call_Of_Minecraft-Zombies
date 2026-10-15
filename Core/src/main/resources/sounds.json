@@ -750,6 +750,27 @@
   "power": {
     "on": "custom.circuit.power_flux"
   },
+  "transport": {
+    "call": "BLOCK_NOTE_BLOCK_PLING",
+    "deny": "ENTITY_VILLAGER_NO",
+    "zipline": {
+      "depart": "BLOCK_CHAIN_STEP",
+      "loop": "BLOCK_CHAIN_STEP",
+      "arrive": "ENTITY_LEASH_KNOT_BREAK"
+    },
+    "platform": {
+      "depart": "BLOCK_PISTON_EXTEND",
+      "arrive": "BLOCK_IRON_DOOR_CLOSE"
+    },
+    "cart": {
+      "depart": "ENTITY_MINECART_RIDING",
+      "arrive": "BLOCK_IRON_TRAPDOOR_CLOSE"
+    },
+    "teleport": {
+      "depart": "BLOCK_BEACON_ACTIVATE",
+      "arrive": "BLOCK_NOTE_BLOCK_BELL"
+    }
+  },
   "zombie": {
     "spawn": "custom.zombie.spawn"
   },

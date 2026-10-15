@@ -37,7 +37,9 @@ public enum BuildTool
 	public static final List<String> MACHINE_VARIANTS =
 			Collections.unmodifiableList(Arrays.asList("Mystery Box", "Pack-a-Punch", "Ammo Crate", "Grenade", "Fridge", "Bank", "Power"));
 
-	/** Sign features first, then one variant per zone preset (two-corner zone placement). */
+	public static final String TRANSPORT_VARIANT = "Transport";
+
+	/** Sign features, the transport builder, then one variant per zone preset (two-corner zone placement). */
 	public static final List<String> FEATURE_VARIANTS = Collections.unmodifiableList(featureVariants());
 
 	public static final List<String> LOBBY_VARIANTS =
@@ -64,7 +66,7 @@ public enum BuildTool
 
 	private static List<String> featureVariants()
 	{
-		List<String> variants = new ArrayList<>(Arrays.asList("Trap", "Buildable", "Quest"));
+		List<String> variants = new ArrayList<>(Arrays.asList("Trap", "Buildable", "Quest", TRANSPORT_VARIANT));
 		for(ZonePreset preset : ZonePreset.values())
 			variants.add(preset.getLabel());
 		return variants;
