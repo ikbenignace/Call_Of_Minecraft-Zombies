@@ -15,6 +15,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * Chest-GUI editor for a single arena's settings (`/zombies settings &lt;arena&gt;`). Each slot is one
@@ -25,7 +26,8 @@ import java.util.List;
 public class SettingsMenu implements InventoryHolder
 {
 	private static final int SLOT_MIN = 10, SLOT_MAX = 11, SLOT_TEDDY = 12, SLOT_DOG = 13,
-			SLOT_GUN = 14, SLOT_AMMO = 15, SLOT_NIGHT = 16, SLOT_MULTIBOX = 22;
+			SLOT_GUN = 14, SLOT_AMMO = 15, SLOT_NIGHT = 16, SLOT_MULTIBOX = 22,
+			SLOT_GRAVITY = 19, SLOT_JUMP = 20, SLOT_FOG = 21;
 
 	private final Game game;
 	private final Inventory inv;
@@ -53,6 +55,9 @@ public class SettingsMenu implements InventoryHolder
 		inv.setItem(SLOT_AMMO, toggle(Material.ARROW, "Max-ammo refills clip", game.doesMaxAmmoReplenishClip()));
 		inv.setItem(SLOT_NIGHT, toggle(Material.CLOCK, "Force night", game.isForceNight()));
 		inv.setItem(SLOT_MULTIBOX, toggle(Material.CHEST, "Multiple mystery boxes", game.boxManager.isMultiBox()));
+		inv.setItem(SLOT_GRAVITY, item(Material.FEATHER, "Gravity", decimal(game.environmentManager.getGravity()), "1.0 = normal, 0.4 = moon; left +0.1 / right -0.1 (shift 0.5)"));
+		inv.setItem(SLOT_JUMP, item(Material.RABBIT_FOOT, "Jump boost", decimal(game.environmentManager.getJumpBoost()), "jump height multiplier; left +0.1 / right -0.1 (shift 0.5)"));
+		inv.setItem(SLOT_FOG, toggle(Material.BLACK_STAINED_GLASS, "Fog (darkness)", game.environmentManager.hasFog()));
 	}
 
 	/** Apply a click on {@code slot}; returns true if it was a settings slot (so the caller re-renders). */
@@ -86,6 +91,15 @@ public class SettingsMenu implements InventoryHolder
 			case SLOT_MULTIBOX:
 				game.boxManager.setMultiBox(!game.boxManager.isMultiBox());
 				break;
+			case SLOT_GRAVITY:
+				game.environmentManager.setGravity(game.environmentManager.getGravity() + (up ? step : -step) * 0.1);
+				break;
+			case SLOT_JUMP:
+				game.environmentManager.setJumpBoost(game.environmentManager.getJumpBoost() + (up ? step : -step) * 0.1);
+				break;
+			case SLOT_FOG:
+				game.environmentManager.setFog(!game.environmentManager.hasFog());
+				break;
 			default:
 				return false;
 		}
@@ -113,6 +127,11 @@ public class SettingsMenu implements InventoryHolder
 			}
 		idx = (idx + (forward ? 1 : guns.size() - 1)) % guns.size();
 		return guns.get(idx).getName();
+	}
+
+	private static String decimal(double value)
+	{
+		return String.format(Locale.ROOT, "%.2f", value);
 	}
 
 	private ItemStack item(Material mat, String name, Object value, String hint)

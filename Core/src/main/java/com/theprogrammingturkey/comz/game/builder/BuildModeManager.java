@@ -3,6 +3,7 @@ package com.theprogrammingturkey.comz.game.builder;
 import com.theprogrammingturkey.comz.game.Game;
 import com.theprogrammingturkey.comz.game.GameManager;
 import com.theprogrammingturkey.comz.game.features.Door;
+import com.theprogrammingturkey.comz.game.features.Zone;
 import com.theprogrammingturkey.comz.util.BlockUtils;
 import com.theprogrammingturkey.comz.util.CommandUtil;
 import net.md_5.bungee.api.ChatMessageType;
@@ -17,6 +18,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -74,6 +76,7 @@ public final class BuildModeManager
 		session.refreshDoorHolograms();
 		// Previews of every perk machine, Pack-a-Punch and mystery box already in the arena.
 		session.refreshMachinePreviews(player);
+		session.startZoneOutlines(player);
 		giveToolbar(player, session);
 		player.getInventory().setHeldItemSlot(0);
 
@@ -91,6 +94,7 @@ public final class BuildModeManager
 			return;
 		warnRoomProgressionIssues(player, session);
 		session.cancelEditInProgress(); // revert any in-place door/barrier edit before tearing down markers
+		session.stopZoneOutlines();
 		session.removeAllPreviews();
 		session.removeDoorHolograms();
 		session.restoreAllMarkers();
@@ -190,6 +194,71 @@ public final class BuildModeManager
 	public void actionBar(Player player, String text)
 	{
 		player.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(text));
+	}
+
+	public boolean hasPendingZoneEdit(Player player)
+	{
+		BuildSession session = sessions.get(player.getUniqueId());
+		return session != null && session.getPendingZoneEdit() != null;
+	}
+
+	/** Explain the zone chat prompt and arm it for {@code zone}. */
+	public void startZoneEdit(Player player, BuildSession session, Zone zone)
+	{
+		session.setPendingZoneEdit(zone);
+		CommandUtil.sendMessageToPlayer(player, ChatColor.AQUA + "Editing " + zone.getId() + ChatColor.GRAY + " (" + zone.describeFlags() + "). Type in chat:");
+		CommandUtil.sendMessageToPlayer(player, ChatColor.YELLOW + "name <text|none>" + ChatColor.GRAY + ", " + ChatColor.YELLOW + "gravity <x|off>" + ChatColor.GRAY + ", "
+				+ ChatColor.YELLOW + "noair <on|off>" + ChatColor.GRAY + ", " + ChatColor.YELLOW + "damage <per second>" + ChatColor.GRAY + ", " + ChatColor.YELLOW + "delete" + ChatColor.GRAY + " or " + ChatColor.YELLOW + "done");
+	}
+
+	/** Apply one chat line to the zone being edited. MUST run on the main thread. */
+	public void handleZoneChat(Player player, String message)
+	{
+		BuildSession session = sessions.get(player.getUniqueId());
+		if(session == null || session.getPendingZoneEdit() == null)
+			return;
+		Zone zone = session.getPendingZoneEdit();
+		String[] parts = message.trim().split("\\s+", 2);
+		String command = parts[0].toLowerCase(Locale.ROOT);
+		String arg = parts.length > 1 ? parts[1].trim() : "";
+		try
+		{
+			switch(command)
+			{
+				case "done":
+				case "cancel":
+					session.setPendingZoneEdit(null);
+					CommandUtil.sendMessageToPlayer(player, ChatColor.GRAY + "Finished editing " + zone.getId() + ".");
+					return;
+				case "delete":
+					session.getGame().zoneManager.removeZone(zone);
+					session.setPendingZoneEdit(null);
+					GameManager.INSTANCE.saveAllGames();
+					CommandUtil.sendMessageToPlayer(player, ChatColor.YELLOW + "Deleted " + zone.getId() + ".");
+					return;
+				case "name":
+					zone.setName(arg.equalsIgnoreCase("none") ? "" : arg);
+					break;
+				case "gravity":
+					zone.setGravity(arg.equalsIgnoreCase("off") ? Zone.NO_GRAVITY_OVERRIDE : Double.parseDouble(arg));
+					break;
+				case "noair":
+					zone.setNoAir(arg.equalsIgnoreCase("on") || arg.equalsIgnoreCase("true"));
+					break;
+				case "damage":
+					zone.setDamagePerSecond(Double.parseDouble(arg));
+					break;
+				default:
+					CommandUtil.sendMessageToPlayer(player, ChatColor.RED + "Unknown zone option '" + command + "'. Type done to stop editing.");
+					return;
+			}
+		} catch(NumberFormatException e)
+		{
+			CommandUtil.sendMessageToPlayer(player, ChatColor.RED + "'" + arg + "' is not a number.");
+			return;
+		}
+		GameManager.INSTANCE.saveAllGames();
+		CommandUtil.sendMessageToPlayer(player, ChatColor.GREEN + zone.getId() + (zone.hasName() ? " \"" + zone.getName() + "\"" : "") + ": " + zone.describeFlags());
 	}
 
 	/** True if this build player is mid price-edit (a sneak-right-click armed a sign, or the Door tool's

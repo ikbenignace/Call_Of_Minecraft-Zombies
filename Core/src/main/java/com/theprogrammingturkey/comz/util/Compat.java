@@ -69,6 +69,8 @@ public final class Compat
 	public static final PotionEffectType SLOWNESS = potionEffect("SLOWNESS", "SLOW");
 	/** Null below 1.19. */
 	public static final PotionEffectType DARKNESS = potionEffect("DARKNESS");
+	public static final PotionEffectType JUMP_BOOST = potionEffect("JUMP_BOOST", "JUMP");
+	public static final PotionEffectType SLOW_FALLING = potionEffect("SLOW_FALLING");
 
 	public static final Attribute MAX_HEALTH = attribute("MAX_HEALTH", "GENERIC_MAX_HEALTH");
 	public static final Attribute MOVEMENT_SPEED = attribute("MOVEMENT_SPEED", "GENERIC_MOVEMENT_SPEED");
@@ -77,6 +79,8 @@ public final class Compat
 	public static final Attribute SCALE = attribute("SCALE", "GENERIC_SCALE");
 	/** Null below 1.20.5 for non-horse mobs. */
 	public static final Attribute JUMP_STRENGTH = attribute("JUMP_STRENGTH", "GENERIC_JUMP_STRENGTH");
+	/** Null below 1.20.5. */
+	public static final Attribute GRAVITY = attribute("GRAVITY", "GENERIC_GRAVITY");
 
 	/** Shows as "∞" on 1.19.4+ clients; older servers have no infinite duration. */
 	public static final int INFINITE_DURATION = intField(PotionEffect.class, "INFINITE_DURATION", Integer.MAX_VALUE);

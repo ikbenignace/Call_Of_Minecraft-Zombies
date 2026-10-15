@@ -37,8 +37,8 @@ public enum BuildTool
 	public static final List<String> MACHINE_VARIANTS =
 			Collections.unmodifiableList(Arrays.asList("Mystery Box", "Pack-a-Punch", "Ammo Crate", "Grenade", "Fridge", "Bank", "Power"));
 
-	public static final List<String> FEATURE_VARIANTS =
-			Collections.unmodifiableList(Arrays.asList("Trap", "Buildable", "Quest"));
+	/** Sign features first, then one variant per zone preset (two-corner zone placement). */
+	public static final List<String> FEATURE_VARIANTS = Collections.unmodifiableList(featureVariants());
 
 	public static final List<String> LOBBY_VARIANTS =
 			Collections.unmodifiableList(Arrays.asList("Join", "Spectate", "Kit"));
@@ -60,6 +60,14 @@ public enum BuildTool
 	public Material getIcon()
 	{
 		return icon;
+	}
+
+	private static List<String> featureVariants()
+	{
+		List<String> variants = new ArrayList<>(Arrays.asList("Trap", "Buildable", "Quest"));
+		for(ZonePreset preset : ZonePreset.values())
+			variants.add(preset.getLabel());
+		return variants;
 	}
 
 	/** The tool occupying a given hotbar slot, or null if the slot is not a tool slot. */

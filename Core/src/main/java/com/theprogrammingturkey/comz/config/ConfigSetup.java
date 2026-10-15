@@ -4,6 +4,8 @@ import com.theprogrammingturkey.comz.game.managers.PlayerDataManager;
 import com.theprogrammingturkey.comz.leaderboards.Leaderboard;
 import com.theprogrammingturkey.comz.COMZombies;
 
+import java.util.List;
+
 public class ConfigSetup
 {
 	/**
@@ -502,6 +504,23 @@ public class ConfigSetup
 	/** Spawn the ephemeral [BarrierRepair] sign on damage (classic look). False = sneak-to-repair. */
 	public boolean spawnBarrierRepairSign;
 
+	// ---- Arena environment and zones (arena settings override these defaults) ----
+
+	/** Default arena gravity multiplier; 1.0 = normal, 0.4 = moon. */
+	public double environmentGravity;
+	/** Default arena jump-height multiplier. */
+	public double environmentJumpBoost;
+	/** Default for the arena darkness/fog effect (1.19+ clients). */
+	public boolean environmentFog;
+	/** Seconds of air a player has inside a no-air zone without breathing gear. */
+	public int environmentOxygenSeconds;
+	/** Damage per second once the air meter is empty. */
+	public double environmentSuffocationDamage;
+	/** Show a zone's name as a title when a player enters it. */
+	public boolean environmentZoneTitles;
+	/** Helmet materials that always count as breathing gear. */
+	public List<String> breathingGearMaterials;
+
 	/**
 	 * WeaponMechanics integration mode. {@code auto} (default) = use WM for mapped guns iff the
 	 * plugin is installed + enabled; {@code off} = always native even if WM is present; {@code force}
@@ -662,6 +681,14 @@ public class ConfigSetup
 		proximityBuy = plugin.getConfig().getBoolean("config.features.proximityBuy", true);
 		useDoorSigns = plugin.getConfig().getBoolean("config.features.useDoorSigns", false);
 		spawnBarrierRepairSign = plugin.getConfig().getBoolean("config.features.spawnBarrierRepairSign", false);
+
+		environmentGravity = plugin.getConfig().getDouble("config.environment.gravity", 1.0);
+		environmentJumpBoost = plugin.getConfig().getDouble("config.environment.jumpBoost", 1.0);
+		environmentFog = plugin.getConfig().getBoolean("config.environment.fog", false);
+		environmentOxygenSeconds = plugin.getConfig().getInt("config.environment.oxygenSeconds", 10);
+		environmentSuffocationDamage = plugin.getConfig().getDouble("config.environment.suffocationDamage", 2.0);
+		environmentZoneTitles = plugin.getConfig().getBoolean("config.environment.zoneTitles", true);
+		breathingGearMaterials = plugin.getConfig().getStringList("config.environment.breathingGearMaterials");
 
 		wmIntegrationMode = plugin.getConfig().getString("config.integration.weaponMechanics", "auto");
 

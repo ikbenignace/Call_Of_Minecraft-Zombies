@@ -210,6 +210,11 @@ public class Game
 	 */
 	public ProximityBuyManager proximityBuyManager;
 
+	public ZoneManager zoneManager;
+
+	/** Arena gravity / jump / fog plus the per-zone effects, applied while the game runs. */
+	public EnvironmentManager environmentManager;
+
 	/**
 	 * Scoreboard used to manage players points
 	 */
@@ -257,6 +262,8 @@ public class Game
 		wallGunManager = new WallGunManager(this);
 		signPropManager = new SignPropManager(this);
 		proximityBuyManager = new ProximityBuyManager(this);
+		zoneManager = new ZoneManager(this);
+		environmentManager = new EnvironmentManager(this);
 
 		scoreboard = new GameScoreboard(this);
 	}
@@ -597,6 +604,7 @@ public class Game
 		signPropManager.spawnAll();
 		// Start the proximity-buy scan so doors/machines can be bought with F (config-gated, no-op off).
 		proximityBuyManager.start();
+		environmentManager.start();
 		KitManager.giveOutKits(this);
 	}
 
@@ -838,6 +846,7 @@ public class Game
 
 	public void setPlayerSpectatorMode(Player player)
 	{
+		environmentManager.clear(player);
 		CachedPlayerInfo.savePlayerInfo(player);
 		scoreboard.addPlayer(player);
 		player.setGameMode(GameMode.SPECTATOR);
@@ -913,6 +922,7 @@ public class Game
 
 	private void resetPlayer(Player player)
 	{
+		environmentManager.clear(player);
 		for(PotionEffectType t : PotionEffectType.values())
 			player.removePotionEffect(t);
 
@@ -1100,6 +1110,7 @@ public class Game
 		this.status = GameStatus.WAITING;
 
 		com.theprogrammingturkey.comz.game.signs.PackAPunchSign.refundGame(this);
+		environmentManager.stop();
 		for(GamePlayer v : gamePlayers.values())
 			com.theprogrammingturkey.comz.game.dev.DevTools.clearGod(v.getPlayer());
 		for(GamePlayer v : gamePlayers.values())
@@ -1235,6 +1246,7 @@ public class Game
 		maxAmmoReplishClip = CustomConfig.getBoolean(arenaSettingsJson, "max_ammo_replenish_clip", false);
 
 		forceNight = CustomConfig.getBoolean(arenaSettingsJson, "force_night", false);
+		environmentManager.load(arenaSettingsJson);
 
 		arena.loadArena(arenaSaveJson, world);
 		status = GameStatus.WAITING;
@@ -1282,6 +1294,9 @@ public class Game
 		if(arenaSaveJson.has("quest"))
 			questManager.load(arenaSaveJson.get("quest"));
 
+		if(arenaSaveJson.has("zones"))
+			zoneManager.load(arenaSaveJson.get("zones").getAsJsonArray());
+
 		signManager.updateGame();
 
 		return true;
@@ -1305,6 +1320,7 @@ public class Game
 		arena.saveArena(arenaSaveJson);
 		arenaSaveJson.addProperty("power_setup", powerSetup);
 		arenaSettingsJson.addProperty("force_night", forceNight);
+		environmentManager.save(arenaSettingsJson);
 
 		arenaSettingsJson.add("powerup_settings", powerUpManager.save());
 		arenaSaveJson.add("zombie_spawns", spawnManager.save());
@@ -1316,6 +1332,7 @@ public class Game
 		arenaSaveJson.add("traps", trapManager.save());
 		arenaSaveJson.add("buildables", buildableManager.save());
 		arenaSaveJson.add("quest", questManager.save());
+		arenaSaveJson.add("zones", zoneManager.save());
 
 		return gamejson;
 	}

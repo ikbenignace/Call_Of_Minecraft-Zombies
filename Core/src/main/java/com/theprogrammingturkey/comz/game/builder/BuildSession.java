@@ -1,13 +1,18 @@
 package com.theprogrammingturkey.comz.game.builder;
 
+import com.theprogrammingturkey.comz.COMZombies;
 import com.theprogrammingturkey.comz.game.Game;
 import com.theprogrammingturkey.comz.game.features.Barrier;
 import com.theprogrammingturkey.comz.game.features.Door;
+import com.theprogrammingturkey.comz.game.features.Zone;
 import com.theprogrammingturkey.comz.game.visuals.MachineLooks;
 import com.theprogrammingturkey.comz.game.visuals.MachineVisuals;
 import com.theprogrammingturkey.comz.spawning.SpawnPoint;
 import com.theprogrammingturkey.comz.util.Compat;
 import com.theprogrammingturkey.comz.util.DisplayEntityUtil;
+import net.md_5.bungee.api.ChatMessageType;
+import net.md_5.bungee.api.chat.TextComponent;
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
@@ -90,6 +95,15 @@ public class BuildSession
 	 *  to {@link #pendingPriceSign} — used when door signs are disabled so an admin can still edit a door's
 	 *  price by right-clicking a door block. */
 	private Door pendingPriceDoor;
+
+	/** First corner of a zone being placed with a Feature-tool zone preset, or null. */
+	private Location zoneCorner;
+
+	/** Zone awaiting typed edits (name / flags) via chat, or null. */
+	private Zone pendingZoneEdit;
+
+	private int zoneOutlineTask = -1;
+	private int zoneOutlineTicks;
 
 	public BuildSession(Player player, Game game)
 	{
@@ -275,6 +289,69 @@ public class BuildSession
 	public void setPendingPriceSign(Location loc)
 	{
 		this.pendingPriceSign = loc;
+	}
+
+	public Location getZoneCorner()
+	{
+		return zoneCorner;
+	}
+
+	public void setZoneCorner(Location corner)
+	{
+		this.zoneCorner = corner;
+	}
+
+	public Zone getPendingZoneEdit()
+	{
+		return pendingZoneEdit;
+	}
+
+	public void setPendingZoneEdit(Zone zone)
+	{
+		this.pendingZoneEdit = zone;
+	}
+
+	/** Start drawing zone outlines for this builder; the action bar names the zone they stand in while the zone tool is held. */
+	public void startZoneOutlines(Player player)
+	{
+		stopZoneOutlines();
+		zoneOutlineTicks = 0;
+		zoneOutlineTask = COMZombies.scheduleTask(0L, 10L, () ->
+		{
+			if(!player.isOnline())
+			{
+				stopZoneOutlines();
+				return;
+			}
+			ZoneOutlines.draw(player, this);
+			zoneOutlineTicks += 10;
+			if(zoneOutlineTicks % 40 == 0 && isHoldingZoneTool(player))
+			{
+				String text = ZoneOutlines.describeZoneAt(player, this);
+				if(text != null)
+					player.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(text));
+			}
+		});
+	}
+
+	public void stopZoneOutlines()
+	{
+		if(zoneOutlineTask != -1)
+		{
+			Bukkit.getScheduler().cancelTask(zoneOutlineTask);
+			zoneOutlineTask = -1;
+		}
+	}
+
+	/** The zone preset selected on the Feature tool, or null when the Feature tool is on a sign variant. */
+	public ZonePreset selectedZonePreset()
+	{
+		return ZonePreset.fromLabel(BuildTool.FEATURE.variantLabel(getVariant(BuildTool.FEATURE)));
+	}
+
+	private boolean isHoldingZoneTool(Player player)
+	{
+		return BuildTool.fromSlot(player.getInventory().getHeldItemSlot()) == BuildTool.FEATURE && selectedZonePreset() != null;
 	}
 
 	public Door getPendingPriceDoor()

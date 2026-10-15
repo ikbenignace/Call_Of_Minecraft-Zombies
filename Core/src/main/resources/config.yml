@@ -299,5 +299,23 @@ config:
     #Spawn the ephemeral [BarrierRepair] sign on a window when zombies damage it (classic look). When
     #false, no sign is spawned and the barrier is repaired by holding sneak near it instead.
     spawnBarrierRepairSign: false
+  environment:
+    #Defaults for every arena; each arena can override gravity, jump_boost and fog in /zombies settings.
+    #Gravity multiplier: 1.0 = normal, 0.4 = moon. Uses the gravity attribute on 1.20.5+, older servers
+    #approximate low gravity with Slow Falling + Jump Boost.
+    gravity: 1.0
+    #Jump height multiplier.
+    jumpBoost: 1.0
+    #Darkness/fog around players (needs 1.19+).
+    fog: false
+    #Seconds of air in a no-air zone without breathing gear before suffocation damage starts.
+    oxygenSeconds: 10
+    #Damage per second once out of air.
+    suffocationDamage: 2.0
+    #Show a zone's name as a title when a player enters it.
+    zoneTitles: true
+    #Helmet materials that always count as breathing gear, e.g. [GLASS]. Items tagged as breathing gear
+    #by the plugin always count.
+    breathingGearMaterials: []
 #Config version marker (read by ConfigSetup; currently informational only).
 vID: "2.0"

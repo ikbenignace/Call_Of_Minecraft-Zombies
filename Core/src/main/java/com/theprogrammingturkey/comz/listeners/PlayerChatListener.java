@@ -23,6 +23,15 @@ public class PlayerChatListener implements Listener
 		Player player = playerChat.getPlayer();
 		String message = playerChat.getMessage().replaceFirst(" ", "").trim();
 
+		// Build-mode zone edit: uses the raw message because the zone options are space-separated.
+		if(com.theprogrammingturkey.comz.game.builder.BuildModeManager.INSTANCE.hasPendingZoneEdit(player))
+		{
+			playerChat.setCancelled(true);
+			String raw = playerChat.getMessage().trim();
+			COMZombies.scheduleTask(1, () -> com.theprogrammingturkey.comz.game.builder.BuildModeManager.INSTANCE.handleZoneChat(player, raw));
+			return;
+		}
+
 		// Build-mode price edit: a sneak-right-clicked sign is waiting for a typed price. Consume the
 		// message and apply it on the main thread (block edits can't run from this async event).
 		if(com.theprogrammingturkey.comz.game.builder.BuildModeManager.INSTANCE.hasPendingPriceEdit(player))

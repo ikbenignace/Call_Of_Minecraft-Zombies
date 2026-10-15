@@ -8,10 +8,12 @@ import com.theprogrammingturkey.comz.game.builder.BuildModeManager;
 import com.theprogrammingturkey.comz.game.builder.BuildSession;
 import com.theprogrammingturkey.comz.game.builder.BuildTool;
 import com.theprogrammingturkey.comz.game.builder.MachineSigns;
+import com.theprogrammingturkey.comz.game.builder.ZonePreset;
 import com.theprogrammingturkey.comz.game.features.Barrier;
 import com.theprogrammingturkey.comz.game.features.BuildableItems;
 import com.theprogrammingturkey.comz.game.features.Door;
 import com.theprogrammingturkey.comz.game.features.PerkType;
+import com.theprogrammingturkey.comz.game.features.Zone;
 import com.theprogrammingturkey.comz.game.signs.IGameSign;
 import com.theprogrammingturkey.comz.game.weapons.BaseGun;
 import com.theprogrammingturkey.comz.game.managers.WeaponManager;
@@ -97,6 +99,14 @@ public class BuildModeListener implements Listener
 		if(tool == BuildTool.BARRIER)
 		{
 			barrierInteract(player, session, clicked, event.getAction(), player.isSneaking());
+			return;
+		}
+		ZonePreset zonePreset = tool == BuildTool.FEATURE ? session.selectedZonePreset() : null;
+		if(zonePreset != null && !(event.getAction() == Action.LEFT_CLICK_BLOCK && isComzSign(clicked)))
+		{
+			if(event.getAction() == Action.RIGHT_CLICK_BLOCK && session.onPlaceCooldown())
+				return;
+			zoneInteract(player, session, zonePreset, clicked, event.getAction(), player.isSneaking());
 			return;
 		}
 
@@ -478,6 +488,82 @@ public class BuildModeListener implements Listener
 		}
 
 		msg(player, ChatColor.GRAY + "Nothing to remove there.");
+	}
+
+	/**
+	 * Feature-tool zone editor. Right-click sets the first corner, right-click again sets the opposite
+	 * corner and creates the zone with the selected preset's flags. Sneak-right-click inside a zone opens
+	 * its chat editor (name / flags); left-click removes the smallest zone at the clicked block. Either
+	 * action cancels a half-placed zone first.
+	 */
+	private void zoneInteract(Player player, BuildSession session, ZonePreset preset, Block clicked, Action action, boolean sneaking)
+	{
+		Game game = session.getGame();
+		Location corner = session.getZoneCorner();
+		if(corner != null && (sneaking || action == Action.LEFT_CLICK_BLOCK))
+		{
+			session.setZoneCorner(null);
+			manager.actionBar(player, ChatColor.YELLOW + "Zone placement cancelled.");
+			return;
+		}
+
+		if(action == Action.LEFT_CLICK_BLOCK)
+		{
+			Zone zone = zoneAt(game, clicked);
+			if(zone == null)
+			{
+				msg(player, ChatColor.GRAY + "No zone there.");
+				return;
+			}
+			game.zoneManager.removeZone(zone);
+			if(session.getPendingZoneEdit() == zone)
+				session.setPendingZoneEdit(null);
+			GameManager.INSTANCE.saveAllGames();
+			msg(player, ChatColor.YELLOW + "Removed " + zone.getId() + ".");
+			return;
+		}
+		if(action != Action.RIGHT_CLICK_BLOCK)
+			return;
+
+		if(sneaking)
+		{
+			Zone zone = zoneAt(game, clicked);
+			if(zone == null)
+				msg(player, ChatColor.GRAY + "No zone there.");
+			else
+				manager.startZoneEdit(player, session, zone);
+			return;
+		}
+
+		if(!game.arena.containsBlock(clicked.getLocation()))
+		{
+			msg(player, ChatColor.RED + "Zones must be inside the arena!");
+			return;
+		}
+		if(corner == null)
+		{
+			session.setZoneCorner(clicked.getLocation());
+			manager.actionBar(player, ChatColor.GREEN + "Corner 1 set. Right-click the opposite corner (sneak/left-click cancels).");
+			return;
+		}
+
+		session.setZoneCorner(null);
+		Zone zone = new Zone(game.zoneManager.nextId(), corner, clicked.getLocation());
+		preset.apply(zone);
+		if(preset == ZonePreset.NAMED_AREA)
+			zone.setName("Area " + (game.zoneManager.getZones().size() + 1));
+		game.zoneManager.addZone(zone);
+		GameManager.INSTANCE.saveAllGames();
+		msg(player, ChatColor.GREEN + "Created " + zone.getId() + ChatColor.GRAY + " (" + zone.describeFlags() + "). Sneak-right-click inside it to name it or change flags.");
+		if(preset == ZonePreset.NAMED_AREA)
+			manager.startZoneEdit(player, session, zone);
+	}
+
+	/** Smallest zone holding the clicked block or the block above it (clicks usually land on the floor). */
+	private Zone zoneAt(Game game, Block clicked)
+	{
+		Zone zone = game.zoneManager.getSmallestZoneAt(clicked.getLocation().add(0.5, 0.5, 0.5));
+		return zone != null ? zone : game.zoneManager.getSmallestZoneAt(clicked.getLocation().add(0.5, 1.5, 0.5));
 	}
 
 	/**
