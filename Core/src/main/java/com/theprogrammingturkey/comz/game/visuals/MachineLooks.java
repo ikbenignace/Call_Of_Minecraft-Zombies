@@ -100,6 +100,9 @@ public final class MachineLooks
 				box("STONE_BRICKS", -0.3f, 2.1f, -0.1f, 0.3f, 2.4f, 0.1f, false));
 		perk(PerkType.WHOS_WHO, "BLUE_CONCRETE", "RED_CONCRETE", "WHITE_CONCRETE", "SEA_LANTERN");
 		perk(PerkType.VULTURE_AID, "BROWN_CONCRETE", "GREEN_CONCRETE", "DARK_OAK_PLANKS", "GLOWSTONE");
+		perk(PerkType.DER_WUNDERFIZZ, "CYAN_TERRACOTTA", "PURPLE_STAINED_GLASS", "GOLD_BLOCK", "AMETHYST_BLOCK|PURPLE_STAINED_GLASS",
+				box("SEA_LANTERN", -0.15f, 2.0f, -0.15f, 0.15f, 2.3f, 0.15f, true),
+				box("PURPLE_STAINED_GLASS", -0.3f, 1.95f, -0.3f, 0.3f, 2.4f, 0.3f, true));
 
 		PAP = new Look("machine/pap", 1.0f, 1.5f, 2.0f, 2.4f, Arrays.asList(
 				box("POLISHED_BLACKSTONE", -0.75f, 0.0f, -0.5f, 0.75f, 1.55f, 0.5f, false),
@@ -197,7 +200,7 @@ public final class MachineLooks
 		PERKS.put(type, new Look(type.getMachineModelKey(), 1.01f, 1.0f, 2.0f, 2.4f, parts));
 	}
 
-	/** Null for perks without a machine (Der Wunderfizz). */
+	/** Null when the perk has no machine look. */
 	public static Look forPerk(PerkType perk)
 	{
 		return perk == null ? null : PERKS.get(perk);

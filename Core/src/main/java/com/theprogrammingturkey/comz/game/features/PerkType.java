@@ -37,7 +37,7 @@ public enum PerkType
 	VULTURE_AID(PotionEffectType.WATER_BREATHING, 0, "vulture_aid"),
 	TOMBSTONE_SODA(Compat.potionEffect("WIND_CHARGED"), 0, "tombstone"),
 	WHOS_WHO(Compat.potionEffect("RAID_OMEN"), 0, "whos_who"),
-	DER_WUNDERFIZZ(null, 0, null);
+	DER_WUNDERFIZZ(null, 0, "wunderfizz");
 
 	/**
 	 * Icon effects are chosen for ZERO visible/gameplay impact in a land arena (no FOV/screen/movement
@@ -50,8 +50,8 @@ public enum PerkType
 	/**
 	 * Pack-relative model base name for this perk, matching the file under {@code assets/comz/items/perk/}
 	 * (e.g. {@code "speed_cola"}). Drives both the drink-bottle item model ({@code perk/<name>}) and the
-	 * machine model ({@code machine/perk_<name>}). {@code null} for DER_WUNDERFIZZ (random dispenser, no
-	 * dedicated machine model).
+	 * machine model ({@code machine/perk_<name>}). DER_WUNDERFIZZ only has a machine
+	 * model (it dispenses a random perk, so no bottle).
 	 */
 	private final String modelName;
 
@@ -78,10 +78,10 @@ public enum PerkType
 		return modelName;
 	}
 
-	/** Pack key for the drink bottle item model ({@code perk/<name>}), or {@code null}. */
+	/** Pack key for the drink bottle item model ({@code perk/<name>}), or {@code null}. Der Wunderfizz has no bottle of its own. */
 	public String getBottleModelKey()
 	{
-		return modelName == null ? null : "perk/" + modelName;
+		return modelName == null || this == DER_WUNDERFIZZ ? null : "perk/" + modelName;
 	}
 
 	/** Pack key for the perk machine model ({@code machine/perk_<name>}), or {@code null}. */

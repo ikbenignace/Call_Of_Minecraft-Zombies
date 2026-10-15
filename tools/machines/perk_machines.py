@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-The twelve perk-a-cola machines as item models (machines/perk_<key>.json), after the Black Ops
+The perk-a-cola machines as item models (machines/perk_<key>.json), after the Black Ops
 zombies renders: retro vending cabinets, coolers and jukebox-style shells each topped by their
 round lit emblem. One block footprint (x/z 0..16), front towards -Z, floor at y = 0.
 
@@ -467,10 +467,70 @@ def vulture_aid():
     return finish(g)
 
 
+def wunderfizz():
+    """BO3 Der Wunderfizz: tall art-deco cabinet in dark teal and brass, a lit window where the bottle
+    drops, and a big glass orb with a crackling purple core on top."""
+    paint('wf_body', (34, 58, 66), wear=0.05)
+    paint('wf_body_dark', (20, 34, 40))
+    paint('wf_brass', (196, 150, 62), wear=0.03)
+    lit('wf_orb', (90, 40, 170), (235, 215, 255))
+    lit('wf_core', (170, 120, 255), (255, 255, 255))
+    lit('wf_window', (60, 30, 120), (200, 170, 255))
+    graphic('wf_logo', 11, 4.2, logo_text((22, 30, 36, 255), [
+        ("DER WUNDERFIZZ", 'block', 22, (236, 196, 96, 255), 0.52)]))
+
+    def window(d, W, H):
+        rect(d, 0, 0, 1, 1, (40, 18, 80, 255), W, H)
+        d.ellipse((W * 0.1, H * 0.15, W * 0.9, H * 0.85), fill=(120, 70, 210, 255))
+        d.ellipse((W * 0.25, H * 0.3, W * 0.75, H * 0.7), fill=(220, 200, 255, 255))
+        for i, col in enumerate(((205, 40, 30), (40, 130, 60), (230, 176, 42), (44, 112, 168))):
+            x = 0.14 + i * 0.19
+            rect(d, x, 0.62, x + 0.12, 0.92, col + (255,), W, H, 0.03)
+            rect(d, x + 0.035, 0.54, x + 0.085, 0.62, col + (255,), W, H)
+    graphic('wf_window_art', 7.6, 7.2, window)
+
+    def deco(d, W, H):
+        rect(d, 0, 0, 1, 1, (20, 34, 40, 255), W, H)
+        for k in range(7):
+            a = math.radians(-90 + (k - 3) * 22)
+            d.line((W * 0.5, H * 1.0, W * (0.5 + 0.7 * math.cos(a)), H * (1.0 + 1.2 * math.sin(a))), fill=(196, 150, 62, 255), width=max(2, W // 30))
+        d.ellipse((W * 0.38, H * 0.72, W * 0.62, H * 1.2), fill=(236, 196, 96, 255))
+    graphic('wf_deco', 9.6, 4.0, deco)
+
+    g = new_gun('perk_wunderfizz')
+    box(g, 1, 0, 1.5, 15, 1.4, 14.5, 'wf_brass', name='plinth')
+    box(g, 1.6, 1.4, 2, 14.4, 2.4, 14, 'wf_body_dark', name='kick')
+    box(g, 2, 2.4, 2.5, 14, 21, 13.5, 'wf_body', name='body')
+    for x0 in (1.4, 13.4):
+        box(g, x0, 1.4, 2.0, x0 + 1.2, 21.6, 3.2, 'wf_brass', name='pilaster')
+        for k in range(3):
+            box(g, x0 + 0.15 + k * 0.35, 3, 1.8, x0 + 0.35 + k * 0.35, 20, 2.0, 'wf_body_dark', name='flute')
+    box(g, 3, 4.2, 2.3, 13, 13.2, 2.5, 'wf_brass', name='window_frame')
+    plate(g, 3.6, 4.8, 12.4, 12.6, 2.3, 'wf_window_art')
+    box(g, 5, 2.8, 1.7, 11, 4.0, 2.5, 'coin_dark', name='tray')
+    box(g, 4.8, 2.6, 1.5, 11.2, 2.9, 2.5, 'wf_brass', name='tray_lip')
+    plate(g, 3.2, 14.0, 12.8, 18.0, 2.5, 'wf_deco')
+    plate(g, 2.6, 18.2, 13.4, 21.0, 2.5, 'wf_logo')
+    top = stepped_top(g, 1.6, 14.4, 2.1, 13.9, 21, 'wf_brass', steps=((0.0, 0.6), (1.0, 0.6), (2.2, 0.5)))
+    g.cyl('y', (C, C), 3.4, top, top + 1.0, 'wf_brass', seg=16, name='collar')
+    y = top + 1.0
+    for r, h in ((3.2, 0.8), (4.4, 1.0), (5.0, 2.6), (4.4, 1.0), (3.2, 0.8), (1.8, 0.6)):
+        g.cyl('y', (C, C), r, y, y + h, 'wf_orb', seg=16, name='orb')
+        y += h
+    g.cyl('y', (C, C), 2.0, top + 2.6, top + 5.8, 'wf_core', seg=8, name='orb_core')
+    for ang in (0, 45, -45, 90):
+        rot = None if ang == 0 else ('y', 0 if ang == 90 else ang, (C, top + 4, C))
+        frm, to = ((C - 5.15, top + 1.4, C - 0.18), (C + 5.15, top + 6.8, C + 0.18)) if ang == 90 else ((C - 0.18, top + 1.4, C - 5.15), (C + 0.18, top + 6.8, C + 5.15))
+        g.box(frm, to, 'wf_brass', rot=rot if rot and rot[1] else None, name='orb_rib')
+    box(g, C - 0.6, y, C - 0.6, C + 0.6, min(y + 1.2, 31.8), C + 0.6, 'wf_brass', name='finial')
+    return finish(g)
+
+
 BUILDERS = {
     'juggernog': juggernog, 'speed_cola': speed_cola, 'double_tap': double_tap, 'quick_revive': quick_revive,
     'stamin_up': stamin_up, 'phd_flopper': phd_flopper, 'deadshot': deadshot, 'mule_kick': mule_kick,
     'electric_cherry': electric_cherry, 'tombstone': tombstone, 'whos_who': whos_who, 'vulture_aid': vulture_aid,
+    'wunderfizz': wunderfizz,
 }
 
 if __name__ == '__main__':
