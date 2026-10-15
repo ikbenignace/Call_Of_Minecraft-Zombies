@@ -331,6 +331,12 @@ public final class MapSignConverter
 		}
 		if(entry.converted == null)
 			return;
+		// An imported arena already has its box locations; the map's "Random Weapon" sign just goes.
+		if(entry.kind == Kind.MYSTERY_BOX && game.boxManager.hasBoxNear(sign.getLocation(), MACHINE_DEDUPE_RANGE))
+		{
+			sign.getBlock().setType(Material.AIR, false);
+			return;
+		}
 		sign.setLine(0, ChatColor.RED + entry.converted[0]);
 		sign.setLine(1, ChatColor.AQUA + entry.converted[1]);
 		sign.setLine(2, entry.converted[2]);

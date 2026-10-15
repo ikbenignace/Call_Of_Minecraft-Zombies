@@ -151,6 +151,18 @@ public class BoxManager
 		return currentBox;
 	}
 
+	/** Whether a box location already exists within {@code range} blocks of {@code loc}. */
+	public boolean hasBoxNear(Location loc, double range)
+	{
+		for(RandomBox box : boxes)
+		{
+			Location other = box.getLocation();
+			if(other != null && other.getWorld() != null && other.getWorld().equals(loc.getWorld()) && other.distanceSquared(loc) <= range * range)
+				return true;
+		}
+		return false;
+	}
+
 	public int getNumBoxes()
 	{
 		return boxes.size();
