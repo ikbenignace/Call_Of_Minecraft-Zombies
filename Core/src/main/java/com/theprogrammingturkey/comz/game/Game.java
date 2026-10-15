@@ -204,6 +204,7 @@ public class Game
 	 */
 	public MachineModelManager machineModelManager;
 	public WallGunManager wallGunManager;
+	public com.theprogrammingturkey.comz.game.equipment.EquipmentManager equipmentManager;
 	/** Hides the doors', traps', teleporters' and other remaining feature signs during play, restoring them on teardown. */
 	public SignPropManager signPropManager;
 
@@ -264,6 +265,7 @@ public class Game
 		signManager = new SignManager(this);
 		machineModelManager = new MachineModelManager(this);
 		wallGunManager = new WallGunManager(this);
+		equipmentManager = new com.theprogrammingturkey.comz.game.equipment.EquipmentManager(this);
 		signPropManager = new SignPropManager(this);
 		proximityBuyManager = new ProximityBuyManager(this);
 		zoneManager = new ZoneManager(this);
@@ -658,6 +660,7 @@ public class Game
 				respawnDeadPlayer(player);
 
 		downedPlayerManager.reviveDownedPlayers();
+		equipmentManager.onNewRound();
 
 		int delay = 0;
 		if(waveNumber != 1)
@@ -843,6 +846,7 @@ public class Game
 	public void setDead(Player player)
 	{
 		gamePlayers.computeIfAbsent(player, GamePlayer::new).setState(PlayerState.DEAD);
+		equipmentManager.clearPlayer(player);
 		setPlayerSpectatorMode(player);
 		// A death may have been the last active player (solo bleed-out, Who's Who timeout, last
 		// co-op player). End the game if nobody is left playing so the session never hangs.
@@ -880,6 +884,7 @@ public class Game
 			downedPlayerManager.removeDownedPlayer(player);
 		if(gamePlayers.containsKey(player))
 			gamePlayers.get(player).setState(PlayerState.LEFT_GAME);
+		equipmentManager.clearPlayer(player);
 
 		// Clear any in-game perks so their icons (inventory slots 4-7) don't survive the quit —
 		// matches the expectation that leaving ends your run and its perk state.
@@ -1119,6 +1124,7 @@ public class Game
 		transportManager.stop();
 		com.theprogrammingturkey.comz.game.signs.PackAPunchSign.refundGame(this);
 		environmentManager.stop();
+		equipmentManager.reset();
 		for(GamePlayer v : gamePlayers.values())
 			com.theprogrammingturkey.comz.game.dev.DevTools.clearGod(v.getPlayer());
 		for(GamePlayer v : gamePlayers.values())
@@ -1733,7 +1739,10 @@ public class Game
 			});
 		}
 		else
+		{
+			equipmentManager.onDowned(player);
 			downedPlayerManager.setPlayerDowned(player, this);
+		}
 	}
 
 	public int getTeddyBearPercent()

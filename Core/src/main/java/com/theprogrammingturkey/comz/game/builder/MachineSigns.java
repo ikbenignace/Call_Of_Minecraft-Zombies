@@ -1,6 +1,8 @@
 package com.theprogrammingturkey.comz.game.builder;
 
 import com.theprogrammingturkey.comz.game.Game;
+import com.theprogrammingturkey.comz.game.equipment.Equipment;
+import com.theprogrammingturkey.comz.game.signs.EquipmentSign;
 import com.theprogrammingturkey.comz.game.visuals.MachineLooks;
 import com.theprogrammingturkey.comz.game.visuals.MachineLooks.Look;
 import com.theprogrammingturkey.comz.game.visuals.MachineVisuals;
@@ -122,14 +124,32 @@ public final class MachineSigns
 		return "gun".equalsIgnoreCase(ChatColor.stripColor(sign.getLine(1)).trim());
 	}
 
+	public static boolean isWallEquipment(Sign sign)
+	{
+		return "equipment".equalsIgnoreCase(ChatColor.stripColor(sign.getLine(1)).trim());
+	}
+
+	/** Wall guns and equipment wall buys: both show their item on the wall in place of the sign. */
+	public static boolean isWallBuy(Sign sign)
+	{
+		return isWallGun(sign) || isWallEquipment(sign);
+	}
+
 	public static List<Entity> previewModel(Sign sign, boolean usePack)
 	{
-		if(isWallGun(sign))
+		if(isWallBuy(sign))
 		{
 			List<Entity> preview = new ArrayList<>();
 			BlockData signData = sign.getBlockData();
 			BlockFace wallFacing = com.theprogrammingturkey.comz.util.Compat.facingOf(signData);
-			Entity model = WallGunVisuals.spawn(sign.getLocation(), wallFacing, WeaponManager.getGun(ChatColor.stripColor(sign.getLine(2))), usePack, 0.9);
+			Entity model;
+			if(isWallGun(sign))
+				model = WallGunVisuals.spawn(sign.getLocation(), wallFacing, WeaponManager.getGun(ChatColor.stripColor(sign.getLine(2))), usePack, 0.9);
+			else
+			{
+				Equipment equipment = EquipmentSign.equipmentOf(sign.getLines());
+				model = equipment == null ? null : WallGunVisuals.spawn(sign.getLocation(), wallFacing, equipment.displayStack(usePack), usePack && equipment.hasPackModel(), 0.9);
+			}
 			if(model != null)
 				preview.add(model);
 			return preview;

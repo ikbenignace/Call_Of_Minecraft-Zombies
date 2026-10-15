@@ -4,6 +4,8 @@ import com.theprogrammingturkey.comz.COMZombies;
 import com.theprogrammingturkey.comz.config.ConfigManager;
 import com.theprogrammingturkey.comz.game.Game;
 import com.theprogrammingturkey.comz.game.builder.MachineSigns;
+import com.theprogrammingturkey.comz.game.equipment.Equipment;
+import com.theprogrammingturkey.comz.game.signs.EquipmentSign;
 import com.theprogrammingturkey.comz.game.signs.GunSign;
 import com.theprogrammingturkey.comz.game.visuals.WallGunVisuals;
 import com.theprogrammingturkey.comz.game.weapons.BaseGun;
@@ -30,7 +32,7 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * Replaces every wall-buy gun sign with the weapon's 3D model on the wall, a price hologram and an
+ * Replaces every wall-buy gun and equipment sign with the item's 3D model on the wall, a price hologram and an
  * invisible click box for the length of a game. The sign is snapshotted and rebuilt afterwards, so the
  * buy logic keeps running off the snapshotted lines.
  */
@@ -93,20 +95,37 @@ public class WallGunManager
 
 	private void trySpawn(Sign sign)
 	{
-		if(!MachineSigns.isWallGun(sign))
+		if(!MachineSigns.isWallBuy(sign))
 			return;
 		String[] lines = sign.getLines().clone();
-		BaseGun gun = com.theprogrammingturkey.comz.game.managers.WeaponManager.getGun(ChatColor.stripColor(lines[2]));
-		int[] prices = GunSign.parsePrices(lines);
-		if(gun == null || prices == null)
-			return;
-
 		BlockData data = sign.getBlockData();
 		BlockFace facing = com.theprogrammingturkey.comz.util.Compat.facingOf(data);
 		boolean usePack = PackModels.isPackEnabled() && ConfigManager.getMainConfig().resourcePackForce;
-
 		Location blockLoc = sign.getLocation();
-		Entity model = WallGunVisuals.spawn(blockLoc, facing, gun, usePack, 0.0);
+
+		String name;
+		int price;
+		Entity model;
+		if(MachineSigns.isWallGun(sign))
+		{
+			BaseGun gun = com.theprogrammingturkey.comz.game.managers.WeaponManager.getGun(ChatColor.stripColor(lines[2]));
+			int[] prices = GunSign.parsePrices(lines);
+			if(gun == null || prices == null)
+				return;
+			name = gun.getName();
+			price = prices[0];
+			model = WallGunVisuals.spawn(blockLoc, facing, gun, usePack, 0.0);
+		}
+		else
+		{
+			Equipment equipment = EquipmentSign.equipmentOf(lines);
+			if(equipment == null)
+				return;
+			name = equipment.name;
+			price = EquipmentSign.costOf(lines, equipment);
+			boolean packModel = usePack && equipment.hasPackModel();
+			model = WallGunVisuals.spawn(blockLoc, facing, equipment.displayStack(packModel), packModel, 0.0);
+		}
 		if(model == null)
 			return;
 
@@ -121,7 +140,7 @@ public class WallGunManager
 		HiddenSignJournal.record(sign, Material.AIR);
 		blockLoc.getBlock().setType(Material.AIR, false);
 		byInteraction.put(wallGun.interaction.getUniqueId(), wallGun);
-		wallGun.label = ChatColor.AQUA + gun.getName() + ChatColor.YELLOW + " [" + prices[0] + "]";
+		wallGun.label = ChatColor.AQUA + name + ChatColor.YELLOW + " [" + price + "]";
 		wallGun.hologram = DisplayEntityUtil.persistentText(blockLoc.getWorld(), blockLoc.clone().add(0.5, 1.05, 0.5), wallGun.label);
 		wallGuns.add(wallGun);
 	}
@@ -153,7 +172,21 @@ public class WallGunManager
 			return;
 		if(!BuyDebounce.tryAcquire(player))
 			return;
-		new GunSign().onInteract(game, player, wallGun.blockLoc, wallGun.signLines);
+		if(isEquipment(wallGun.signLines))
+			new EquipmentSign().onInteract(game, player, wallGun.blockLoc, wallGun.signLines);
+		else
+			new GunSign().onInteract(game, player, wallGun.blockLoc, wallGun.signLines);
+	}
+
+	private static boolean isEquipment(String[] lines)
+	{
+		return "equipment".equalsIgnoreCase(ChatColor.stripColor(lines[1]).trim());
+	}
+
+	/** Action-bar prompt for a wall gun or equipment wall buy. */
+	public String prompt(Player player, String[] lines)
+	{
+		return isEquipment(lines) ? EquipmentSign.prompt(game, player, lines) : GunSign.prompt(game, player, lines);
 	}
 
 	private static boolean sameBlock(Location a, Location b)

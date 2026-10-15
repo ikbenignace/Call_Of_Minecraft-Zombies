@@ -4,6 +4,7 @@ public enum COMZConfig
 {
 	ARENAS("arenas"),
 	GUNS("guns"),
+	EQUIPMENT("equipment"),
 	KITS("kits"),
 	STATS("stats"),
 	SIGNS("signs"),

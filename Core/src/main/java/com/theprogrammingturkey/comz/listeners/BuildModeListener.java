@@ -17,6 +17,8 @@ import com.theprogrammingturkey.comz.game.features.PerkType;
 import com.theprogrammingturkey.comz.game.features.Zone;
 import com.theprogrammingturkey.comz.game.features.Transport;
 import com.theprogrammingturkey.comz.game.signs.IGameSign;
+import com.theprogrammingturkey.comz.game.equipment.Equipment;
+import com.theprogrammingturkey.comz.game.equipment.EquipmentCatalogue;
 import com.theprogrammingturkey.comz.game.weapons.BaseGun;
 import com.theprogrammingturkey.comz.game.managers.WeaponManager;
 import com.theprogrammingturkey.comz.kits.KitManager;
@@ -391,10 +393,17 @@ public class BuildModeListener implements Listener
 			case WEAPON:
 			{
 				List<BaseGun> guns = WeaponManager.getBuyableGuns();
-				if(guns.isEmpty())
+				List<Equipment> equipment = EquipmentCatalogue.all();
+				int total = guns.size() + equipment.size();
+				if(total == 0)
 					return null;
-				BaseGun gun = guns.get(session.getVariant(tool) % guns.size());
-				return new String[]{"gun", gun.getName(), "500 / 250"};
+				int index = session.getVariant(tool) % total;
+				if(index >= guns.size())
+				{
+					Equipment item = equipment.get(index - guns.size());
+					return new String[]{"equipment", item.name, Integer.toString(item.cost)};
+				}
+				return new String[]{"gun", guns.get(index).getName(), "500 / 250"};
 			}
 			case MACHINE:
 			{

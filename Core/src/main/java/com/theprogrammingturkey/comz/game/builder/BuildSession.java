@@ -573,7 +573,7 @@ public class BuildSession
 		boolean usePack = MachineSigns.previewUsesPack(player);
 		MachineSigns.forEachArenaSign(game, sign ->
 		{
-			if(MachineLooks.forSignLines(sign.getLines()) != null || MachineSigns.isWallGun(sign))
+			if(MachineLooks.forSignLines(sign.getLines()) != null || MachineSigns.isWallBuy(sign))
 				addPreview(sign.getLocation(), MachineSigns.previewModel(sign, usePack));
 		});
 	}

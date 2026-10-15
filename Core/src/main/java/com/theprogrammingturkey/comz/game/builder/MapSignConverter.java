@@ -2,6 +2,8 @@ package com.theprogrammingturkey.comz.game.builder;
 
 import com.theprogrammingturkey.comz.COMZombies;
 import com.theprogrammingturkey.comz.game.Game;
+import com.theprogrammingturkey.comz.game.equipment.Equipment;
+import com.theprogrammingturkey.comz.game.equipment.EquipmentCatalogue;
 import com.theprogrammingturkey.comz.game.features.PerkType;
 import com.theprogrammingturkey.comz.game.features.RandomBox;
 import com.theprogrammingturkey.comz.game.managers.WeaponManager;
@@ -30,7 +32,7 @@ import java.util.regex.Pattern;
 /**
  * Turns the buy signs of imported command-block maps ("Stakeout / [Cost: 1500] / [Ammo: 750/4500]",
  * "Jugger-Nog / [Cost: 2500]", "Random Weapon", ...) into COM:Z feature signs, so the plugin spawns its
- * wall guns, machines and boxes there. Doors, debris, traps and other map mechanics need block regions
+ * wall guns, equipment wall buys, machines and boxes there. Doors, debris, traps and other map mechanics need block regions
  * the signs don't describe; those are only reported. Every rewritten sign's original text goes into the
  * report file so a conversion can be undone by hand.
  */
@@ -46,6 +48,7 @@ public final class MapSignConverter
 
 	private static final Map<String, String> GUN_ALIASES = new HashMap<>();
 	private static final Map<String, PerkType> PERK_ALIASES = new HashMap<>();
+	private static final Map<String, String> EQUIPMENT_ALIASES = new HashMap<>();
 
 	static
 	{
@@ -62,6 +65,19 @@ public final class MapSignConverter
 		GUN_ALIASES.put("kar98", "Kar98k");
 		GUN_ALIASES.put("garand", "M1 Garand");
 		GUN_ALIASES.put("carbine", "M1 Carbine");
+
+		EQUIPMENT_ALIASES.put("bowie", "Bowie Knife");
+		EQUIPMENT_ALIASES.put("bowieknife", "Bowie Knife");
+		EQUIPMENT_ALIASES.put("claymores", "Claymore");
+		EQUIPMENT_ALIASES.put("bettys", "Bouncing Betty");
+		EQUIPMENT_ALIASES.put("bouncingbetties", "Bouncing Betty");
+		EQUIPMENT_ALIASES.put("spikemores", "Spikemore");
+		EQUIPMENT_ALIASES.put("gersch", "Gersch Device");
+		EQUIPMENT_ALIASES.put("gerschdevice", "Gersch Device");
+		EQUIPMENT_ALIASES.put("quantumentanglementdevice", "QED");
+		EQUIPMENT_ALIASES.put("matryoshkadoll", "Matryoshka Dolls");
+		EQUIPMENT_ALIASES.put("monkeybombs", "Monkey Bomb");
+		EQUIPMENT_ALIASES.put("pes", "P.E.S.");
 
 		PERK_ALIASES.put("juggernog", PerkType.JUGGERNOG);
 		PERK_ALIASES.put("speedcola", PerkType.SPEED_COLA);
@@ -85,7 +101,7 @@ public final class MapSignConverter
 
 	public enum Kind
 	{
-		WALL_GUN, PERK, PACK_A_PUNCH, MYSTERY_BOX, GRENADE, DUPLICATE, SIGN_WALL, DOOR, UNKNOWN
+		WALL_GUN, EQUIPMENT, PERK, PACK_A_PUNCH, MYSTERY_BOX, GRENADE, DUPLICATE, SIGN_WALL, DOOR, UNKNOWN
 	}
 
 	public static final class Entry
@@ -252,6 +268,16 @@ public final class MapSignConverter
 		return null;
 	}
 
+	private static Equipment resolveEquipment(String name)
+	{
+		Equipment exact = EquipmentCatalogue.get(name);
+		if(exact != null)
+			return exact;
+		String key = normalize(name);
+		String alias = EQUIPMENT_ALIASES.get(key);
+		return alias == null ? null : EquipmentCatalogue.get(alias);
+	}
+
 	private static PerkType resolvePerk(String name)
 	{
 		String key = normalize(name);
@@ -300,6 +326,17 @@ public final class MapSignConverter
 
 		if(key.contains("grenade") || key.contains("granate"))
 			return new Entry(Kind.GRENADE, loc, name, lines, new String[]{"[Zombies]", "Grenade", Integer.toString(cost > 0 ? cost : 250), ""});
+
+		Equipment equipment = resolveEquipment(name);
+		if(equipment != null)
+		{
+			List<Location> seen = wallGuns.computeIfAbsent(equipment.name, g -> new ArrayList<>());
+			if(near(seen, loc, GUN_DEDUPE_RANGE))
+				return new Entry(Kind.DUPLICATE, loc, name, lines, null);
+			seen.add(loc);
+			return new Entry(Kind.EQUIPMENT, loc, equipment.name, lines,
+					new String[]{"[Zombies]", "Equipment", equipment.name, Integer.toString(cost > 0 ? cost : equipment.cost)});
+		}
 
 		String gun = resolveGun(name);
 		if(gun != null)
