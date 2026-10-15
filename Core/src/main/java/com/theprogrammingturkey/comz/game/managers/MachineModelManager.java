@@ -38,7 +38,7 @@ import java.util.UUID;
 
 /**
  * BO2-fidelity machines. Each perk / Pack-a-Punch sign becomes a physical machine occupying the sign's
- * own block: a solid base block (always visible, even without the pack), a 3D item model
+ * own block: an invisible solid barrier to bump into, a 3D item model
  * (pack guaranteed for all players) or a block-display look-alike overlaying the block, an invisible
  * interaction hitbox so the machine is right-clickable, and a floating price
  * text. Right-clicking the interaction forwards to the backing sign's buy logic (the
@@ -91,7 +91,7 @@ public class MachineModelManager
 		String label;
 		if(type.equals("pack-a-punch"))
 		{
-			base = Compat.materialOr(Material.OBSIDIAN, "LODESTONE");
+			base = Material.BARRIER;
 			label = ChatColor.LIGHT_PURPLE + "Pack-a-Punch " + ChatColor.YELLOW + "[" + ChatColor.stripColor(sign.getLine(2)) + "]";
 		}
 		else if(type.equals("perk machine"))
@@ -99,7 +99,7 @@ public class MachineModelManager
 			PerkType perk = PerkType.getPerkType(ChatColor.stripColor(sign.getLine(2)));
 			if(perk == null)
 				return;
-			base = Material.BARREL;
+			base = Material.BARRIER;
 			label = ChatColor.AQUA + titleCase(perk.toString()) + ChatColor.YELLOW + " [" + ChatColor.stripColor(sign.getLine(3)) + "]";
 		}
 		else if(type.equals("ammo crate"))
