@@ -29,6 +29,9 @@ public class SettingsMenu implements InventoryHolder
 			SLOT_GUN = 14, SLOT_AMMO = 15, SLOT_NIGHT = 16, SLOT_MULTIBOX = 22,
 			SLOT_GRAVITY = 19, SLOT_JUMP = 20, SLOT_FOG = 21;
 
+	/** Opens {@link SpecialEnemiesMenu}; handled by the listener because it needs the clicking player. */
+	public static final int SLOT_SPECIALS = 23;
+
 	private final Game game;
 	private final Inventory inv;
 
@@ -58,6 +61,7 @@ public class SettingsMenu implements InventoryHolder
 		inv.setItem(SLOT_GRAVITY, item(Material.FEATHER, "Gravity", decimal(game.environmentManager.getGravity()), "1.0 = normal, 0.4 = moon; left +0.1 / right -0.1 (shift 0.5)"));
 		inv.setItem(SLOT_JUMP, item(Material.RABBIT_FOOT, "Jump boost", decimal(game.environmentManager.getJumpBoost()), "jump height multiplier; left +0.1 / right -0.1 (shift 0.5)"));
 		inv.setItem(SLOT_FOG, toggle(Material.BLACK_STAINED_GLASS, "Fog (darkness)", game.environmentManager.hasFog()));
+		inv.setItem(SLOT_SPECIALS, item(Material.ZOMBIE_HEAD, "Special enemies", game.specialEnemyManager.getRules().size() + " rule(s)", "click to edit"));
 	}
 
 	/** Apply a click on {@code slot}; returns true if it was a settings slot (so the caller re-renders). */
@@ -105,6 +109,11 @@ public class SettingsMenu implements InventoryHolder
 		}
 		render();
 		return true;
+	}
+
+	public Game getGame()
+	{
+		return game;
 	}
 
 	/** Persist the arena after edits (called when the menu closes). */

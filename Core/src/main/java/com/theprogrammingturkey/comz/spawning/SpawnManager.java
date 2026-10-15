@@ -12,6 +12,8 @@ import com.theprogrammingturkey.comz.game.Game.GameStatus;
 import com.theprogrammingturkey.comz.game.GameManager;
 import com.theprogrammingturkey.comz.game.features.Door;
 import com.theprogrammingturkey.comz.game.features.PowerUp;
+import com.theprogrammingturkey.comz.spawning.special.SpecialEnemyType;
+import com.theprogrammingturkey.comz.spawning.special.SpecialRoundSpawner;
 import com.theprogrammingturkey.comz.util.BlockUtils;
 import com.theprogrammingturkey.comz.util.Util;
 import org.bukkit.Bukkit;
@@ -23,9 +25,12 @@ import org.bukkit.entity.Player;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 
@@ -43,6 +48,8 @@ public class SpawnManager
 	private final Game game;
 	private final List<SpawnPoint> points = new ArrayList<>();
 	private final List<Mob> mobs = new ArrayList<>();
+	/** Specials mixed into a regular round: in the game, but the round may end while they live. */
+	private final Set<Mob> nonBlocking = Collections.newSetFromMap(new IdentityHashMap<>());
 	private RoundSpawner roundSpawner = new ZombieSpawner();
 	private boolean canSpawn = false;
 	private double spawnInterval;
@@ -58,6 +65,8 @@ public class SpawnManager
 	private int mobsToSpawn = 0;
 	private boolean dogRound = false;
 	private boolean bossRound = false;
+	private SpecialEnemyType specialRoundType = null;
+	private int specialBoardCap = 0;
 
 	/**
 	 * Task id of the self-rescheduling periodic update() task, or -1 when none is scheduled.
@@ -155,7 +164,9 @@ public class SpawnManager
 
 	public void nuke()
 	{
-		killAll(false);
+		for(int i = mobs.size() - 1; i >= 0; i--)
+			if(i < mobs.size() && !game.specialEnemyManager.isNukeImmune(mobs.get(i)))
+				killMob(mobs.get(i));
 	}
 
 	public void killAll(boolean nextWave)
@@ -174,6 +185,7 @@ public class SpawnManager
 		canSpawn = false;
 		dogRound = false;
 		bossRound = false;
+		specialRoundType = null;
 		mobsSpawned = mobsToSpawn;
 		killAll(true);
 	}
@@ -183,19 +195,31 @@ public class SpawnManager
 		return mobs;
 	}
 
+	/** Adds a special spawned outside the round spawner; {@code blocksRound} false lets the round end without it. */
+	public void addSpecialMob(Mob mob, boolean blocksRound)
+	{
+		mobs.add(mob);
+		if(!blocksRound)
+			nonBlocking.add(mob);
+	}
+
 	public void removeEntity(Entity entity)
 	{
 		if(!(entity instanceof Mob))
 			return;
 
 		mobs.remove(entity);
+		boolean blockedRound = !nonBlocking.remove(entity);
 		stuckLastLoc.remove(entity);
 		stuckTicks.remove(entity);
+		game.specialEnemyManager.onMobRemoved(entity);
 
-		if(mobs.isEmpty() && mobsSpawned >= mobsToSpawn)
+		if(blockedRound && getZombiesAlive() == 0 && mobsSpawned >= mobsToSpawn)
 		{
 			if(dogRound && ConfigManager.getMainConfig().dogRoundMaxAmmoDrop)
 				game.powerUpManager.dropPowerUp(entity, PowerUp.MAX_AMMO);
+			if(specialRoundType != null)
+				game.specialEnemyManager.onSpecialRoundCleared(entity, specialRoundType);
 			// Tier 4 — last boss of a boss round drops a guaranteed Max Ammo + Random Perk.
 			if(bossRound && entity instanceof Mob)
 				BossSpawner.dropBossRewards(game, (Mob) entity);
@@ -216,13 +240,16 @@ public class SpawnManager
 	 */
 	private void maybeConvertLastZombie()
 	{
-		if(dogRound || bossRound)
+		if(dogRound || bossRound || specialRoundType != null)
 			return;
-		if(!shouldConvertLastZombie(mobs.size(), mobsSpawned, mobsToSpawn, ConfigManager.getMainConfig().lastZombieCrawler))
+		if(!shouldConvertLastZombie(getZombiesAlive(), mobsSpawned, mobsToSpawn, ConfigManager.getMainConfig().lastZombieCrawler))
 			return;
 
-		Mob last = mobs.get(0);
-		if(!ZombieSpawner.isCrawler(last))
+		Mob last = null;
+		for(Mob mob : mobs)
+			if(!nonBlocking.contains(mob))
+				last = mob;
+		if(last != null && !ZombieSpawner.isCrawler(last))
 			ZombieSpawner.convertToCrawler(game, last);
 	}
 
@@ -255,7 +282,7 @@ public class SpawnManager
 	 * Returns the {@code numToGet} spawn points closest to {@code loc}, nearest
 	 * first. Pure function extracted for testability.
 	 */
-	static List<SpawnPoint> nearestPoints(List<SpawnPoint> points, Location loc, int numToGet)
+	public static List<SpawnPoint> nearestPoints(List<SpawnPoint> points, Location loc, int numToGet)
 	{
 		if(numToGet < 0)
 			throw new IllegalArgumentException("numToGet should not be less than zero");
@@ -394,7 +421,9 @@ public class SpawnManager
 			return;
 
 		ConfigSetup cfg = ConfigManager.getMainConfig();
-		if(mobs.size() >= maxOnBoard(game.getPlayersInGame().size(), cfg.zombieBoardBase, cfg.zombieBoardPerPlayer))
+		int boardCap = specialRoundType != null && specialBoardCap > 0 ? specialBoardCap
+				: maxOnBoard(game.getPlayersInGame().size(), cfg.zombieBoardBase, cfg.zombieBoardPerPlayer);
+		if(getZombiesAlive() >= boardCap)
 		{
 			COMZombies.scheduleTask(spawnDelayTicks(), () -> smartSpawn(wave));
 			return;
@@ -476,7 +505,7 @@ public class SpawnManager
 				Mob mob = mobs.get(i);
 				if(mob.isDead())
 					removeEntity(mob);
-				else
+				else if(!game.specialEnemyManager.isSteering(mob))
 				{
 					Player nearest = getNearestPlayer(mob);
 					mob.setTarget(nearest);
@@ -645,6 +674,8 @@ public class SpawnManager
 		{
 			bossRound = true;
 			dogRound = false;
+			specialRoundType = null;
+			game.specialEnemyManager.planRound(wave, false);
 			// Small wave: a handful of heavy bosses (at least 1, ~half the player count).
 			mobsToSpawn = Math.max(1, game.getPlayersInGame().size() / 2);
 			roundSpawner = roundSpawnerMap.get(RoundSpawnType.BOSS);
@@ -652,7 +683,22 @@ public class SpawnManager
 			return RoundSpawnType.BOSS;
 		}
 
-		if(rollDogRound(wave, game.getDogRoundEveryX(), cfg))
+		boolean dogWave = rollDogRound(wave, game.getDogRoundEveryX(), cfg);
+		SpecialEnemyType special = game.specialEnemyManager.planRound(wave, dogWave);
+		if(special != null)
+		{
+			bossRound = false;
+			dogRound = false;
+			specialRoundType = special;
+			specialBoardCap = game.specialEnemyManager.roundMaxAlive();
+			mobsToSpawn = special.roundCount(game.getPlayersInGame().size());
+			roundSpawner = new SpecialRoundSpawner(special);
+			updateSpawnInterval(wave);
+			return RoundSpawnType.SPECIAL;
+		}
+		specialRoundType = null;
+
+		if(dogWave)
 		{
 			bossRound = false;
 			dogRound = true;
@@ -693,6 +739,7 @@ public class SpawnManager
 		}
 
 		this.smartSpawn(wave);
+		game.specialEnemyManager.startRound(wave);
 	}
 
 	public int getMobsToSpawn()
@@ -705,9 +752,16 @@ public class SpawnManager
 		return this.mobsSpawned;
 	}
 
+	/** Mobs alive that hold up the round; mixed-in specials are not counted. */
 	public int getZombiesAlive()
 	{
-		return this.mobs.size();
+		return this.mobs.size() - this.nonBlocking.size();
+	}
+
+	/** Type of the current dedicated special round, or null. */
+	public SpecialEnemyType getSpecialRoundType()
+	{
+		return specialRoundType;
 	}
 
 	public double getSpawnInterval()
@@ -724,11 +778,13 @@ public class SpawnManager
 	{
 		cancelUpdateTask();
 		this.mobs.clear();
+		this.nonBlocking.clear();
 		this.canSpawn = false;
 		this.mobsSpawned = 0;
 		this.mobsToSpawn = 0;
 		this.dogRound = false;
 		this.bossRound = false;
+		this.specialRoundType = null;
 		this.spawnInterval = baseSpawnDelay;
 		this.nextDogRound = -1;
 	}

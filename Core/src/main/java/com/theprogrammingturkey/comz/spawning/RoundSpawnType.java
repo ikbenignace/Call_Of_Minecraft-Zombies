@@ -4,5 +4,6 @@ public enum RoundSpawnType
 {
 	REGULAR,
 	HELL_HOUNDS,
-	BOSS
+	BOSS,
+	SPECIAL
 }

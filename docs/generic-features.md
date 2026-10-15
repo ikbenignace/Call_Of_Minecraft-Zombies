@@ -75,7 +75,11 @@ Catalogue `specials.json`. Each type: base mob, health formula, speed, model/ski
 - `boss` (George A. Romero, Astronaut, Cosmonaut: big health, special attack);
 - `napalm` (explodes in fire on death), `shrieker` (blinding scream).
 
-Arena setting `special_enemies`: list of `{type, every_x_rounds | chance_per_round | replaces_dog_round, max_alive}`.
+Arena setting `special_enemies`: list of `{type, mode, value, max_alive, first_round, own_round}` with `mode` one of
+`every_x_rounds` | `chance_per_round` | `replaces_dog_round` | `once_at_round`. Edited in `/zombies settings` >
+Special enemies (toggle per type, cycle mode, adjust value / max alive / first round / own round). Specials in their
+own round hold the round until they die or escape; specials mixed into a regular round never hold it up and despawn
+after their `lifetime_seconds`.
 
 ## 7. Triggers and sequences
 
