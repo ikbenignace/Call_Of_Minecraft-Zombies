@@ -1,0 +1,7 @@
+{
+ "parent": "minecraft:custom/item/3d_guns/trench_gun",
+ "textures": {
+  "0": "custom/custom/trench_gun_pap",
+  "particle": "custom/custom/trench_gun_pap"
+ }
+}

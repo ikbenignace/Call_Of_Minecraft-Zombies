@@ -1,0 +1,7 @@
+{
+ "parent": "minecraft:custom/item/3d_guns/double_barrel",
+ "textures": {
+  "0": "custom/custom/double_barrel_pap",
+  "particle": "custom/custom/double_barrel_pap"
+ }
+}

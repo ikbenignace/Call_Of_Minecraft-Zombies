@@ -1,0 +1,7 @@
+{
+ "parent": "minecraft:custom/item/3d_guns/arisaka",
+ "textures": {
+  "0": "custom/custom/arisaka_pap",
+  "particle": "custom/custom/arisaka_pap"
+ }
+}

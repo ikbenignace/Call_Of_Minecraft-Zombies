@@ -1,0 +1,7 @@
+{
+ "parent": "minecraft:custom/item/3d_guns/type100",
+ "textures": {
+  "0": "custom/custom/type100_pap",
+  "particle": "custom/custom/type100_pap"
+ }
+}

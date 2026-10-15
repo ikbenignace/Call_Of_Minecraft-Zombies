@@ -1,0 +1,7 @@
+{
+ "parent": "minecraft:custom/item/3d_guns/fg42",
+ "textures": {
+  "0": "custom/custom/fg42_pap",
+  "particle": "custom/custom/fg42_pap"
+ }
+}

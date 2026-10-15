@@ -1,0 +1,7 @@
+{
+ "parent": "minecraft:custom/item/3d_guns/stg44",
+ "textures": {
+  "0": "custom/custom/stg44_pap",
+  "particle": "custom/custom/stg44_pap"
+ }
+}

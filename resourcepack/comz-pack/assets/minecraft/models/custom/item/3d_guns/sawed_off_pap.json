@@ -1,0 +1,7 @@
+{
+ "parent": "minecraft:custom/item/3d_guns/sawed_off",
+ "textures": {
+  "0": "custom/custom/sawed_off_pap",
+  "particle": "custom/custom/sawed_off_pap"
+ }
+}

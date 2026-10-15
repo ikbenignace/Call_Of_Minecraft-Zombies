@@ -40,6 +40,9 @@ public final class MapSignConverter
 	/** Signs of one machine around a map build; only the first becomes the machine. */
 	private static final double MACHINE_DEDUPE_RANGE = 3.0;
 	private static final double GUN_DEDUPE_RANGE = 2.0;
+	/** Buy signs packed this tightly form a shop/loadout wall of the map, not wall buys. */
+	private static final double GRID_RANGE = 1.5;
+	private static final int GRID_NEIGHBOURS = 3;
 
 	private static final Map<String, String> GUN_ALIASES = new HashMap<>();
 	private static final Map<String, PerkType> PERK_ALIASES = new HashMap<>();
@@ -82,7 +85,7 @@ public final class MapSignConverter
 
 	public enum Kind
 	{
-		WALL_GUN, PERK, PACK_A_PUNCH, MYSTERY_BOX, GRENADE, DUPLICATE, DOOR, UNKNOWN
+		WALL_GUN, PERK, PACK_A_PUNCH, MYSTERY_BOX, GRENADE, DUPLICATE, SIGN_WALL, DOOR, UNKNOWN
 	}
 
 	public static final class Entry
@@ -131,14 +134,22 @@ public final class MapSignConverter
 		if(world == null || !game.arena.areMinAndMaxSet())
 			return report;
 
-		List<Location> machines = new ArrayList<>();
-		Map<String, List<Location>> wallGuns = new HashMap<>();
+		List<Sign> buySigns = new ArrayList<>();
 		for(Sign sign : arenaSigns(game, world))
 		{
 			String[] lines = plainLines(sign);
-			if(lines[0].toLowerCase(Locale.ROOT).contains("[zombies]") || !hasCost(lines))
-				continue;
-			Entry entry = classify(sign.getLocation(), lines, machines, wallGuns);
+			if(!lines[0].toLowerCase(Locale.ROOT).contains("[zombies]") && hasCost(lines))
+				buySigns.add(sign);
+		}
+
+		List<Location> machines = new ArrayList<>();
+		Map<String, List<Location>> wallGuns = new HashMap<>();
+		for(Sign sign : buySigns)
+		{
+			String[] lines = plainLines(sign);
+			Entry entry = inSignWall(sign, buySigns)
+					? new Entry(Kind.SIGN_WALL, sign.getLocation(), nameOf(lines), lines, null)
+					: classify(sign.getLocation(), lines, machines, wallGuns);
 			report.entries.add(entry);
 			if(apply)
 				apply(game, sign, entry);
@@ -176,6 +187,15 @@ public final class MapSignConverter
 			lines[i] = line == null ? "" : ChatColor.stripColor(line).trim();
 		}
 		return lines;
+	}
+
+	private static boolean inSignWall(Sign sign, List<Sign> buySigns)
+	{
+		int neighbours = 0;
+		for(Sign other : buySigns)
+			if(other != sign && other.getLocation().distanceSquared(sign.getLocation()) <= GRID_RANGE * GRID_RANGE)
+				neighbours++;
+		return neighbours >= GRID_NEIGHBOURS;
 	}
 
 	private static boolean hasCost(String[] lines)

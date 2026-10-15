@@ -611,6 +611,110 @@
     "Porter's Mark II Ray Gun": {
       "shoot": "custom.weapon.shoot.ray",
       "reload": "custom.weapon.reload_start.ray"
+    },
+    "Thompson": {
+      "shoot": "custom.weapon.shoot.thom",
+      "reload": "custom.weapon.reload_start.thom"
+    },
+    "Gibs-O-Matic": {
+      "shoot": "custom.weapon.shoot.thom",
+      "reload": "custom.weapon.reload_start.thom"
+    },
+    "Type 100": {
+      "shoot": "custom.weapon.shoot.typ",
+      "reload": "custom.weapon.reload_start.typ"
+    },
+    "1001 Samurais": {
+      "shoot": "custom.weapon.shoot.typ",
+      "reload": "custom.weapon.reload_start.typ"
+    },
+    "STG-44": {
+      "shoot": "custom.weapon.shoot.stg",
+      "reload": "custom.weapon.reload_start.stg"
+    },
+    "Spatz-447 +": {
+      "shoot": "custom.weapon.shoot.stg",
+      "reload": "custom.weapon.reload_start.stg"
+    },
+    "Gewehr 43": {
+      "shoot": "custom.weapon.shoot.gew",
+      "reload": "custom.weapon.reload_start.gew"
+    },
+    "G115 Compressor": {
+      "shoot": "custom.weapon.shoot.gew",
+      "reload": "custom.weapon.reload_start.gew"
+    },
+    "M1 Garand": {
+      "shoot": "custom.weapon.shoot.m1g",
+      "reload": "custom.weapon.reload_end.m1g"
+    },
+    "M1000": {
+      "shoot": "custom.weapon.shoot.m1g",
+      "reload": "custom.weapon.reload_end.m1g"
+    },
+    "M1 Carbine": {
+      "shoot": "custom.weapon.shoot.m1c",
+      "reload": "custom.weapon.reload_start.m1c"
+    },
+    "Widdershins RC-1": {
+      "shoot": "custom.weapon.shoot.m1c",
+      "reload": "custom.weapon.reload_start.m1c"
+    },
+    "BAR": {
+      "shoot": "custom.weapon.shoot.bar",
+      "reload": "custom.weapon.reload_start.bar"
+    },
+    "The Widow Maker": {
+      "shoot": "custom.weapon.shoot.bar",
+      "reload": "custom.weapon.reload_start.bar"
+    },
+    "FG42": {
+      "shoot": "custom.weapon.shoot.fg42",
+      "reload": "custom.weapon.reload_start.fg42"
+    },
+    "Der Schnellwunder": {
+      "shoot": "custom.weapon.shoot.fg42",
+      "reload": "custom.weapon.reload_start.fg42"
+    },
+    "Kar98k": {
+      "shoot": "custom.weapon.shoot.kar",
+      "reload": "custom.weapon.kar_load"
+    },
+    "Armageddon Maximus": {
+      "shoot": "custom.weapon.shoot.kar",
+      "reload": "custom.weapon.kar_load"
+    },
+    "Arisaka": {
+      "shoot": "custom.weapon.shoot.ari",
+      "reload": "custom.weapon.ari_load"
+    },
+    "The Eviscerator": {
+      "shoot": "custom.weapon.shoot.ari",
+      "reload": "custom.weapon.ari_load"
+    },
+    "Trench Gun": {
+      "shoot": "custom.weapon.shoot.trench",
+      "reload": "custom.weapon.trench_load"
+    },
+    "Gut Shot": {
+      "shoot": "custom.weapon.shoot.trench",
+      "reload": "custom.weapon.trench_load"
+    },
+    "Double-Barreled Shotgun": {
+      "shoot": "custom.weapon.shoot.db",
+      "reload": "custom.weapon.reload_start.db"
+    },
+    "24 Bore Long Range": {
+      "shoot": "custom.weapon.shoot.db",
+      "reload": "custom.weapon.reload_start.db"
+    },
+    "Sawed-Off Shotgun": {
+      "shoot": "custom.weapon.shoot.dbsawn",
+      "reload": "custom.weapon.reload_start.db"
+    },
+    "The Snuff Box": {
+      "shoot": "custom.weapon.shoot.dbsawn",
+      "reload": "custom.weapon.reload_start.db"
     }
   },
   "melee": {

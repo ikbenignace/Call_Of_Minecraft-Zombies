@@ -1,0 +1,7 @@
+{
+ "parent": "minecraft:custom/item/3d_guns/kar98k",
+ "textures": {
+  "0": "custom/custom/kar98k_pap",
+  "particle": "custom/custom/kar98k_pap"
+ }
+}

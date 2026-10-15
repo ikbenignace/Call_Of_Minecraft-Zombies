@@ -1,0 +1,7 @@
+{
+ "parent": "minecraft:custom/item/3d_guns/gewehr43",
+ "textures": {
+  "0": "custom/custom/gewehr43_pap",
+  "particle": "custom/custom/gewehr43_pap"
+ }
+}
