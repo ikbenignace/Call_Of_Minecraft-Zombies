@@ -45,7 +45,7 @@ public enum BuildTool
 
 	public static final String TRANSPORT_VARIANT = "Transport";
 
-	/** Sign features, the transport builder, then one variant per zone preset (two-corner zone placement). */
+	/** Sign features, the transport and trigger builders, then one variant per zone preset (two-corner zone placement). */
 	public static final List<String> FEATURE_VARIANTS = Collections.unmodifiableList(featureVariants());
 
 	public static final List<String> LOBBY_VARIANTS =
@@ -79,6 +79,9 @@ public enum BuildTool
 		variants.add("Buildable");
 		variants.add("Quest");
 		variants.add(TRANSPORT_VARIANT);
+		variants.add(TriggerBuilder.TRIGGER_VARIANT);
+		variants.add(TriggerBuilder.SONG_VARIANT);
+		variants.add(TriggerBuilder.POOL_VARIANT);
 		for(ZonePreset preset : ZonePreset.values())
 			variants.add(preset.getLabel());
 		return variants;

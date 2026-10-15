@@ -84,6 +84,7 @@ public final class BuildModeManager
 		giveToolbar(player, session);
 		player.getInventory().setHeldItemSlot(0);
 		session.startTransportPreview(player);
+		TriggerBuilder.startPreview(player, session);
 
 		CommandUtil.sendMessageToPlayer(player, ChatColor.GREEN + "" + ChatColor.BOLD + "Build mode" + ChatColor.GREEN + " for arena " + ChatColor.AQUA + game.getName());
 		CommandUtil.sendMessageToPlayer(player, ChatColor.GRAY + "Scroll = switch tool, " + ChatColor.YELLOW + "F" + ChatColor.GRAY + " = cycle variant, right-click = place, left-click = remove.");
@@ -99,6 +100,7 @@ public final class BuildModeManager
 			return;
 		warnRoomProgressionIssues(player, session);
 		session.stopTransportPreview();
+		TriggerBuilder.onExit(player, session);
 		if(session.getTransportInProgress() != null)
 			CommandUtil.sendMessageToPlayer(player, ChatColor.YELLOW + "Note: an unfinished transport was discarded (finish it with Sneak + F).");
 		session.cancelEditInProgress(); // revert any in-place door/barrier edit before tearing down markers

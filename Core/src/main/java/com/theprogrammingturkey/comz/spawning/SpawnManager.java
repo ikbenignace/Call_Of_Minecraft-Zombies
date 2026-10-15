@@ -208,7 +208,8 @@ public class SpawnManager
 		if(!(entity instanceof Mob))
 			return;
 
-		mobs.remove(entity);
+		if(mobs.remove(entity))
+			game.triggerManager.onMobKilled(entity.getLocation());
 		boolean blockedRound = !nonBlocking.remove(entity);
 		stuckLastLoc.remove(entity);
 		stuckTicks.remove(entity);

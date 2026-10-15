@@ -863,5 +863,13 @@
       "death": "ENTITY_GHAST_DEATH",
       "round": "ENTITY_GHAST_SCREAM"
     }
+  },
+  "trigger": {
+    "step": "BLOCK_NOTE_BLOCK_CHIME",
+    "complete": "UI_TOAST_CHALLENGE_COMPLETE",
+    "fail": "custom.global.deny",
+    "denied": "custom.global.deny",
+    "song": "MUSIC_DISC_CAT",
+    "perk_reveal": "BLOCK_BEACON_ACTIVATE"
   }
 }

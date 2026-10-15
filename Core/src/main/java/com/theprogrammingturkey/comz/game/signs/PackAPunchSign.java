@@ -172,6 +172,8 @@ public class PackAPunchSign implements IGameSign
 				return ChatColor.GRAY + "Pack-a-Punch in use";
 			return session.ready ? ChatColor.GREEN + "Take your " + session.gun.getType().getName() : ChatColor.LIGHT_PURPLE + "Upgrading...";
 		}
+		if(game.triggerManager.isPackAPunchLocked())
+			return ChatColor.LIGHT_PURPLE + "Pack-a-Punch " + ChatColor.RED + "Locked";
 		if(game.hasPower() && !game.isPowered())
 			return ChatColor.RED + "Pack-a-Punch " + ChatColor.GRAY + "- power required";
 
@@ -210,6 +212,13 @@ public class PackAPunchSign implements IGameSign
 				collect(key, session, player);
 			else
 				CommandUtil.sendMessageToPlayer(player, ChatColor.LIGHT_PURPLE + "Your gun is still being upgraded...");
+			return;
+		}
+
+		if(game.triggerManager.isPackAPunchLocked())
+		{
+			CommandUtil.sendMessageToPlayer(player, ChatColor.RED + "The Pack-a-Punch is locked.");
+			deny(player, location);
 			return;
 		}
 

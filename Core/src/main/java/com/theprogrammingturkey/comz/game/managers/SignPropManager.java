@@ -9,9 +9,6 @@ import com.theprogrammingturkey.comz.game.builder.MachineSigns;
 import com.theprogrammingturkey.comz.game.features.Buildable;
 import com.theprogrammingturkey.comz.game.features.Door;
 import com.theprogrammingturkey.comz.game.features.PerkType;
-import com.theprogrammingturkey.comz.game.features.Quest;
-import com.theprogrammingturkey.comz.game.features.QuestStep;
-import com.theprogrammingturkey.comz.game.features.QuestStepType;
 import com.theprogrammingturkey.comz.game.features.Trap;
 import com.theprogrammingturkey.comz.game.features.BuildableItems;
 import com.theprogrammingturkey.comz.game.signs.BuildableSign;
@@ -422,6 +419,8 @@ public class SignPropManager
 					return null;
 				if(powerLocked())
 					return requiresPower();
+				if(game.triggerManager.isTeleporterLocked(name))
+					return ChatColor.GRAY + "Teleporter Locked";
 				if(game.teleporterManager.secondsUntilReady(name, cfg.teleporterCooldownSeconds) > 0)
 					return ChatColor.GRAY + "Teleporter Recharging";
 				return ChatColor.AQUA + "Teleport " + price(parseCost(prop.lines[3], 500));
@@ -456,11 +455,7 @@ public class SignPropManager
 
 	private boolean questReady(Prop prop)
 	{
-		Quest quest = game.questManager.getQuest();
-		if(quest == null || quest.isComplete())
-			return false;
-		QuestStep step = quest.currentStep();
-		return step != null && step.matches(QuestStepType.INTERACT, ChatColor.stripColor(prop.lines[2]).trim());
+		return game.triggerManager.isSignStepReady(ChatColor.stripColor(prop.lines[2]).trim());
 	}
 
 	/** Action-bar prompt for what F does on this prop for this player, or null when F does nothing here. */
@@ -491,6 +486,8 @@ public class SignPropManager
 					return ChatColor.RED + "[F] Invalid teleporter";
 				if(powerLocked())
 					return ChatColor.RED + "[F] " + ChatColor.GRAY + "Teleporter - Requires Power";
+				if(game.triggerManager.isTeleporterLocked(name))
+					return ChatColor.GRAY + "Teleporter - Locked";
 				int seconds = game.teleporterManager.secondsUntilReady(name, cfg.teleporterCooldownSeconds);
 				if(seconds > 0)
 					return ChatColor.GRAY + "Teleporter recharging (" + seconds + "s)";

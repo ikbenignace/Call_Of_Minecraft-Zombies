@@ -49,6 +49,7 @@ public class DoorSign implements IGameSign
 			PointManager.INSTANCE.takePoints(player, door.getCost());
 			PointManager.INSTANCE.notifyPlayer(player);
 			game.signPropManager.onDoorOpened(door);
+			game.perkPoolManager.onDoorOpened();
 			CommandUtil.sendMessageToPlayer(player, ChatColor.GREEN + "Door opened!");
 		}
 	}

@@ -2,23 +2,14 @@ package com.theprogrammingturkey.comz.game.signs;
 
 import com.theprogrammingturkey.comz.game.Game;
 import com.theprogrammingturkey.comz.game.GameManager;
-import com.theprogrammingturkey.comz.game.features.QuestStepType;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.event.block.SignChangeEvent;
 
 /**
- * Tier 4 — an interactive trigger for an {@link QuestStepType#INTERACT INTERACT} step of
- * the arena's easter-egg {@link com.theprogrammingturkey.comz.game.features.Quest}.
- * <p>
- * Line 2 carries the quest-step id. Right-clicking the sign forwards that id to
- * {@link com.theprogrammingturkey.comz.game.managers.QuestManager#onInteract(String, Player)};
- * the manager advances the quest only if its current step is an {@code INTERACT} step
- * matching this id, so out-of-order clicks are harmless no-ops.
- * <p>
- * The sign is purely a trigger — the quest itself (id + ordered steps) is authored in
- * arenas.json. This keeps map-specific easter eggs entirely data-driven.
+ * Completes the {@code interact} trigger step whose {@code sign} id equals line 2 (how quests saved before
+ * triggers keep working). Clicks on a step that is not accepted yet are ignored.
  *
  * <pre>
  * [Zombies]
@@ -46,7 +37,7 @@ public class QuestSign implements IGameSign
 		if(stepId.isEmpty())
 			return;
 
-		game.questManager.onInteract(stepId, player);
+		game.triggerManager.onSignInteract(stepId, player);
 	}
 
 	@Override
