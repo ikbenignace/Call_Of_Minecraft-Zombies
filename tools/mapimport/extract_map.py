@@ -196,11 +196,13 @@ def parse_door(paths):
     return price, cleared, spawns
 
 
-def parse_window(path):
+def parse_window(path, world):
+    """Every board a window's repair stages put back: setblock, fill rows or clones of a spare board."""
     boards = {}
-    for m in SETBLOCK_ANY.finditer(read(path)):
-        if m.group(4) != 'air':
-            boards[(int(m.group(1)), int(m.group(2)), int(m.group(3)))] = 'minecraft:' + m.group(4)
+    for line in read(path).splitlines():
+        for pos, state in block_writes(line, world).items():
+            if state != 'minecraft:air':
+                boards[pos] = state
     return boards
 
 
@@ -211,20 +213,52 @@ def facing_of_yaw(yaw):
     return YAW_FACING.get(int(round(float(yaw) / 90.0)) * 90, 'NORTH')
 
 
+FILL_MODE = re.compile(r"\s+(hollow|outline|keep|replace)(?:\s+(#?[a-z_:/]+))?")
 FILL_ANY = re.compile(r"fill (-?\d+) (-?\d+) (-?\d+) (-?\d+) (-?\d+) (-?\d+) minecraft:([a-z_]+(?:\[[^\]]*\])?)")
 
 
-def block_writes(text):
-    """Every block a function writes, in order: {(x, y, z): 'minecraft:state'}."""
+def block_writes(text, world=None):
+    """Every block a function writes, in order: {(x, y, z): 'minecraft:state'}. With a world, clones are
+    followed too (maps keep spare copies of doors and props out of sight and clone them back in)."""
     out = {}
     for line in text.splitlines():
+        if line.lstrip().startswith('#'):
+            continue
+        m = CLONE.search(line)
+        if m:
+            masked = ' masked' in line[m.end():]
+            if world is not None:
+                x0, y0, z0, x1, y1, z1, dx, dy, dz = map(int, m.groups())
+                bx, by, bz = min(x0, x1), min(y0, y1), min(z0, z1)
+                for x in range(bx, max(x0, x1) + 1):
+                    for y in range(by, max(y0, y1) + 1):
+                        for z in range(bz, max(z0, z1) + 1):
+                            state = world.block(x, y, z)
+                            if not (masked and state == 'minecraft:air'):
+                                out[(dx + x - bx, dy + y - by, dz + z - bz)] = state
+            continue
         m = FILL_ANY.search(line)
         if m:
+            # fill ... replace <filter> / keep only touch matching blocks, which needs the world to know.
+            mode = FILL_MODE.match(line[m.end():])
+            only = None
+            if mode and mode.group(1) in ('hollow', 'outline'):
+                continue
+            if mode and mode.group(1) == 'keep':
+                only = 'minecraft:air'
+            elif mode and mode.group(2):
+                only = mode.group(2) if ':' in mode.group(2) else 'minecraft:' + mode.group(2)
+            if only is not None and (world is None or only.startswith('#') and '/' in only):
+                continue
+            # Block tags are matched loosely by name: #minecraft:terracotta covers every *terracotta.
+            tag = only[len('#minecraft:'):] if only and only.startswith('#') else None
             x0, y0, z0, x1, y1, z1 = map(int, m.groups()[:6])
             for x in range(min(x0, x1), max(x0, x1) + 1):
                 for y in range(min(y0, y1), max(y0, y1) + 1):
                     for z in range(min(z0, z1), max(z0, z1) + 1):
-                        out[(x, y, z)] = 'minecraft:' + m.group(7)
+                        current = None if only is None else out.get((x, y, z)) or world.block(x, y, z)
+                        if only is None or (tag in current if tag else current.split('[')[0] == only):
+                            out[(x, y, z)] = 'minecraft:' + m.group(7)
             continue
         m = SETBLOCK_ANY.search(line)
         if m:
@@ -1033,11 +1067,19 @@ def build(world, datapacks, map_name, arena, world_name, index):
     door_spawn_positions = set()
 
     # The map rebuilds its doors when a game starts, so the saved world can hold them open.
-    reset_state = {}
+    reset_all = {}
+    reset_door_signs = {}
     for path in glob.glob(os.path.join(fn_root, 'unique', 'reset*.mcfunction')):
-        for pos, state in block_writes(read(path)).items():
-            if state != 'minecraft:air':
-                reset_state[pos] = state
+        text = read(path)
+        reset_all.update(block_writes(text, world))
+        for m in WALL_SIGN_SET.finditer(text):
+            d = re.search(r'add D(\d+)_B', m.group(6))
+            if d:
+                lines = ['', '', '', '']
+                for idx, comp in re.findall(r"Text(\d):'((?:[^'\\]|\\.)*)'", m.group(6)):
+                    lines[int(idx) - 1] = json_text(comp)
+                reset_door_signs.setdefault(int(d.group(1)), []).append((tuple(map(int, m.group(1, 2, 3))), m.group(4), lines))
+    reset_state = {p: st for p, st in reset_all.items() if st != 'minecraft:air'}
 
     doors = []
     for n, paths in sorted(door_functions(fn_root).items()):
@@ -1067,7 +1109,7 @@ def build(world, datapacks, map_name, arena, world_name, index):
     barriers = []
     for path in sorted(glob.glob(os.path.join(fn_root, 'unique', 'barricades', 'window_*.mcfunction'))):
         w = 'w' + re.search(r'window_(\d+)', path).group(1)
-        boards = parse_window(path)
+        boards = parse_window(path, world)
         if not boards:
             continue
         cx = sum(p[0] for p in boards) / len(boards)
@@ -1105,6 +1147,13 @@ def build(world, datapacks, map_name, arena, world_name, index):
         m = re.search(r'add D(\d+)_B', sign_raw(be))
         if m:
             door_signs.setdefault(int(m.group(1)), []).append((int(be['x']), int(be['y']), int(be['z'])))
+    # Doors standing open in the saved world have no signs there; the reset function puts them back.
+    reset_sign_writes = []
+    for n, found in reset_door_signs.items():
+        for pos, state, lines in found:
+            if pos not in door_signs.get(n, []):
+                door_signs.setdefault(n, []).append(pos)
+                reset_sign_writes.append({'x': pos[0], 'y': pos[1], 'z': pos[2], 'lines': lines, 'blockdata': state})
 
     # Some door functions also clear blocks in a different map (copy-paste leftovers in the datapack);
     # blocks outside this map's footprint are not part of the door.
@@ -1137,7 +1186,7 @@ def build(world, datapacks, map_name, arena, world_name, index):
     spawn_json = [dict(loc(p), world=world_name, id=i) for p, i in spawns.items()]
     box_json = [dict(loc(p), facing=f, cost=950, id=rid()) for p, f in boxes]
 
-    signs = []
+    signs = list(reset_sign_writes)
     for pos, lines in merged_signs(fn_root).items():
         if all(lo[i] <= pos[i] <= hi[i] for i in range(3)):
             signs.append({'x': pos[0], 'y': pos[1], 'z': pos[2], 'lines': lines})
@@ -1283,7 +1332,25 @@ def build(world, datapacks, map_name, arena, world_name, index):
     }
     report.insert(0, '%s -> %s: %d spawns (%d at start), %d doors, %d barriers, %d box locations, %d signs to write'
                   % (map_name, arena, len(spawn_json), len(start_spawns), len(door_json), len(barriers), len(box_json), len(signs)))
-    edits = [{'x': p[0], 'y': p[1], 'z': p[2], 'blockdata': b} for p, b in sorted(box_edits.items())
+    # The world was saved mid-game (perks revealed, gates open); the reset function holds the start state.
+    # Door blocks are the doors' own business and signs are written separately.
+    # A block the map only puts up at reset and some other function clears mid-game (the gate at the top of
+    # Shi No Numa's zipline, lifted when the zipline is switched on) is a mechanism the plugin doesn't run, so
+    # it would stay shut for good; those keep whatever the saved world has.
+    opened_later = set()
+    for path in all_functions(fn_root).values():
+        if os.path.basename(path).startswith('reset'):
+            continue
+        for pos, state in block_writes(read(path)).items():
+            if state == 'minecraft:air':
+                opened_later.add(pos)
+    door_blocks = {p for d in doors for p, _ in d['blocks']}
+    start_state = {p: st for p, st in reset_all.items()
+                   if all(lo[i] <= p[i] <= hi[i] for i in range(3)) and p not in door_blocks and '_sign' not in st
+                   and (st == 'minecraft:air' or p not in opened_later)
+                   and world.block(*p) != st}
+    start_state.update(box_edits)
+    edits = [{'x': p[0], 'y': p[1], 'z': p[2], 'blockdata': b} for p, b in sorted(start_state.items())
              if 'barrier' not in b and 'sign' not in b or b == 'minecraft:air']
     edits = [e for e in edits if 'barrier' not in e['blockdata']]
     return {'save_data': save, 'settings': settings, 'signs': signs, 'block_edits': edits, 'report': report}

@@ -71,7 +71,7 @@ final class TacticalEffects
 		float damage = EquipmentManager.damageOf(equipment);
 		for(Mob mob : EquipmentManager.zombiesNear(game, at, equipment.radius))
 			if(!mob.isDead())
-				game.damageMob(mob, player, damage);
+				game.damageMobExplosive(mob, player, damage);
 	}
 
 	/** Black hole: pulls zombies in for its duration and kills whatever reaches the centre. */

@@ -275,7 +275,7 @@ public class WeaponListener implements Listener
 				if(mob.isDead())
 					continue;
 				if(mob.getLocation().distanceSquared(impact) <= radiusSq)
-					game.damageMob(mob, player, splashDmg, false, false);
+					game.damageMobExplosive(mob, player, splashDmg);
 			}
 			world.spawnParticle(Compat.EXPLOSION, impact, 2, 0.4, 0.4, 0.4, 0);
 			world.spawnParticle(Compat.DUST, impact, 30, splashRadius / 2, splashRadius / 2, splashRadius / 2, new Particle.DustOptions(gun.getType().particleColor, 1.6F));
@@ -445,7 +445,7 @@ public class WeaponListener implements Listener
 						Mob mob = ents.get(i);
 						float dist = (float) mob.getLocation().distance(item.getLocation());
 						if(dist < 5)
-							game.damageMob(mob, player, 50f / (dist * dist * dist));
+							game.damageMobExplosive(mob, player, 50f / (dist * dist * dist));
 					}
 
 					item.remove();
@@ -511,7 +511,7 @@ public class WeaponListener implements Listener
 							Mob mob = ents.get(i);
 							float dist = (float) mob.getLocation().distance(loc);
 							if(dist < 5)
-								game.damageMob(mob, player, 50f / (dist * dist * dist));
+								game.damageMobExplosive(mob, player, 50f / (dist * dist * dist));
 						}
 
 						attackEnt.remove();

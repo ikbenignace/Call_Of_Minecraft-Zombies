@@ -2,8 +2,9 @@
 """
 Writes Core/src/main/resources/model_centres.json: for every comz item model, the centre of its geometry
 as an item display draws it (no display transform, turned 180 degrees about Y by the renderer), in blocks
-from the display's origin at scale 1. The plugin subtracts it to put a model's visual centre exactly
-where it wants, e.g. a gun in the middle of the mystery box or on its wall outline.
+from the display's origin at scale 1, followed by its longest side in blocks. The plugin subtracts the
+centre to put a model's visual centre exactly where it wants, e.g. a gun in the middle of the mystery box
+or on its wall outline, and uses the length to draw wall buys about life size.
 
 build_pack.py runs this; run it by hand after changing models without building the pack.
 """
@@ -59,7 +60,8 @@ def centre(els):
     mid = [(min(p[i] for p in pts) + max(p[i] for p in pts)) / 2 for i in range(3)]
     # Pixels to blocks around the model's (8, 8, 8), then the renderer's half turn about Y.
     x, y, z = ((v - 8) / 16 for v in mid)
-    return [round(-x, 4), round(y, 4), round(-z, 4)]
+    longest = max(max(p[i] for p in pts) - min(p[i] for p in pts) for i in range(3)) / 16
+    return [round(-x, 4), round(y, 4), round(-z, 4), round(longest, 4)]
 
 
 def item_model_ref(item_def):

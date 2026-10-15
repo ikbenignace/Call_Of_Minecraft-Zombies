@@ -102,6 +102,8 @@ public class ConfigSetup
 	public int zombieSprinterStartRound;
 	public double zombieRunnerSpeed;
 	public double zombieSprinterSpeed;
+	/** Random per-zombie speed spread (fraction either way) on top of the walker/runner/sprinter tier. */
+	public double zombieSpeedVariation;
 	public int dogRoundFirstMin;
 	public int dogRoundFirstMax;
 	public double doubleTapDamageMultiplier;
@@ -261,6 +263,8 @@ public class ConfigSetup
 	 * convert it into a slow gas-emitting crawler so players can hold the round (BO behavior).
 	 */
 	public boolean lastZombieCrawler;
+	/** Chance (0-1) that a zombie surviving explosive damage is turned into a crawler. */
+	public double crawlerExplosiveChance;
 	/**
 	 * Tier 2 — Max health (plugin HP scale) a zombie is set to when converted into a crawler.
 	 */
@@ -569,6 +573,7 @@ public class ConfigSetup
 		zombieSprinterStartRound = plugin.getConfig().getInt("config.gameSettings.zombieSprinterStartRound", 10);
 		zombieRunnerSpeed = plugin.getConfig().getDouble("config.gameSettings.zombieRunnerSpeed", 1.3);
 		zombieSprinterSpeed = plugin.getConfig().getDouble("config.gameSettings.zombieSprinterSpeed", 1.7);
+		zombieSpeedVariation = plugin.getConfig().getDouble("config.gameSettings.zombieSpeedVariation", 0.12);
 		dogRoundFirstMin = plugin.getConfig().getInt("config.gameSettings.dogRoundFirstMin", 5);
 		dogRoundFirstMax = Math.max(dogRoundFirstMin, plugin.getConfig().getInt("config.gameSettings.dogRoundFirstMax", 8));
 		doubleTapDamageMultiplier = plugin.getConfig().getDouble("config.perks.doubleTapDamageMultiplier", 2.0);
@@ -620,7 +625,8 @@ public class ConfigSetup
 		teleporterPadKillRadius = plugin.getConfig().getDouble("config.teleporter.padKillRadius", 3.0);
 		teleporterSound = plugin.getConfig().getBoolean("config.teleporter.sound", true);
 		teleporterPaPAccessSeconds = plugin.getConfig().getInt("config.teleporter.paPAccessSeconds", 30);
-		lastZombieCrawler = plugin.getConfig().getBoolean("config.gameSettings.lastZombieCrawler", true);
+		lastZombieCrawler = plugin.getConfig().getBoolean("config.gameSettings.lastZombieCrawler", false);
+		crawlerExplosiveChance = plugin.getConfig().getDouble("config.gameSettings.crawlerExplosiveChance", 0.35);
 		crawlerHealth = plugin.getConfig().getDouble("config.gameSettings.crawlerHealth", 2.0);
 		crawlerGasRadius = plugin.getConfig().getDouble("config.gameSettings.crawlerGasRadius", 3.0);
 		crawlerSpeedMultiplier = plugin.getConfig().getDouble("config.gameSettings.crawlerSpeedMultiplier", 0.35);

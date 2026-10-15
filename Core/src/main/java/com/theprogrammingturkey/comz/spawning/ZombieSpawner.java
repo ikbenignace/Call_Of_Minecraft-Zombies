@@ -176,7 +176,8 @@ public class ZombieSpawner extends RoundSpawner
 		setMaxHealth(zomb, strength);
 		zomb.setHealth(strength);
 
-		float speed = speedMultiplier(wave);
+		double variation = ConfigManager.getMainConfig().zombieSpeedVariation;
+		float speed = speedMultiplier(wave) * (float) (1 + variation * (COMZombies.rand.nextDouble() * 2 - 1));
 		if(speed != 1f)
 			setSpeed(zomb, speed);
 

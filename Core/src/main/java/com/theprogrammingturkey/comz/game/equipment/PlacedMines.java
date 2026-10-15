@@ -188,7 +188,7 @@ final class PlacedMines
 		float damage = EquipmentManager.damageOf(equipment);
 		for(Mob mob : EquipmentManager.zombiesNear(game, mine.centre, equipment.damageRadius))
 			if(inArea(mine, mob.getLocation()) && !mob.isDead())
-				game.damageMob(mob, owner, damage);
+				game.damageMobExplosive(mob, owner, damage);
 	}
 
 	private static void spikes(Mine mine, Location from)

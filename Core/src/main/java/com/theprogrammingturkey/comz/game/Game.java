@@ -1620,6 +1620,15 @@ public class Game
 		}
 	}
 
+	/** Damage from a blast: zombies that live through it may lose their legs and crawl on, as in BO. */
+	public void damageMobExplosive(Mob mob, Player player, float damageAmount)
+	{
+		damageMob(mob, player, damageAmount);
+		if(mob instanceof Zombie && !mob.isDead() && spawnManager.isEntitySpawned(mob) && !specialEnemyManager.isSpecial(mob)
+				&& COMZombies.rand.nextDouble() < ConfigManager.getMainConfig().crawlerExplosiveChance)
+			com.theprogrammingturkey.comz.spawning.ZombieSpawner.convertToCrawler(this, mob);
+	}
+
 	public void damageMob(Mob mob, Player player, float damageAmount)
 	{
 		damageMob(mob, player, damageAmount, false, false);
@@ -1632,9 +1641,10 @@ public class Game
 		double mobHealth = mob.getHealth() - damageAmount;
 		mob.playEffect(EntityEffect.HURT);
 
-		// Tier 2 — Insta-Kill must not instantly remove a last-zombie crawler, otherwise it would
-		// auto-end the round players are deliberately holding. Crawlers take normal damage instead.
-		if(isInstaKill() && !com.theprogrammingturkey.comz.spawning.ZombieSpawner.isCrawler(mob) && !specialEnemyManager.isInstaKillImmune(mob))
+		// Insta-Kill must not instantly remove a last-zombie crawler, otherwise it would auto-end the round
+		// players are deliberately holding; crawlers blown off their legs die to it like any zombie.
+		boolean heldCrawler = ConfigManager.getMainConfig().lastZombieCrawler && com.theprogrammingturkey.comz.spawning.ZombieSpawner.isCrawler(mob);
+		if(isInstaKill() && !heldCrawler && !specialEnemyManager.isInstaKillImmune(mob))
 		{
 			if(mob instanceof Zombie)
 				player.getWorld().playSound(mob.getLocation(), Sound.ENTITY_ZOMBIE_DEATH, 1f, 1f);

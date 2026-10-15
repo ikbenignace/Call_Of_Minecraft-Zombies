@@ -21,6 +21,8 @@ import org.bukkit.Material;
 public final class WallGunVisuals
 {
 	private static final float SCALE = 0.9f;
+	/** Pack models are scaled so their longest side is this many blocks, about life size; small ones stay at SCALE. */
+	private static final double WALL_LENGTH = 1.1;
 	/** Pack gun models sit a little below the model origin; this puts unknown ones roughly mid-block. */
 	private static final float CENTRE_LIFT = 0.16f * SCALE;
 	/** Distance from the block centre towards the wall, so the thin model sits just off the surface. */
@@ -83,15 +85,19 @@ public final class WallGunVisuals
 		if(stack == null || signBlock.getWorld() == null || !Displays.supportsItemDisplays())
 			return null;
 		Location at = signBlock.clone().add(0.5 - facing.getModX() * WALL_INSET, 0.5 + raise, 0.5 - facing.getModZ() * WALL_INSET);
-		float lift = packModel != null ? CENTRE_LIFT : 0f;
-		Vector shift = ModelCentres.shift(packModel, SCALE, yaw(facing));
+		float scale = SCALE;
+		double length = ModelCentres.length(packModel);
+		if(length > 0)
+			scale = (float) Math.min(SCALE, WALL_LENGTH / length);
+		float lift = packModel != null ? CENTRE_LIFT * scale / SCALE : 0f;
+		Vector shift = ModelCentres.shift(packModel, scale, yaw(facing));
 		if(shift != null)
 		{
 			// Only along the wall and up: the depth stays at the inset so thick models don't sink into the wall.
 			at.add(facing.getModX() == 0 ? shift.getX() : 0, shift.getY(), facing.getModZ() == 0 ? shift.getZ() : 0);
 			lift = 0f;
 		}
-		Entity display = Displays.spawnItem(at, stack, SCALE, yaw(facing), lift, false);
+		Entity display = Displays.spawnItem(at, stack, scale, yaw(facing), lift, false);
 		if(display != null)
 			Displays.setBrightness(display, 12, 15);
 		return display;

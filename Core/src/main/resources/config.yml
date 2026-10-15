@@ -79,6 +79,8 @@ config:
     #Speed multipliers relative to a walker.
     zombieRunnerSpeed: 1.3
     zombieSprinterSpeed: 1.7
+    #Each zombie's speed is varied by up to this fraction either way, so a horde never moves in lockstep.
+    zombieSpeedVariation: 0.12
     #Time it takes for an arena to start
     arenaStartTime: 60
     #Apply Scope when zooming in if textured
@@ -99,8 +101,10 @@ config:
     meleeKillBonus: 80
     #Base knife one-shots zombies through (and including) this round; knife damage derives from the HP curve at this round.
     knifeOneShotThroughRound: 9
-    #When a round's zombies are all spawned and exactly one regular zombie remains, turn it into a slow gas-emitting crawler so players can hold the round (BO behavior).
-    lastZombieCrawler: true
+    #When a round's zombies are all spawned and exactly one regular zombie remains, turn it into a slow gas-emitting crawler. Off by default: in BO crawlers come from explosions (see crawlerExplosiveChance).
+    lastZombieCrawler: false
+    #Chance (0-1) that a zombie surviving an explosion (grenades, mines, splash weapons) loses its legs and crawls on, like in BO.
+    crawlerExplosiveChance: 0.35
     #Max health (plugin HP scale) a zombie is set to when converted into a crawler.
     crawlerHealth: 2.0
     #Radius (blocks) around a crawler within which its toxic gas poisons players.

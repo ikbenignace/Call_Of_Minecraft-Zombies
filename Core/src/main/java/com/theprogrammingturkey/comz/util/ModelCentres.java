@@ -47,6 +47,15 @@ public final class ModelCentres
 		return new Vector(-x * scale, -c[1] * scale, -z * scale);
 	}
 
+	/** Longest side of the model in blocks at scale 1, or 0 when unknown. */
+	public static double length(String itemModel)
+	{
+		if(itemModel == null || !PackModels.isPackEnabled())
+			return 0;
+		double[] c = table().get(itemModel.indexOf(':') < 0 ? "comz:" + itemModel : itemModel);
+		return c == null || c.length < 4 ? 0 : c[3];
+	}
+
 	private static synchronized Map<String, double[]> table()
 	{
 		if(centres != null)
@@ -63,7 +72,10 @@ public final class ModelCentres
 				for(Map.Entry<String, JsonElement> entry : root.entrySet())
 				{
 					JsonArray v = entry.getValue().getAsJsonArray();
-					centres.put(entry.getKey(), new double[]{v.get(0).getAsDouble(), v.get(1).getAsDouble(), v.get(2).getAsDouble()});
+					double[] values = new double[v.size()];
+					for(int i = 0; i < values.length; i++)
+						values[i] = v.get(i).getAsDouble();
+					centres.put(entry.getKey(), values);
 				}
 			}
 		} catch(Exception e)
