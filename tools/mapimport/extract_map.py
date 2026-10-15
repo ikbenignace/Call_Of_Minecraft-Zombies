@@ -286,6 +286,23 @@ def merged_signs(fn_root):
     return {pos: lines for pos, lines in out.items() if has_cost(lines) and 'random weapon' not in ' '.join(lines).lower()}
 
 
+def merged_signs_all(fn_root):
+    out = {}
+    for path in glob.glob(os.path.join(fn_root, '**', '*.mcfunction'), recursive=True):
+        for line in read(path).splitlines():
+            m = DATA_MERGE.search(line.strip())
+            if not m:
+                continue
+            texts = re.findall(r"Text(\d):'((?:[^'\\]|\\.)*)'", m.group(4))
+            lines = ['', '', '', '']
+            for idx, comp in texts:
+                lines[int(idx) - 1] = json_text(comp)
+            pos = (int(m.group(1)), int(m.group(2)), int(m.group(3)))
+            if has_cost(lines) or pos not in out:
+                out[pos] = lines
+    return out
+
+
 def has_cost(lines):
     return any('cost' in l.lower() for l in lines)
 
@@ -300,6 +317,135 @@ def start_position(fn_root):
             if m:
                 return [float(m.group(1)), float(m.group(2)), float(m.group(3)), float(m.group(4) or 0)]
     return None
+
+PARTICLE = re.compile(r"particle minecraft:([a-z_]+) (-?\d+(?:\.\d+)?) (-?\d+(?:\.\d+)?) (-?\d+(?:\.\d+)?)")
+TIMER = re.compile(r"Timer=(\d+)")
+TP_MOVE = re.compile(r"(?:^|run )tp (@[ap])\[x=(-?[\d.]+),y=(-?[\d.]+),z=(-?[\d.]+)[^\]]*\] (-?[\d.]+) (-?[\d.]+) (-?[\d.]+)")
+TRAP_TYPES = (('electric', 'electric'), ('fire', 'fire'), ('flame', 'fire'), ('flogger', 'flogger'), ('centrifuge', 'centrifuge'), ('spike', 'spikes'))
+
+
+def clusters(points, reach=3):
+    groups = []
+    for p in points:
+        joined = [g for g in groups if any(abs(p[0] - q[0]) <= reach and abs(p[2] - q[2]) <= reach and abs(p[1] - q[1]) <= reach for q in g)]
+        merged = [p]
+        for g in joined:
+            merged += g
+            groups.remove(g)
+        groups.append(merged)
+    return sorted(groups, key=len, reverse=True)
+
+
+def box_of(points):
+    return ({'x': float(min(p[0] for p in points)), 'y': float(min(p[1] for p in points) - 1), 'z': float(min(p[2] for p in points))},
+            {'x': float(max(p[0] for p in points)), 'y': float(max(p[1] for p in points) + 1), 'z': float(max(p[2] for p in points))})
+
+
+def parse_traps(fn_root, merged):
+    """trapNbuy/clock/visuals: price, sign, name, timings and the particle spots that outline the kill area."""
+    traps = []
+    folder = os.path.join(fn_root, 'maps', 'traps')
+    for buy in sorted(glob.glob(os.path.join(folder, 'trap*buy.mcfunction'))):
+        n = re.search(r'trap(\d+)buy', buy).group(1)
+        text = read(buy)
+        clock = read(os.path.join(folder, 'trap%sclock.mcfunction' % n)) if os.path.exists(os.path.join(folder, 'trap%sclock.mcfunction' % n)) else ''
+        visuals = read(os.path.join(folder, 'trap%svisuals.mcfunction' % n)) if os.path.exists(os.path.join(folder, 'trap%svisuals.mcfunction' % n)) else ''
+        price = PRICE.search(text)
+        sign = DATA_MERGE.search(text) or DATA_MERGE.search(clock)
+        if not sign:
+            continue
+        pos = (int(sign.group(1)), int(sign.group(2)), int(sign.group(3)))
+        name = (merged.get(pos) or ['Trap'])[0].strip() or 'Trap'
+        spots = [(int(float(m.group(2))), int(float(m.group(3))), int(float(m.group(4)))) for m in PARTICLE.finditer(visuals)]
+        particle_names = ' '.join(m.group(1) for m in PARTICLE.finditer(visuals))
+        if not spots:
+            continue
+        lowered = (name + ' ' + particle_names).lower()
+        kind = next((t for key, t in TRAP_TYPES if key in lowered), 'generic')
+        timers = sorted({int(t) for t in TIMER.findall(clock)})
+        duration = timers[0] // 20 if timers else -1
+        cooldown = (timers[-1] - timers[0]) // 20 if len(timers) > 1 else -1
+        regions = [box_of(c) for c in clusters(spots)]
+        traps.append({'n': n, 'name': name, 'type': kind, 'cost': int(price.group(1)) if price else 1000,
+                      'sign': pos, 'regions': regions, 'duration': duration, 'cooldown': cooldown})
+    return traps
+
+
+TP_ANY = re.compile(r"(?:^|run )tp (@[apes])(\[[^\]]*\])? (-?[\d.]+) (-?[\d.]+) (-?[\d.]+)(?:\s|$)")
+SELECTOR_POS = re.compile(r"x=(-?[\d.]+),y=(-?[\d.]+),z=(-?[\d.]+)")
+STEP = re.compile(r"scores=\{[A-Za-z_]+=(\d+)\}")
+
+
+def parse_transports(fn_root):
+    """Absolute player teleports in the map's travel functions, ordered by their timer step (one destination per
+    step). Short hops in a row are a ride along a path; one long jump is a teleporter/elevator."""
+    out = []
+    names = ('zipline', 'lander', 'elevator', 'teleporter', 'travel', 'minecart', 'slide')
+    files = [f for f in glob.glob(os.path.join(fn_root, 'unique', '**', '*.mcfunction'), recursive=True)
+             if any(k in f.lower() for k in names)]
+    for path in sorted(files):
+        steps = {}
+        source = None
+        everyone = False
+        order = 0
+        for line in read(path).splitlines():
+            m = TP_ANY.search(line)
+            if not m:
+                continue
+            order += 1
+            step = STEP.search(line)
+            key = int(step.group(1)) if step else order
+            if key in steps:
+                continue
+            steps[key] = tuple(float(v) for v in m.group(3, 4, 5))
+            sel = SELECTOR_POS.search(m.group(2) or '')
+            if source is None and sel:
+                source = tuple(float(v) for v in sel.groups())
+            everyone = everyone or m.group(1) == '@a'
+        if not steps:
+            continue
+        points = [steps[k] for k in sorted(steps)]
+        if source is not None:
+            points.insert(0, source)
+        if len(points) < 2:
+            continue
+        hops = [max(abs(points[i + 1][j] - points[i][j]) for j in range(3)) for i in range(len(points) - 1)]
+        label = os.path.splitext(os.path.basename(path))[0]
+        buy = next((read(f) for f in glob.glob(os.path.join(os.path.dirname(path), '*buy*.mcfunction'))), '')
+        price = PRICE.search(buy)
+        if len(points) >= 3 and max(hops) <= 16 and 'teleport' not in label.lower():
+            style = 'cart' if 'minecart' in path.lower() else ('platform' if everyone or 'lander' in path.lower() else 'zipline')
+        else:
+            style = 'teleport'
+            points = [points[0], points[-1]]
+        out.append({'name': 'Imported ' + label, 'style': style, 'points': points, 'cost': int(price.group(1)) if price else 0})
+    return dedupe_transports(out)
+
+
+def dedupe_transports(transports):
+    """Drop repeats and fold a reverse path (to-dock / to-main) into one two-way transport."""
+    kept = []
+    for t in transports:
+        a, b = t['points'][0], t['points'][-1]
+        twin = None
+        for k in kept:
+            ka, kb = k['points'][0], k['points'][-1]
+            if close(a, ka) and close(b, kb):
+                twin = k
+                break
+            if close(a, kb) and close(b, ka):
+                k['two_way'] = True
+                twin = k
+                break
+        if twin is None:
+            t.setdefault('two_way', t['style'] == 'teleport')
+            kept.append(t)
+    return kept
+
+
+def close(a, b, reach=3):
+    return max(abs(a[i] - b[i]) for i in range(3)) <= reach
+
 
 
 # ------------------------------------------------------------------ assembly
@@ -444,6 +590,30 @@ def build(world, datapacks, map_name, arena, world_name, power_blocks):
             signs.append({'x': pos[0], 'y': pos[1], 'z': pos[2], 'lines': ['[Zombies]', 'Power', '', ''], 'power': True})
             report.append('power switch near %s' % (pos,))
 
+    merged = merged_signs_all(fn_root)
+    trap_json = []
+    for t in parse_traps(fn_root, merged):
+        trap_id = 'trap%s' % t['n']
+        main = t['regions'][0]
+        trap_json.append({'x': float(t['sign'][0]), 'y': float(t['sign'][1]), 'z': float(t['sign'][2]), 'id': trap_id,
+                          'cost': t['cost'], 'type': t['type'], 'requires_power': True,
+                          'duration_seconds': t['duration'], 'cooldown_seconds': t['cooldown'],
+                          'region': {'p1': main[0], 'p2': main[1]},
+                          'extra_regions': [{'p1': r[0], 'p2': r[1]} for r in t['regions'][1:]]})
+        signs = [x for x in signs if (x['x'], x['y'], x['z']) != t['sign']]
+        signs.append({'x': t['sign'][0], 'y': t['sign'][1], 'z': t['sign'][2], 'lines': ['[Zombies]', 'Trap', trap_id, str(t['cost'])]})
+        report.append('trap %s: %s (%s), %d area(s), %d points' % (t['n'], t['name'], t['type'], len(t['regions']), t['cost']))
+
+    transport_json = []
+    speeds = {'zipline': 8.0, 'platform': 4.0, 'cart': 6.0, 'teleport': 4.0}
+    for t in parse_transports(fn_root):
+        if not all(lo[0] - 40 <= p[0] <= hi[0] + 40 and lo[2] - 40 <= p[2] <= hi[2] + 40 for p in t['points']):
+            continue
+        transport_json.append({'id': rid(), 'name': t['name'], 'style': t['style'], 'cost': t['cost'], 'requires_power': False,
+                               'cooldown_seconds': 0, 'speed': speeds[t['style']], 'two_way': t.get('two_way', False), 'platform_size': 3,
+                               'waypoints': [{'x': p[0], 'y': p[1], 'z': p[2]} for p in t['points']], 'call_points': []})
+        report.append('transport %s: %s, %d points%s' % (t['name'], t['style'], len(t['points']), ', two-way' if t.get('two_way') else ''))
+
     if start:
         spawn = {'x': start[0] + 0.5, 'y': start[1], 'z': start[2] + 0.5}
     else:
@@ -458,7 +628,7 @@ def build(world, datapacks, map_name, arena, world_name, power_blocks):
         'power_setup': any(s.get('power') for s in signs),
         'zombie_spawns': spawn_json, 'mystery_boxes': box_json,
         'barriers': [{k: v for k, v in b.items() if not k.startswith('_')} for b in barriers],
-        'doors': door_json, 'teleporters': [], 'traps': [], 'buildables': [],
+        'doors': door_json, 'teleporters': [], 'traps': trap_json, 'transports': transport_json, 'buildables': [],
     }
     report.insert(0, '%s -> %s: %d spawns (%d at start), %d doors, %d barriers, %d box locations, %d signs to write'
                   % (map_name, arena, len(spawn_json), len(start_spawns), len(door_json), len(barriers), len(box_json), len(signs)))

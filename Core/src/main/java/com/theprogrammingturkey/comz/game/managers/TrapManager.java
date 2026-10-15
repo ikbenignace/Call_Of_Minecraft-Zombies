@@ -56,6 +56,15 @@ public class TrapManager
 				else if(region.has("p1") && region.has("p2"))
 					trap.setCorners(CustomConfig.getLocationWithWorld(region, "p1", game.getWorld()), CustomConfig.getLocationWithWorld(region, "p2", game.getWorld()));
 			}
+			if(trapJson.has("extra_regions") && trapJson.get("extra_regions").isJsonArray())
+				for(JsonElement extraElem : trapJson.getAsJsonArray("extra_regions"))
+				{
+					if(!extraElem.isJsonObject())
+						continue;
+					JsonObject extra = extraElem.getAsJsonObject();
+					if(extra.has("p1") && extra.has("p2"))
+						trap.addExtraRegion(CustomConfig.getLocationWithWorld(extra, "p1", game.getWorld()), CustomConfig.getLocationWithWorld(extra, "p2", game.getWorld()));
+				}
 			traps.put(id, trap);
 		}
 	}
@@ -85,6 +94,18 @@ public class TrapManager
 			}
 			if(!region.entrySet().isEmpty())
 				trapJson.add("region", region);
+			if(!trap.getExtraRegions().isEmpty())
+			{
+				JsonArray extras = new JsonArray();
+				for(Location[] extra : trap.getExtraRegions())
+				{
+					JsonObject extraJson = new JsonObject();
+					extraJson.add("p1", CustomConfig.locationToJsonNoWorld(extra[0]));
+					extraJson.add("p2", CustomConfig.locationToJsonNoWorld(extra[1]));
+					extras.add(extraJson);
+				}
+				trapJson.add("extra_regions", extras);
+			}
 			saveJson.add(trapJson);
 		}
 

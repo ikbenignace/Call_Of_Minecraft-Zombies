@@ -10,6 +10,10 @@ import com.theprogrammingturkey.comz.game.traps.TrapTypes;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
 /**
  * A buyable, timed trap. Its {@link TrapType} decides the look, sound and damage; its region is a zone (by id),
  * its own two corners, or - for traps saved before regions existed - a radius around the activation sign.
@@ -34,7 +38,9 @@ public class Trap
 
 	/** Epoch millis the last run ended; 0 = never used. Transient. */
 	private long lastUsed = 0L;
-	private TrapRun run;
+	private final List<TrapRun> runs = new ArrayList<>();
+	/** More boxes the same handle switches on (one trap guarding two doorways); each is a two-corner pair. */
+	private final List<Location[]> extraRegions = new ArrayList<>();
 
 	public Trap(String id, Location handle, int cost)
 	{
@@ -211,9 +217,27 @@ public class Trap
 		return TrapArea.sphere(handle.clone().add(0.5, 0, 0.5), effectiveRadius());
 	}
 
+	public List<Location[]> getExtraRegions()
+	{
+		return Collections.unmodifiableList(extraRegions);
+	}
+
+	public void addExtraRegion(Location corner1, Location corner2)
+	{
+		extraRegions.add(new Location[]{corner1, corner2});
+	}
+
+	public void clearExtraRegions()
+	{
+		extraRegions.clear();
+	}
+
 	public boolean isActive()
 	{
-		return run != null && run.isRunning();
+		for(TrapRun run : runs)
+			if(run.isRunning())
+				return true;
+		return false;
 	}
 
 	public long getLastUsed()
@@ -255,9 +279,14 @@ public class Trap
 	public void reset()
 	{
 		lastUsed = 0L;
-		if(run != null)
+		cancelRuns();
+	}
+
+	private void cancelRuns()
+	{
+		for(TrapRun run : runs)
 			run.cancel();
-		run = null;
+		runs.clear();
 	}
 
 	/** Starts a run credited to {@code activator}; the cooldown starts when the run ends. */
@@ -266,11 +295,18 @@ public class Trap
 		TrapArea area = resolveArea(game);
 		if(area == null)
 			return false;
-		if(run != null)
-			run.cancel();
-		TrapRun thisRun = new TrapRun(game, getType(), area, activator, getDurationSeconds(), () -> lastUsed = System.currentTimeMillis());
-		run = thisRun;
-		thisRun.start();
+		cancelRuns();
+		List<TrapArea> areas = new ArrayList<>();
+		areas.add(area);
+		for(Location[] extra : extraRegions)
+			if(extra[0] != null && extra[1] != null && extra[0].getWorld() != null)
+				areas.add(TrapArea.box(extra[0], extra[1]));
+		for(TrapArea each : areas)
+		{
+			TrapRun thisRun = new TrapRun(game, getType(), each, activator, getDurationSeconds(), () -> lastUsed = System.currentTimeMillis());
+			runs.add(thisRun);
+			thisRun.start();
+		}
 		return true;
 	}
 }

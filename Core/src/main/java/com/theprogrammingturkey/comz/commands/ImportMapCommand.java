@@ -40,7 +40,7 @@ import java.util.Map;
  */
 public class ImportMapCommand extends SubCommand
 {
-	private static final String[] REPLACED = {"zombie_spawns", "mystery_boxes", "barriers", "doors", "power_setup"};
+	private static final String[] REPLACED = {"zombie_spawns", "mystery_boxes", "barriers", "doors", "traps", "transports", "power_setup"};
 	private static final String[] KEPT_WHEN_PRESENT = {"p1", "p2", "player_spawn", "spectator_spawn", "lobby_spawn"};
 
 	public ImportMapCommand(COMZPermission permission)
