@@ -1,0 +1,103 @@
+# Generic map features
+
+Goal: every mechanic of the classic zombies maps (WaW, BO1) can be built on ANY arena from configurable building
+blocks. No feature knows a map name. Each feature:
+
+- is saved per arena in `arenas.json` (`save_data` for placed things, `settings` for arena-wide options);
+- has defaults in `config.yml` and/or a json catalogue in the plugin folder;
+- can be placed and edited in build mode (`/zombies build`) and changed in `/zombies settings`;
+- works on 1.14 → 26.x (spigot-api 1.14.4 in Core; newer API only through `util/Compat` or a `Displays`-style
+  backend, checked by `sh gradlew -q checkApiCompat`).
+
+## 1. Arena environment (settings)
+
+Per-arena settings (with config.yml defaults):
+
+| key | meaning |
+|---|---|
+| `gravity` | 1.0 = normal; 0.4 = moon. 1.20.5+ uses the GRAVITY attribute, older servers approximate with Slow Falling + Jump Boost. |
+| `jump_boost` | extra jump height multiplier. |
+| `force_night`, `fog` | existing night flag plus optional darkness/fog. |
+| `special_enemies` | which special enemy types may appear and how (see 6). |
+| `dog_round_every_x`, `teddy_bear_chance`, `powerup_settings` | existing. |
+
+## 2. Zones
+
+Named box regions per arena (two corners, like doors), each with flags:
+
+- `gravity` override (low-gravity area);
+- `no_air` — players take suffocation damage unless wearing breathing gear (Moon P.E.S.);
+- `damage` per second (lava, electricity floor);
+- `name` shown on the HUD when entering ("Power Room").
+
+Build mode: Zone tool (two clicks for corners, F cycles flag presets). Zones are also reused by traps and triggers.
+
+## 3. Transport (ziplines, landers, elevators, minecarts)
+
+A transport is an ordered list of waypoints plus options:
+
+- `style`: `zipline` (hang under a rope, particles and a line display), `platform` (stand on a moving
+  platform/lander), `cart` (seated ride), `teleport` (fade + instant, used for elevators between floors);
+- `cost`, `requires_power`, `cooldown_seconds`, `speed`;
+- `two_way` (the call point at the far end works too);
+- `call_points`: where players press F to call or ride;
+- optional `on_arrival` trigger (see 7).
+
+Build mode: Transport tool. Right-click adds waypoints, F switches style, shift-right-click finishes. Moving riders
+use display entities and teleport interpolation, so nothing depends on a client mod.
+
+## 4. Traps (typed)
+
+The existing `Trap` (cost, kill radius, duration, cooldown) gains:
+
+- `type` from a catalogue (`traps.json`): `electric` (barrier of sparks, lightning sound), `fire` (flames,
+  burning), `flogger` (rotating arm, knockback kill), `centrifuge` (spinning, hits players too),
+  `spikes`, `generic`. A type defines particles, sounds, whether it hurts players and the damage model;
+- `region` (a zone) instead of a single radius, plus the activation sign/handle locations;
+- `requires_power`.
+
+## 5. Equipment
+
+Catalogue `equipment.json`, bought from wall buys like guns:
+
+- `melee` upgrades (Bowie Knife, Sickle, Ballistic): knife damage multiplier, swing speed, model, one per player.
+- `placeable` mines: `claymore` (directional tripwire, explodes towards zombies), `bouncing_betty`
+  (proximity, jumps then explodes), `spikemore` (directional spikes). Count per buy, refilled each round.
+- `tactical`: Gersch Device (black hole), QED (random effect), Monkey Bomb (existing), Matryoshka dolls.
+- `gear`: breathing helmet (P.E.S.), Hacker device (opens/alters things it is used on).
+
+## 6. Special enemies
+
+Catalogue `specials.json`. Each type: base mob, health formula, speed, model/skin, sounds and behaviour:
+
+- `steal_perk` (Space Monkey: runs to a perk machine, steals a perk unless killed);
+- `steal_weapon` (Thief: grabs a gun and flees, drops it when killed);
+- `boss` (George A. Romero, Astronaut, Cosmonaut: big health, special attack);
+- `napalm` (explodes in fire on death), `shrieker` (blinding scream).
+
+Arena setting `special_enemies`: list of `{type, every_x_rounds | chance_per_round | replaces_dog_round, max_alive}`.
+
+## 7. Triggers and sequences
+
+A trigger is a set of steps that unlocks a target when finished. Covers PaP gates and Easter eggs generically.
+
+- step kinds: `interact` (press F on a point), `stand_on` (stand on a plate/zone),
+  `kill_in_zone`, `ride_transport`, `power_on`, `round_reached`;
+- options: `ordered`, `time_limit_seconds`, `reset_on_fail`, `all_players`;
+- targets: `open_door`, `enable_pack_a_punch`, `enable_teleporter`, `play_song`, `give_powerup`,
+  `spawn_perk`, `message`.
+
+Examples: Five DEFCON (4 ordered interacts → PaP teleporter), Shangri-La stepping stones (stand_on, all at once,
+time limit → PaP), Ascension landers (ride all transports → PaP), Easter-egg songs (interact with 3 items →
+play song).
+
+## 8. Perk placement pools
+
+A perk machine can be `pooled`: the arena keeps a pool of spots; machines appear at random spots when a door opens
+or a trigger fires (Shi No Numa). Setting: `perk_pool_mode` = `fixed` | `random_on_open`.
+
+## 9. Import
+
+`tools/mapimport/extract_map.py` maps the standalone map onto these features: trap functions → traps,
+teleporter functions → transports/teleporters, zipline/lander/elevator functions → transports, perk placement →
+pools, songs → triggers. Every import result can be edited in build mode afterwards.
