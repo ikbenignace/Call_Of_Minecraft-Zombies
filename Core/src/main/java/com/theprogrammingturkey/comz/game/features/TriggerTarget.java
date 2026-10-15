@@ -10,7 +10,7 @@ import java.util.Locale;
 
 /**
  * What a {@link Trigger} does once all its steps are complete. {@code value} depends on the kind: door id,
- * teleporter name, sound key, power-up type ({@code random} allowed), perk type ({@code pool} reveals the next
+ * teleporter sign name or transport id/name (locked until the trigger fires), sound key, power-up type ({@code random} allowed), perk type ({@code pool} reveals the next
  * pooled perk machine) or the message text ({@code &} colour codes).
  */
 public class TriggerTarget

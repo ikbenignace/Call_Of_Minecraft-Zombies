@@ -55,6 +55,8 @@ final class ZoneOutlines
 
 	private static Color colorOf(Zone zone)
 	{
+		if(zone.isAirPocket())
+			return Color.LIME;
 		if(zone.isNoAir())
 			return Color.AQUA;
 		if(zone.getDamagePerSecond() > 0)

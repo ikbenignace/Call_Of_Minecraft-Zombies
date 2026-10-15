@@ -3,12 +3,14 @@ package com.theprogrammingturkey.comz.game.managers;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.theprogrammingturkey.comz.COMZombies;
 import com.theprogrammingturkey.comz.config.CustomConfig;
 import com.theprogrammingturkey.comz.game.Game;
 import com.theprogrammingturkey.comz.game.GameManager;
 import com.theprogrammingturkey.comz.game.features.Trap;
 import com.theprogrammingturkey.comz.game.traps.TrapType;
 import com.theprogrammingturkey.comz.util.Util;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 
 import java.util.HashMap;
@@ -24,6 +26,7 @@ public class TrapManager
 	private final Game game;
 
 	private final Map<String, Trap> traps = new HashMap<>();
+	private int autoTaskId = -1;
 
 	public TrapManager(Game game)
 	{
@@ -51,6 +54,7 @@ public class TrapManager
 			trap.setDurationSeconds(CustomConfig.getInt(trapJson, "duration_seconds", Trap.USE_TYPE_DEFAULT));
 			trap.setCooldownSeconds(CustomConfig.getInt(trapJson, "cooldown_seconds", Trap.USE_TYPE_DEFAULT));
 			trap.setRadius(CustomConfig.getDouble(trapJson, "radius", -1));
+			trap.setAutomatic(CustomConfig.getBoolean(trapJson, "automatic", false));
 			if(trapJson.has("region") && trapJson.get("region").isJsonObject())
 			{
 				JsonObject region = trapJson.getAsJsonObject("region");
@@ -89,6 +93,8 @@ public class TrapManager
 			trapJson.addProperty("cooldown_seconds", trap.getRawCooldownSeconds());
 			if(trap.getRadius() >= 0)
 				trapJson.addProperty("radius", trap.getRadius());
+			if(trap.isAutomatic())
+				trapJson.addProperty("automatic", true);
 			JsonObject region = new JsonObject();
 			if(trap.getZoneId() != null)
 				region.addProperty("zone", trap.getZoneId());
@@ -163,8 +169,39 @@ public class TrapManager
 		return traps;
 	}
 
+	/** Starts the automatic traps' cycle for a running game; bought traps need nothing here. */
+	public void start()
+	{
+		stopAutomatic();
+		for(Trap trap : traps.values())
+			if(trap.isAutomatic())
+			{
+				autoTaskId = COMZombies.scheduleTask(20L, 20L, this::runAutomatic);
+				return;
+			}
+	}
+
+	private void runAutomatic()
+	{
+		if(game.getStatus() != Game.GameStatus.INGAME)
+			return;
+		for(Trap trap : traps.values())
+			if(trap.isAutomatic() && trap.canActivate() && !trap.isPowerLocked(game))
+				trap.activate(game, null);
+	}
+
+	private void stopAutomatic()
+	{
+		if(autoTaskId != -1)
+		{
+			Bukkit.getScheduler().cancelTask(autoTaskId);
+			autoTaskId = -1;
+		}
+	}
+
 	public void resetAll()
 	{
+		stopAutomatic();
 		for(Trap trap : traps.values())
 			trap.reset();
 	}

@@ -39,6 +39,8 @@ public class Trap
 	private int cooldownSeconds = USE_TYPE_DEFAULT;
 	/** Null follows the type's requires_power. */
 	private Boolean requiresPower;
+	/** Runs by itself whenever it is off cooldown (Ascension centrifuge, Shangri-La spikes); nobody buys it. */
+	private boolean automatic;
 
 	/** Epoch millis the cooldown counts from; 0 = never used. Transient. */
 	private long lastUsed = 0L;
@@ -183,6 +185,16 @@ public class Trap
 	public void setRequiresPower(Boolean requiresPower)
 	{
 		this.requiresPower = requiresPower;
+	}
+
+	public boolean isAutomatic()
+	{
+		return automatic;
+	}
+
+	public void setAutomatic(boolean automatic)
+	{
+		this.automatic = automatic;
 	}
 
 	public boolean isPowerLocked(Game game)

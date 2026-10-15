@@ -21,6 +21,8 @@ public class Zone
 	private int minX, minY, minZ, maxX, maxY, maxZ;
 	private double gravity = NO_GRAVITY_OVERRIDE;
 	private boolean noAir;
+	/** Breathable pocket inside a no-air zone (a pressurised room on the moon); wins over any no-air zone. */
+	private boolean airPocket;
 	private double damagePerSecond;
 
 	public Zone(String id, Location corner1, Location corner2)
@@ -117,6 +119,16 @@ public class Zone
 		this.noAir = noAir;
 	}
 
+	public boolean isAirPocket()
+	{
+		return airPocket;
+	}
+
+	public void setAirPocket(boolean airPocket)
+	{
+		this.airPocket = airPocket;
+	}
+
 	public double getDamagePerSecond()
 	{
 		return damagePerSecond;
@@ -135,6 +147,8 @@ public class Zone
 			sb.append("gravity ").append(gravity);
 		if(noAir)
 			sb.append(sb.length() > 0 ? ", " : "").append("no air");
+		if(airPocket)
+			sb.append(sb.length() > 0 ? ", " : "").append("air pocket");
 		if(damagePerSecond > 0)
 			sb.append(sb.length() > 0 ? ", " : "").append(damagePerSecond).append(" dmg/s");
 		return sb.length() == 0 ? "no flags" : sb.toString();
@@ -150,6 +164,7 @@ public class Zone
 		zone.setName(CustomConfig.getString(json, "name", ""));
 		zone.setGravity(CustomConfig.getDouble(json, "gravity", NO_GRAVITY_OVERRIDE));
 		zone.setNoAir(CustomConfig.getBoolean(json, "no_air", false));
+		zone.setAirPocket(CustomConfig.getBoolean(json, "air_pocket", false));
 		zone.setDamagePerSecond(CustomConfig.getDouble(json, "damage_per_second", 0));
 		return zone;
 	}
@@ -163,6 +178,8 @@ public class Zone
 		json.add("p2", CustomConfig.locationToJsonNoWorld(getMax()));
 		json.addProperty("gravity", gravity);
 		json.addProperty("no_air", noAir);
+		if(airPocket)
+			json.addProperty("air_pocket", true);
 		json.addProperty("damage_per_second", damagePerSecond);
 		return json;
 	}

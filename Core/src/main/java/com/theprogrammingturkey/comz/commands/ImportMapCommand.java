@@ -35,12 +35,16 @@ import java.util.Map;
 /**
  * {@code /zombies importmap <arena>} — applies {@code plugins/COM_Zombies/import/<arena>.json}, produced by
  * {@code tools/mapimport/extract_map.py} from a standalone command-block map: replaces the arena's spawns,
- * doors, barriers and mystery boxes (keeping its bounds, spawn points and settings when it already exists),
- * writes the map's buy and power signs, removes the map's own plank box and then converts the buy signs.
+ * doors, barriers, mystery boxes, traps, transports, zones, triggers and perk pool spots (keeping its bounds,
+ * spawn points and settings when it already exists, apart from the environment, Pack-a-Punch gate, perk pool
+ * and special enemy settings found in the import's {@code settings}), writes the map's buy and power signs,
+ * removes the map's own plank box and then converts the buy signs.
  */
 public class ImportMapCommand extends SubCommand
 {
-	private static final String[] REPLACED = {"zombie_spawns", "mystery_boxes", "barriers", "doors", "traps", "transports", "power_setup"};
+	private static final String[] REPLACED = {"zombie_spawns", "mystery_boxes", "barriers", "doors", "traps", "transports", "power_setup",
+			"zones", "triggers", "perk_pool_spots"};
+	private static final String[] IMPORTED_SETTINGS = {"gravity", "jump_boost", "fog", "pap_locked", "perk_pool_mode", "perk_pool_reveal", "special_enemies"};
 	private static final String[] KEPT_WHEN_PRESENT = {"p1", "p2", "player_spawn", "spectator_spawn", "lobby_spawn"};
 
 	public ImportMapCommand(COMZPermission permission)
@@ -105,12 +109,18 @@ public class ImportMapCommand extends SubCommand
 		JsonObject arenaJson = existing != null ? existing.saveGame() : newArena();
 		JsonObject save = arenaJson.getAsJsonObject("save_data");
 		for(String key : REPLACED)
-			save.add(key, importedSave.get(key));
+		{
+			if(importedSave.has(key))
+				save.add(key, importedSave.get(key));
+			else
+				save.remove(key);
+		}
 		for(String key : KEPT_WHEN_PRESENT)
 			if(!save.has(key) || save.get(key).isJsonNull())
 				save.add(key, importedSave.get(key));
 		save.addProperty("world_name", world.getName());
 		repairSettings(arenaJson.getAsJsonObject("settings"));
+		mergeSettings(arenaJson.getAsJsonObject("settings"), imported.getAsJsonObject("settings"));
 
 		int edits = applyBlockEdits(world, imported.getAsJsonArray("block_edits"));
 		int signs = writeSigns(world, imported.getAsJsonArray("signs"));
@@ -179,6 +189,15 @@ public class ImportMapCommand extends SubCommand
 			powerUps.addProperty("drop_percentage", -1);
 	}
 
+	private static void mergeSettings(JsonObject settings, JsonObject importedSettings)
+	{
+		if(settings == null || importedSettings == null)
+			return;
+		for(String key : IMPORTED_SETTINGS)
+			if(importedSettings.has(key))
+				settings.add(key, importedSettings.get(key));
+	}
+
 	private static int applyBlockEdits(World world, JsonArray edits)
 	{
 		if(edits == null)
@@ -200,8 +219,9 @@ public class ImportMapCommand extends SubCommand
 	}
 
 	/**
-	 * Writes each sign's text. A sign that isn't there (the power switch is a lever) becomes a wall sign facing
-	 * the way the replaced block faced.
+	 * Writes each sign's text. A sign that isn't there becomes the sign in its {@code blockdata} when given (a
+	 * sign the map only places mid-game), otherwise a wall sign facing the way the replaced block faced (the
+	 * power switch is a lever).
 	 */
 	private static int writeSigns(World world, JsonArray signs)
 	{
@@ -213,6 +233,16 @@ public class ImportMapCommand extends SubCommand
 			JsonObject json = element.getAsJsonObject();
 			Block block = world.getBlockAt(json.get("x").getAsInt(), json.get("y").getAsInt(), json.get("z").getAsInt());
 			BlockState state = block.getState();
+			if(!(state instanceof Sign) && json.has("blockdata"))
+			{
+				try
+				{
+					block.setBlockData(Bukkit.createBlockData(json.get("blockdata").getAsString()), false);
+					state = block.getState();
+				} catch(IllegalArgumentException ignored)
+				{
+				}
+			}
 			if(!(state instanceof Sign))
 			{
 				BlockFace facing = block.getBlockData() instanceof Directional ? ((Directional) block.getBlockData()).getFacing() : BlockFace.NORTH;

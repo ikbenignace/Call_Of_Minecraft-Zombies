@@ -642,6 +642,7 @@ public class Game
 		environmentManager.start();
 		transportManager.start();
 		triggerManager.start();
+		trapManager.start();
 		KitManager.giveOutKits(this);
 	}
 

@@ -27,6 +27,7 @@ Named box regions per arena (two corners, like doors), each with flags:
 
 - `gravity` override (low-gravity area);
 - `no_air` — players take suffocation damage unless wearing breathing gear (Moon P.E.S.);
+- `air_pocket` — breathable inside any no-air zone (pressurised rooms on the moon), whatever the zone sizes;
 - `damage` per second (lava, electricity floor);
 - `name` shown on the HUD when entering ("Power Room").
 
@@ -40,6 +41,7 @@ A transport is an ordered list of waypoints plus options:
   platform/lander), `cart` (seated ride), `teleport` (fade + instant, used for elevators between floors);
 - `cost`, `requires_power`, `cooldown_seconds`, `speed`;
 - `two_way` (the call point at the far end works too);
+- locked while a trigger has an `enable_teleporter` target naming its id or name (Five's Pack-a-Punch teleporter);
 - `call_points`: where players press F to call or ride;
 - optional `on_arrival` trigger (see 7).
 
@@ -68,13 +70,14 @@ Implemented as:
   (`activate`/`loop`/`kill`: sounds.json `key` + `vanilla` fallback, `volume`, `pitch`, `every_ticks`).
   Sound keys live under `traps.<type>` in `sounds.json`.
 - `arenas.json` `traps[]`: sign location (`x/y/z`), `id`, `cost`, `type`, `region` (`{"zone": id}` or
-  `{"p1", "p2"}`), `duration_seconds`, `cooldown_seconds` (-1 = type default), `requires_power`. Old entries
-  without `type`/`region` stay generic radius traps (config.yml `trap.*`).
+  `{"p1", "p2"}`), `extra_regions`, `duration_seconds`, `cooldown_seconds` (-1 = type default), `requires_power`,
+  `automatic` (runs by itself whenever it is off cooldown, like the Ascension centrifuge and the Shangri-La
+  spikes; needs no sign). Old entries without `type`/`region` stay generic radius traps (config.yml `trap.*`).
 - Kills go through `Game.killMobByTrap` (round count, power-up roll, kill stat, optional points to the buyer).
   Burning is visual only. Rotating arms and spikes are block displays on 1.19.4+, particles before.
 - Build mode: Feature tool, variant `Trap: <name>` (F cycles type). Right-click two corners, or sneak-right-click
   to reuse the zone you stand in, then right-click a wall to place the activation sign. Sneak-right-click a
-  trap sign to edit it in chat (`type`, `cost`, `duration`, `cooldown`, `power`, `zone <id|here>`, `delete`).
+  trap sign to edit it in chat (`type`, `cost`, `duration`, `cooldown`, `power`, `auto`, `zone <id|here>`, `delete`).
 
 ## 5. Equipment
 
@@ -134,7 +137,7 @@ A trigger is a set of steps that unlocks a target when finished. Covers PaP gate
 - step kinds: `interact` (press F on a point), `stand_on` (stand on a plate/zone),
   `kill_in_zone`, `ride_transport`, `power_on`, `round_reached`;
 - options: `ordered`, `time_limit_seconds`, `reset_on_fail`, `all_players`;
-- targets: `open_door`, `enable_pack_a_punch`, `enable_teleporter`, `play_song`, `give_powerup`,
+- targets: `open_door`, `enable_pack_a_punch`, `enable_teleporter` (teleporter sign or transport), `play_song`, `give_powerup`,
   `spawn_perk`, `message`.
 
 Examples: Five DEFCON (4 ordered interacts → PaP teleporter), Shangri-La stepping stones (stand_on, all at once,
@@ -149,5 +152,6 @@ or a trigger fires (Shi No Numa). Setting: `perk_pool_mode` = `fixed` | `random_
 ## 9. Import
 
 `tools/mapimport/extract_map.py` maps the standalone map onto these features: trap functions → traps,
-teleporter functions → transports/teleporters, zipline/lander/elevator functions → transports, perk placement →
-pools, songs → triggers. Every import result can be edited in build mode afterwards.
+teleporter functions → transports/teleporters, zipline/lander/elevator/jump pad functions → transports, perk
+placement → pools, songs and Pack-a-Punch gates → triggers, low gravity/oxygen → zones, bosses → special enemy
+rules (see `tools/mapimport/README.md`). Every import result can be edited in build mode afterwards.

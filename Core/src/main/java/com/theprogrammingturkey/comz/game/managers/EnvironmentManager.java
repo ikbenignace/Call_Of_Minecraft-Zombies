@@ -209,7 +209,7 @@ public class EnvironmentManager
 				continue;
 			if(zone.hasName() && ConfigManager.getMainConfig().environmentZoneTitles)
 				player.sendTitle("", ChatColor.AQUA + ChatColor.translateAlternateColorCodes('&', zone.getName()), 5, 40, 10);
-			if(zone.isNoAir() && !BreathingGear.isWearing(player))
+			if(zone.isNoAir() && isAirless(zones) && !BreathingGear.isWearing(player))
 				player.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(ChatColor.RED + "No air here! Breathing gear required."));
 		}
 		state.zoneIds = now;
@@ -217,10 +217,7 @@ public class EnvironmentManager
 
 	private void updateOxygen(Player player, PlayerEnvironment state, List<Zone> zones, boolean downed)
 	{
-		boolean noAir = false;
-		for(Zone zone : zones)
-			noAir |= zone.isNoAir();
-		if(!noAir || downed || BreathingGear.isWearing(player))
+		if(!isAirless(zones) || downed || BreathingGear.isWearing(player))
 		{
 			// Hand the meter back to vanilla, which refills it outside water on its own.
 			state.managingAir = false;
@@ -239,6 +236,19 @@ public class EnvironmentManager
 		player.setRemainingAir((int) state.oxygen);
 		if(state.oxygen <= 0 && tick % DAMAGE_PERIOD_TICKS == 0 && config.environmentSuffocationDamage > 0)
 			player.damage(config.environmentSuffocationDamage);
+	}
+
+	/** No air when some zone says so and no air pocket covers the spot. */
+	public static boolean isAirless(List<Zone> zones)
+	{
+		boolean noAir = false;
+		for(Zone zone : zones)
+		{
+			if(zone.isAirPocket())
+				return false;
+			noAir |= zone.isNoAir();
+		}
+		return noAir;
 	}
 
 	private void applyZoneDamage(Player player, List<Zone> zones)

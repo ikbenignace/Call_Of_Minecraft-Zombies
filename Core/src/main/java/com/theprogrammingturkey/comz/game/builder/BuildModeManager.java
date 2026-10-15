@@ -212,7 +212,7 @@ public final class BuildModeManager
 		session.setPendingZoneEdit(zone);
 		CommandUtil.sendMessageToPlayer(player, ChatColor.AQUA + "Editing " + zone.getId() + ChatColor.GRAY + " (" + zone.describeFlags() + "). Type in chat:");
 		CommandUtil.sendMessageToPlayer(player, ChatColor.YELLOW + "name <text|none>" + ChatColor.GRAY + ", " + ChatColor.YELLOW + "gravity <x|off>" + ChatColor.GRAY + ", "
-				+ ChatColor.YELLOW + "noair <on|off>" + ChatColor.GRAY + ", " + ChatColor.YELLOW + "damage <per second>" + ChatColor.GRAY + ", " + ChatColor.YELLOW + "delete" + ChatColor.GRAY + " or " + ChatColor.YELLOW + "done");
+				+ ChatColor.YELLOW + "noair <on|off>" + ChatColor.GRAY + ", " + ChatColor.YELLOW + "airpocket <on|off>" + ChatColor.GRAY + ", " + ChatColor.YELLOW + "damage <per second>" + ChatColor.GRAY + ", " + ChatColor.YELLOW + "delete" + ChatColor.GRAY + " or " + ChatColor.YELLOW + "done");
 	}
 
 	/** Apply one chat line to the zone being edited. MUST run on the main thread. */
@@ -249,6 +249,9 @@ public final class BuildModeManager
 				case "noair":
 					zone.setNoAir(arg.equalsIgnoreCase("on") || arg.equalsIgnoreCase("true"));
 					break;
+				case "airpocket":
+					zone.setAirPocket(arg.equalsIgnoreCase("on") || arg.equalsIgnoreCase("true"));
+					break;
 				case "damage":
 					zone.setDamagePerSecond(Double.parseDouble(arg));
 					break;
@@ -279,7 +282,7 @@ public final class BuildModeManager
 		CommandUtil.sendMessageToPlayer(player, ChatColor.YELLOW + "type <" + String.join("|", trapTypeIds()) + ">" + ChatColor.GRAY + ", "
 				+ ChatColor.YELLOW + "cost <n>" + ChatColor.GRAY + ", " + ChatColor.YELLOW + "duration <s|default>" + ChatColor.GRAY + ", "
 				+ ChatColor.YELLOW + "cooldown <s|default>" + ChatColor.GRAY + ", " + ChatColor.YELLOW + "power <on|off|default>" + ChatColor.GRAY + ", "
-				+ ChatColor.YELLOW + "zone <id|here>" + ChatColor.GRAY + ", " + ChatColor.YELLOW + "delete" + ChatColor.GRAY + " or " + ChatColor.YELLOW + "done");
+				+ ChatColor.YELLOW + "auto <on|off>" + ChatColor.GRAY + ", " + ChatColor.YELLOW + "zone <id|here>" + ChatColor.GRAY + ", " + ChatColor.YELLOW + "delete" + ChatColor.GRAY + " or " + ChatColor.YELLOW + "done");
 	}
 
 	private static List<String> trapTypeIds()
@@ -293,7 +296,7 @@ public final class BuildModeManager
 	public static String describeTrap(Trap trap)
 	{
 		return trap.getType().getId() + ", cost " + trap.getCost() + ", " + trap.getDurationSeconds() + "s on, "
-				+ trap.getCooldownSeconds() + "s cooldown, " + (trap.requiresPower() ? "needs power" : "no power needed") + ", " + trap.describeRegion();
+				+ trap.getCooldownSeconds() + "s cooldown, " + (trap.requiresPower() ? "needs power" : "no power needed") + (trap.isAutomatic() ? ", automatic" : "") + ", " + trap.describeRegion();
 	}
 
 	/** Apply one chat line to the trap being edited. MUST run on the main thread. */
@@ -342,6 +345,9 @@ public final class BuildModeManager
 					break;
 				case "cooldown":
 					trap.setCooldownSeconds(arg.equalsIgnoreCase("default") ? Trap.USE_TYPE_DEFAULT : Integer.parseInt(arg));
+					break;
+				case "auto":
+					trap.setAutomatic(arg.equalsIgnoreCase("on") || arg.equalsIgnoreCase("true"));
 					break;
 				case "power":
 					trap.setRequiresPower(arg.equalsIgnoreCase("default") ? null : arg.equalsIgnoreCase("on") || arg.equalsIgnoreCase("true"));

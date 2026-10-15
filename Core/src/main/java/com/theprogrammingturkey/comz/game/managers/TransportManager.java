@@ -374,6 +374,8 @@ public class TransportManager
 		State state = state(transport);
 		if(game.isPowerLocked(transport.requiresPower()))
 			return ChatColor.RED + "[F] " + name + ChatColor.GRAY + " - power required";
+		if(isLocked(transport))
+			return ChatColor.GRAY + name + " - locked";
 		if(state.busy)
 			return ChatColor.GRAY + name + " is moving";
 		int cooldown = secondsUntilReady(transport);
@@ -403,6 +405,11 @@ public class TransportManager
 		{
 			CommandUtil.sendMessageToPlayer(player, ChatColor.RED + "You must turn on the power first!");
 			PerkType.noPower(player);
+			return;
+		}
+		if(isLocked(transport))
+		{
+			deny(player, transport.displayName() + " is locked.");
 			return;
 		}
 		if(state.busy)
@@ -458,6 +465,13 @@ public class TransportManager
 			default:
 				departZipline(transport, reverse, player);
 		}
+	}
+
+	/** A trigger with an {@code enable_teleporter} target naming the transport (id or name) keeps it shut until it fires. */
+	private boolean isLocked(Transport transport)
+	{
+		return game.triggerManager.isTeleporterLocked(transport.getId())
+				|| (!transport.getName().isEmpty() && game.triggerManager.isTeleporterLocked(transport.getName()));
 	}
 
 	private void deny(Player player, String message)
