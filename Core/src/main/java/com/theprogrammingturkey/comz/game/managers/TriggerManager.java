@@ -30,6 +30,7 @@ import org.bukkit.Material;
 import org.bukkit.SoundCategory;
 import org.bukkit.World;
 import org.bukkit.block.Block;
+import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
@@ -40,6 +41,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -63,6 +65,9 @@ public class TriggerManager
 	private final List<Trigger> triggers = new ArrayList<>();
 	private final Map<TriggerStep, Entity> visuals = new IdentityHashMap<>();
 	private final Set<String> unlockedTeleporters = new HashSet<>();
+	private final Set<String> firedTriggers = new HashSet<>();
+	/** Blocks changed by place_blocks targets, with the state they had before the first change. */
+	private final Map<Location, BlockData> replacedBlocks = new LinkedHashMap<>();
 	private boolean packAPunchUnlocked;
 	private int taskId = -1;
 
@@ -211,6 +216,8 @@ public class TriggerManager
 		for(Trigger trigger : triggers)
 			trigger.resetAll();
 		unlockedTeleporters.clear();
+		firedTriggers.clear();
+		restorePlacedBlocks();
 		packAPunchUnlocked = false;
 	}
 
@@ -231,6 +238,28 @@ public class TriggerManager
 				if(target.getKind() == TriggerTarget.Kind.ENABLE_TELEPORTER && target.getValue().equalsIgnoreCase(name))
 					return true;
 		return false;
+	}
+
+	/**
+	 * Locks a transport or teleporter again after use: forgets the unlock and resets every trigger with an
+	 * {@code enable_teleporter} target naming it, so it has to be linked again.
+	 */
+	public void relockTeleporter(String... names)
+	{
+		Set<String> keys = new HashSet<>();
+		for(String name : names)
+			if(name != null && !name.isEmpty())
+				keys.add(name.toLowerCase(Locale.ROOT));
+		unlockedTeleporters.removeAll(keys);
+		for(Trigger trigger : triggers)
+			for(TriggerTarget target : trigger.getTargets())
+				if(target.getKind() == TriggerTarget.Kind.ENABLE_TELEPORTER && keys.contains(target.getValue().toLowerCase(Locale.ROOT)))
+				{
+					removeVisuals(trigger);
+					trigger.resetAll();
+					spawnVisuals(trigger);
+					break;
+				}
 	}
 
 	// ---------------------------------------------------------------- interact steps
@@ -441,7 +470,8 @@ public class TriggerManager
 				if(!trigger.accepts(step))
 					continue;
 				boolean met = (step.getKind() == TriggerStep.Kind.POWER_ON && game.isPowered())
-						|| (step.getKind() == TriggerStep.Kind.ROUND_REACHED && game.getWave() >= step.getAmount());
+						|| (step.getKind() == TriggerStep.Kind.ROUND_REACHED && game.getWave() >= step.getAmount())
+						|| (step.getKind() == TriggerStep.Kind.TRIGGER_DONE && firedTriggers.contains(step.getTrigger().toLowerCase(Locale.ROOT)));
 				if(met)
 					complete(trigger, step, null);
 			}
@@ -574,6 +604,7 @@ public class TriggerManager
 	{
 		trigger.setFired(true);
 		trigger.setDeadlineMs(0);
+		firedTriggers.add(trigger.getId().toLowerCase(Locale.ROOT));
 		for(Player player : game.getPlayersAndSpectators())
 			SoundUtil.play(player, player.getLocation(), SoundConfig.get("trigger.complete", "UI_TOAST_CHALLENGE_COMPLETE"), SoundCategory.MASTER, 1, 1);
 		actionBarAll(ChatColor.GOLD + "" + ChatColor.BOLD + trigger.displayName() + ChatColor.GOLD + " complete");
@@ -644,6 +675,9 @@ public class TriggerManager
 					PointManager.INSTANCE.notifyPlayer(player);
 				}
 				break;
+			case PLACE_BLOCKS:
+				placeBlocks(world, target);
+				break;
 			default:
 		}
 	}
@@ -661,6 +695,35 @@ public class TriggerManager
 				game.perkPoolManager.onDoorOpened();
 				return;
 			}
+	}
+
+	private void placeBlocks(World world, TriggerTarget target)
+	{
+		if(world == null)
+			return;
+		for(TriggerTarget.PlacedBlock placed : target.getBlocks())
+		{
+			BlockData data;
+			try
+			{
+				data = Bukkit.createBlockData(placed.blockData);
+			} catch(IllegalArgumentException e)
+			{
+				COMZombies.log.warning("Trigger block " + placed.blockData + " at " + placed.x + "," + placed.y + "," + placed.z + " is not valid on this server");
+				continue;
+			}
+			Block block = world.getBlockAt(placed.x, placed.y, placed.z);
+			replacedBlocks.putIfAbsent(block.getLocation(), block.getBlockData());
+			block.setBlockData(data, false);
+		}
+	}
+
+	private void restorePlacedBlocks()
+	{
+		for(Map.Entry<Location, BlockData> entry : replacedBlocks.entrySet())
+			if(entry.getKey().getWorld() != null)
+				entry.getKey().getBlock().setBlockData(entry.getValue(), false);
+		replacedBlocks.clear();
 	}
 
 	/** {@code key} is a sounds.json path (e.g. {@code trigger.song}) or a sound name/event used as is. */

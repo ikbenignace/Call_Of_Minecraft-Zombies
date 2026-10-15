@@ -41,6 +41,8 @@ public class Trap
 	private Boolean requiresPower;
 	/** Runs by itself whenever it is off cooldown (Ascension centrifuge, Shangri-La spikes); nobody buys it. */
 	private boolean automatic;
+	/** Id of a door that has to be open before the trap can be used; empty = none. */
+	private String requiresDoor = "";
 
 	/** Epoch millis the cooldown counts from; 0 = never used. Transient. */
 	private long lastUsed = 0L;
@@ -195,6 +197,27 @@ public class Trap
 	public void setAutomatic(boolean automatic)
 	{
 		this.automatic = automatic;
+	}
+
+	public String getRequiresDoor()
+	{
+		return requiresDoor;
+	}
+
+	public void setRequiresDoor(String requiresDoor)
+	{
+		this.requiresDoor = requiresDoor == null ? "" : requiresDoor.trim();
+	}
+
+	/** True while the door named by {@code requires_door} exists and is still closed. */
+	public boolean isDoorLocked(Game game)
+	{
+		if(requiresDoor.isEmpty())
+			return false;
+		for(Door door : game.doorManager.getDoors())
+			if(door.doorID.equalsIgnoreCase(requiresDoor))
+				return !door.isOpened();
+		return false;
 	}
 
 	public boolean isPowerLocked(Game game)

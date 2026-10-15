@@ -219,6 +219,12 @@ public class Door
 			spawnsInRoomDoorLeadsTo.add(point);
 	}
 
+	/** Free and without signs: only a trigger's {@code open_door} target opens it, players can't buy it. */
+	public boolean isTriggerOnly()
+	{
+		return price <= 0 && signs.isEmpty();
+	}
+
 	public boolean hasDoorBlocks()
 	{
 		return blocks.size() >= 2;

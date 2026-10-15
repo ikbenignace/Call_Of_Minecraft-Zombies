@@ -200,7 +200,7 @@ public class ProximityBuyManager
 		// DOOR_REACH, and only offered while the door is looked at (a door is a big thing to be near).
 		for(Door door : game.doorManager.getDoors())
 		{
-			if(door.isOpened())
+			if(door.isOpened() || door.isTriggerOnly())
 				continue;
 			BoundingBox zone = doorRegionBox(door, DOOR_REACH);
 			BoundingBox region = doorRegionBox(door, 0.0D);
@@ -349,7 +349,7 @@ public class ProximityBuyManager
 			if(type.equals("ammo crate"))
 				return AmmoCrateSign.prompt(game, player);
 			if(type.equals("power"))
-				return game.isPowered() ? ChatColor.GRAY + "Power is on" : ChatColor.GREEN + "[F] Turn on Power";
+				return com.theprogrammingturkey.comz.game.signs.PowerSign.prompt(game, m.base);
 			if(type.equals("bank"))
 				return ChatColor.GREEN + "[F] Deposit " + ChatColor.GRAY + "| Sneak + F Withdraw";
 			if(type.equals("fridge"))

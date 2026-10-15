@@ -118,7 +118,7 @@ public class SignPropManager
 			return;
 
 		for(Door door : game.doorManager.getDoors())
-			if(!door.isOpened())
+			if(!door.isOpened() && !door.isTriggerOnly())
 				trySpawnDoor(door, world);
 
 		List<Sign> signs = new ArrayList<>();
@@ -406,6 +406,8 @@ public class SignPropManager
 				String name = trap.getType().getName();
 				if(trap.isPowerLocked(game))
 					return requiresPower();
+				if(trap.isDoorLocked(game))
+					return ChatColor.GRAY + name + " - Open the door first";
 				if(trap.isActive())
 					return ChatColor.GRAY + name + " Active";
 				if(trap.secondsUntilReady() > 0)
@@ -472,6 +474,8 @@ public class SignPropManager
 				String name = trap.getType().getName();
 				if(trap.isPowerLocked(game))
 					return ChatColor.RED + "[F] " + ChatColor.GRAY + name + " - power required";
+				if(trap.isDoorLocked(game))
+					return ChatColor.RED + "[F] " + ChatColor.GRAY + name + " - Open the door first";
 				if(trap.isActive())
 					return ChatColor.GRAY + name + " - active";
 				int seconds = trap.secondsUntilReady();

@@ -28,7 +28,7 @@ public class SettingsMenu implements InventoryHolder
 {
 	private static final int SLOT_MIN = 10, SLOT_MAX = 11, SLOT_TEDDY = 12, SLOT_DOG = 13,
 			SLOT_GUN = 14, SLOT_AMMO = 15, SLOT_NIGHT = 16, SLOT_MULTIBOX = 22,
-			SLOT_GRAVITY = 19, SLOT_JUMP = 20, SLOT_FOG = 21, SLOT_PAP_LOCKED = 24, SLOT_PERK_POOL = 25, SLOT_POOL_REVEAL = 26;
+			SLOT_GRAVITY = 19, SLOT_JUMP = 20, SLOT_FOG = 21, SLOT_PAP_LOCKED = 24, SLOT_PERK_POOL = 25, SLOT_POOL_REVEAL = 26, SLOT_POWER_SWITCHES = 17;
 
 	/** Opens {@link SpecialEnemiesMenu}; handled by the listener because it needs the clicking player. */
 	public static final int SLOT_SPECIALS = 23;
@@ -65,7 +65,8 @@ public class SettingsMenu implements InventoryHolder
 		inv.setItem(SLOT_SPECIALS, item(Material.ZOMBIE_HEAD, "Special enemies", game.specialEnemyManager.getRules().size() + " rule(s)", "click to edit"));
 		inv.setItem(SLOT_PAP_LOCKED, toggle(Material.ENCHANTING_TABLE, "Pack-a-Punch locked until a trigger", game.isPackAPunchLockedByDefault()));
 		inv.setItem(SLOT_PERK_POOL, item(Material.BREWING_STAND, "Perk placement", game.perkPoolManager.getMode().key(),
-				"fixed / random_on_open (" + game.perkPoolManager.getSpots().size() + " pool spots); click to switch"));
+				"fixed / random_on_open / random_on_start (" + game.perkPoolManager.getSpots().size() + " pool spots); click to switch"));
+		inv.setItem(SLOT_POWER_SWITCHES, item(Material.LEVER, "Power switches", game.getPowerSwitches(), "switches to press before the power is on; left +1 / right -1"));
 		inv.setItem(SLOT_POOL_REVEAL, item(Material.OAK_DOOR, "Pooled perks appear on", game.perkPoolManager.isRevealOnDoor() ? "door open" : "trigger only",
 				"click to switch"));
 	}
@@ -114,7 +115,10 @@ public class SettingsMenu implements InventoryHolder
 				game.setPackAPunchLocked(!game.isPackAPunchLockedByDefault());
 				break;
 			case SLOT_PERK_POOL:
-				game.perkPoolManager.setMode(game.perkPoolManager.getMode() == PerkPoolManager.Mode.FIXED ? PerkPoolManager.Mode.RANDOM_ON_OPEN : PerkPoolManager.Mode.FIXED);
+				game.perkPoolManager.setMode(cyclePoolMode(game.perkPoolManager.getMode(), up));
+				break;
+			case SLOT_POWER_SWITCHES:
+				game.setPowerSwitches(game.getPowerSwitches() + (up ? step : -step));
 				break;
 			case SLOT_POOL_REVEAL:
 				game.perkPoolManager.setRevealOnDoor(!game.perkPoolManager.isRevealOnDoor());
@@ -151,6 +155,12 @@ public class SettingsMenu implements InventoryHolder
 			}
 		idx = (idx + (forward ? 1 : guns.size() - 1)) % guns.size();
 		return guns.get(idx).getName();
+	}
+
+	private static PerkPoolManager.Mode cyclePoolMode(PerkPoolManager.Mode current, boolean forward)
+	{
+		PerkPoolManager.Mode[] modes = PerkPoolManager.Mode.values();
+		return modes[(current.ordinal() + (forward ? 1 : modes.length - 1)) % modes.length];
 	}
 
 	private static String decimal(double value)

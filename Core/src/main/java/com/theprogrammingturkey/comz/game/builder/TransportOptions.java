@@ -15,7 +15,7 @@ import java.util.Locale;
  */
 public final class TransportOptions
 {
-	public static final String USAGE = "cost=<points> cooldown=<seconds> speed=<blocks/s> power|no_power two_way|one_way size=<platform width> style=<zipline|platform|cart|teleport> name=<rest of line>";
+	public static final String USAGE = "cost=<points> cooldown=<seconds> speed=<blocks/s> power|no_power two_way|one_way size=<platform width> group=<cooldown group|none> relock|no_relock style=<zipline|platform|cart|teleport> name=<rest of line>";
 
 	private TransportOptions()
 	{
@@ -32,7 +32,9 @@ public final class TransportOptions
 		return ChatColor.AQUA + transport.displayName() + ChatColor.GRAY + " (" + transport.getStyle().key()
 				+ ", cost " + transport.getCost() + ", cooldown " + transport.getCooldownSeconds() + "s, speed "
 				+ transport.getSpeed() + ", " + (transport.isTwoWay() ? "two way" : "one way")
-				+ (transport.requiresPower() ? ", needs power" : "") + ", " + transport.getWaypoints().size() + " waypoints, "
+				+ (transport.requiresPower() ? ", needs power" : "")
+				+ (transport.getCooldownGroup().isEmpty() ? "" : ", cooldown group " + transport.getCooldownGroup())
+				+ (transport.isRelockAfterUse() ? ", relocks after use" : "") + ", " + transport.getWaypoints().size() + " waypoints, "
 				+ transport.getCallPoints().size() + " call points)";
 	}
 
@@ -88,6 +90,17 @@ public final class TransportOptions
 						break;
 					case "one_way":
 						transport.setTwoWay(false);
+						break;
+					case "group":
+					case "cooldown_group":
+						transport.setCooldownGroup(value.equalsIgnoreCase("none") ? "" : value);
+						break;
+					case "relock":
+					case "relock_after_use":
+						transport.setRelockAfterUse(value.isEmpty() || Boolean.parseBoolean(value));
+						break;
+					case "no_relock":
+						transport.setRelockAfterUse(false);
 						break;
 					case "style":
 						transport.setStyle(Transport.Style.fromKey(value));

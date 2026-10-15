@@ -282,7 +282,7 @@ public final class BuildModeManager
 		CommandUtil.sendMessageToPlayer(player, ChatColor.YELLOW + "type <" + String.join("|", trapTypeIds()) + ">" + ChatColor.GRAY + ", "
 				+ ChatColor.YELLOW + "cost <n>" + ChatColor.GRAY + ", " + ChatColor.YELLOW + "duration <s|default>" + ChatColor.GRAY + ", "
 				+ ChatColor.YELLOW + "cooldown <s|default>" + ChatColor.GRAY + ", " + ChatColor.YELLOW + "power <on|off|default>" + ChatColor.GRAY + ", "
-				+ ChatColor.YELLOW + "auto <on|off>" + ChatColor.GRAY + ", " + ChatColor.YELLOW + "zone <id|here>" + ChatColor.GRAY + ", " + ChatColor.YELLOW + "delete" + ChatColor.GRAY + " or " + ChatColor.YELLOW + "done");
+				+ ChatColor.YELLOW + "auto <on|off>" + ChatColor.GRAY + ", " + ChatColor.YELLOW + "door <id|none>" + ChatColor.GRAY + ", " + ChatColor.YELLOW + "zone <id|here>" + ChatColor.GRAY + ", " + ChatColor.YELLOW + "delete" + ChatColor.GRAY + " or " + ChatColor.YELLOW + "done");
 	}
 
 	private static List<String> trapTypeIds()
@@ -296,7 +296,8 @@ public final class BuildModeManager
 	public static String describeTrap(Trap trap)
 	{
 		return trap.getType().getId() + ", cost " + trap.getCost() + ", " + trap.getDurationSeconds() + "s on, "
-				+ trap.getCooldownSeconds() + "s cooldown, " + (trap.requiresPower() ? "needs power" : "no power needed") + (trap.isAutomatic() ? ", automatic" : "") + ", " + trap.describeRegion();
+				+ trap.getCooldownSeconds() + "s cooldown, " + (trap.requiresPower() ? "needs power" : "no power needed") + (trap.isAutomatic() ? ", automatic" : "")
+				+ (trap.getRequiresDoor().isEmpty() ? "" : ", after door " + trap.getRequiresDoor()) + ", " + trap.describeRegion();
 	}
 
 	/** Apply one chat line to the trap being edited. MUST run on the main thread. */
@@ -348,6 +349,9 @@ public final class BuildModeManager
 					break;
 				case "auto":
 					trap.setAutomatic(arg.equalsIgnoreCase("on") || arg.equalsIgnoreCase("true"));
+					break;
+				case "door":
+					trap.setRequiresDoor(arg.equalsIgnoreCase("none") ? "" : arg);
 					break;
 				case "power":
 					trap.setRequiresPower(arg.equalsIgnoreCase("default") ? null : arg.equalsIgnoreCase("on") || arg.equalsIgnoreCase("true"));

@@ -19,7 +19,8 @@ import java.util.UUID;
  *     <li>{@code stand_on}: {@code zone} or {@code point}; {@code amount} players (0 = every living player);</li>
  *     <li>{@code kill_in_zone}: {@code zone} and {@code amount} kills;</li>
  *     <li>{@code ride_transport}: {@code transport} id;</li>
- *     <li>{@code round_reached}: {@code amount} is the round.</li>
+ *     <li>{@code round_reached}: {@code amount} is the round;</li>
+ *     <li>{@code trigger_done}: {@code trigger} id, met once that trigger has fired this game.</li>
  * </ul>
  */
 public class TriggerStep
@@ -31,7 +32,8 @@ public class TriggerStep
 		KILL_IN_ZONE("Kill in zone"),
 		RIDE_TRANSPORT("Ride transport"),
 		POWER_ON("Power on"),
-		ROUND_REACHED("Round reached");
+		ROUND_REACHED("Round reached"),
+		TRIGGER_DONE("Trigger done");
 
 		private final String label;
 
@@ -69,6 +71,7 @@ public class TriggerStep
 	private String zone = "";
 	private String transport = "";
 	private String sign = "";
+	private String trigger = "";
 	private int amount;
 	private int cost;
 	private String visual = NO_VISUAL;
@@ -149,6 +152,16 @@ public class TriggerStep
 	public void setTransport(String transport)
 	{
 		this.transport = transport == null ? "" : transport;
+	}
+
+	public String getTrigger()
+	{
+		return trigger;
+	}
+
+	public void setTrigger(String trigger)
+	{
+		this.trigger = trigger == null ? "" : trigger.trim();
 	}
 
 	/** Id of a legacy {@code [Zombies] / Quest} sign that completes this interact step. */
@@ -239,6 +252,12 @@ public class TriggerStep
 		contributors.clear();
 	}
 
+	/** Steps met by game state (power, round, another trigger) rather than by a player action. */
+	public boolean isStateStep()
+	{
+		return kind == Kind.POWER_ON || kind == Kind.ROUND_REACHED || kind == Kind.TRIGGER_DONE;
+	}
+
 	public String describe()
 	{
 		switch(kind)
@@ -257,6 +276,8 @@ public class TriggerStep
 				return "power on";
 			case ROUND_REACHED:
 				return "reach round " + amount;
+			case TRIGGER_DONE:
+				return "trigger " + (trigger.isEmpty() ? "?" : trigger) + " done";
 			default:
 				return kind.key();
 		}
@@ -278,6 +299,7 @@ public class TriggerStep
 		step.setZone(CustomConfig.getString(json, "zone", ""));
 		step.setTransport(CustomConfig.getString(json, "transport", ""));
 		step.setSign(CustomConfig.getString(json, "sign", ""));
+		step.setTrigger(CustomConfig.getString(json, "trigger", ""));
 		step.setAmount(CustomConfig.getInt(json, "amount", step.amount));
 		step.setCost(CustomConfig.getInt(json, "cost", 0));
 		step.setVisual(CustomConfig.getString(json, "visual", NO_VISUAL));
@@ -301,6 +323,8 @@ public class TriggerStep
 			json.addProperty("transport", transport);
 		if(!sign.isEmpty())
 			json.addProperty("sign", sign);
+		if(!trigger.isEmpty())
+			json.addProperty("trigger", trigger);
 		json.addProperty("amount", amount);
 		if(cost > 0)
 			json.addProperty("cost", cost);

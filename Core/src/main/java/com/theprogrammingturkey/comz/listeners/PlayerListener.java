@@ -101,7 +101,7 @@ public class PlayerListener implements Listener
 		if(game == null || toLoc == null)
 			return;
 
-		if(!game.arena.containsBlock(toLoc))
+		if(!game.arena.containsBlock(toLoc) && !game.transportManager.isRiding(player))
 		{
 			if(game.getStatus() == Game.GameStatus.INGAME)
 			{

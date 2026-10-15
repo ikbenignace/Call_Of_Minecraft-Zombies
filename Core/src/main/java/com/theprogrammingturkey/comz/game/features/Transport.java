@@ -78,6 +78,8 @@ public class Transport
 	private double speed;
 	private boolean twoWay;
 	private int platformSize = 3;
+	private String cooldownGroup = "";
+	private boolean relockAfterUse;
 
 	public Transport(String id, Style style)
 	{
@@ -209,6 +211,28 @@ public class Transport
 		this.platformSize = Math.max(1, Math.min(9, platformSize));
 	}
 
+	/** Transports with the same group share one cooldown; empty = own cooldown only. */
+	public String getCooldownGroup()
+	{
+		return cooldownGroup;
+	}
+
+	public void setCooldownGroup(String cooldownGroup)
+	{
+		this.cooldownGroup = cooldownGroup == null ? "" : cooldownGroup.trim().toLowerCase(Locale.ROOT);
+	}
+
+	/** Locked again after every ride, re-arming the triggers that unlock it. */
+	public boolean isRelockAfterUse()
+	{
+		return relockAfterUse;
+	}
+
+	public void setRelockAfterUse(boolean relockAfterUse)
+	{
+		this.relockAfterUse = relockAfterUse;
+	}
+
 	public boolean isUsable()
 	{
 		return waypoints.size() >= 2;
@@ -300,6 +324,8 @@ public class Transport
 		transport.setSpeed(CustomConfig.getDouble(json, "speed", transport.speed));
 		transport.setTwoWay(CustomConfig.getBoolean(json, "two_way", true));
 		transport.setPlatformSize(CustomConfig.getInt(json, "platform_size", 3));
+		transport.setCooldownGroup(CustomConfig.getString(json, "cooldown_group", ""));
+		transport.setRelockAfterUse(CustomConfig.getBoolean(json, "relock_after_use", false));
 		readPoints(json, "waypoints", transport.waypoints);
 		readPoints(json, "call_points", transport.callPoints);
 		return transport;
@@ -317,6 +343,10 @@ public class Transport
 		json.addProperty("speed", speed);
 		json.addProperty("two_way", twoWay);
 		json.addProperty("platform_size", platformSize);
+		if(!cooldownGroup.isEmpty())
+			json.addProperty("cooldown_group", cooldownGroup);
+		if(relockAfterUse)
+			json.addProperty("relock_after_use", true);
 		json.add("waypoints", writePoints(waypoints));
 		json.add("call_points", writePoints(callPoints));
 		return json;

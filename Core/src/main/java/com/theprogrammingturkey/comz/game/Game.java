@@ -129,6 +129,10 @@ public class Game
 	/** Arena setting: Pack-a-Punch starts locked and needs an enable_pack_a_punch trigger target. */
 	private boolean packAPunchLocked;
 
+	/** Arena setting: how many different power switches must be pressed before the power turns on. */
+	private int powerSwitches = 1;
+	private final java.util.Set<String> pressedPowerSwitches = new java.util.HashSet<>();
+
 	/**
 	 * Arena contained in the game.
 	 */
@@ -376,6 +380,7 @@ public class Game
 	{
 		boolean wasOn = powerOn;
 		powerOn = false;
+		pressedPowerSwitches.clear();
 		if(wasOn && machineModelManager != null)
 			machineModelManager.onPowerChanged(false);
 	}
@@ -388,6 +393,50 @@ public class Game
 	public void setPackAPunchLocked(boolean locked)
 	{
 		packAPunchLocked = locked;
+	}
+
+	public int getPowerSwitches()
+	{
+		return powerSwitches;
+	}
+
+	public void setPowerSwitches(int powerSwitches)
+	{
+		this.powerSwitches = Math.max(1, powerSwitches);
+	}
+
+	/**
+	 * Counts a press of the power switch at {@code location}; the power turns on once {@code power_switches}
+	 * different switches were pressed. Returns how many distinct switches have been pressed so far.
+	 */
+	public int pressPowerSwitch(Location location)
+	{
+		if(powerOn)
+			return powerSwitches;
+		pressedPowerSwitches.add(location.getBlockX() + "," + location.getBlockY() + "," + location.getBlockZ());
+		int pressed = pressedPowerSwitches.size();
+		if(pressed >= powerSwitches)
+		{
+			turnOnPower();
+			return pressed;
+		}
+		String progress = ChatColor.YELLOW + "Power " + pressed + "/" + powerSwitches;
+		for(Player pl : getPlayersAndSpectators())
+		{
+			CommandUtil.sendMessageToPlayer(pl, progress);
+			com.theprogrammingturkey.comz.util.SoundUtil.playKey(pl, pl.getLocation(), "power.switch", "BLOCK_LEVER_CLICK", org.bukkit.SoundCategory.MASTER, 1, 1);
+		}
+		return pressed;
+	}
+
+	public int pressedPowerSwitchCount()
+	{
+		return pressedPowerSwitches.size();
+	}
+
+	public boolean isPowerSwitchPressed(Location location)
+	{
+		return pressedPowerSwitches.contains(location.getBlockX() + "," + location.getBlockY() + "," + location.getBlockZ());
 	}
 
 	/**
@@ -635,6 +684,7 @@ public class Game
 		perkPoolManager.start();
 		// BO2-fidelity: stand up the 3D machine models next to their signs (pack-gated, no-op otherwise).
 		machineModelManager.spawnAll();
+		perkPoolManager.revealOnStart();
 		wallGunManager.spawnAll();
 		signPropManager.spawnAll();
 		// Start the proximity-buy scan so doors/machines can be bought with F (config-gated, no-op off).
@@ -1301,6 +1351,7 @@ public class Game
 
 		forceNight = CustomConfig.getBoolean(arenaSettingsJson, "force_night", false);
 		packAPunchLocked = CustomConfig.getBoolean(arenaSettingsJson, "pap_locked", false);
+		setPowerSwitches(CustomConfig.getInt(arenaSettingsJson, "power_switches", 1));
 		perkPoolManager.load(arenaSaveJson, arenaSettingsJson);
 		environmentManager.load(arenaSettingsJson);
 		specialEnemyManager.load(arenaSettingsJson);
@@ -1383,6 +1434,7 @@ public class Game
 		arenaSaveJson.addProperty("power_setup", powerSetup);
 		arenaSettingsJson.addProperty("force_night", forceNight);
 		arenaSettingsJson.addProperty("pap_locked", packAPunchLocked);
+		arenaSettingsJson.addProperty("power_switches", powerSwitches);
 		perkPoolManager.save(arenaSaveJson, arenaSettingsJson);
 		environmentManager.save(arenaSettingsJson);
 		specialEnemyManager.save(arenaSettingsJson);

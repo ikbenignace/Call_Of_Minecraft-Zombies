@@ -19,7 +19,7 @@ import java.util.regex.Pattern;
 public final class TriggerOptions
 {
 	public static final String USAGE = "ordered|unordered time=<s> reset_on_fail=<bool> all_players=<bool> repeatable=<bool> simultaneous=<bool> name=<text>";
-	public static final String ELEMENT_USAGE = "s<N>.cost|visual|count|zone|transport|sign|text=..., t<N>.value|amount|title|text=..., remove s<N>|t<N>, list, delete, done";
+	public static final String ELEMENT_USAGE = "s<N>.cost|visual|count|zone|transport|trigger|sign|text=..., t<N>.value|amount|title|text=..., remove s<N>|t<N>, list, delete, done";
 
 	private static final Pattern REST_OF_LINE = Pattern.compile("(?i)(?:^|\\s)((?:[st]\\d+\\.)?(?:name|text))=(.*)$");
 	private static final Pattern ELEMENT_KEY = Pattern.compile("(?i)([st])(\\d+)\\.(.+)");
@@ -188,6 +188,9 @@ public final class TriggerOptions
 				return true;
 			case "transport":
 				step.setTransport(value);
+				return true;
+			case "trigger":
+				step.setTrigger(value);
 				return true;
 			case "sign":
 				step.setSign(value);

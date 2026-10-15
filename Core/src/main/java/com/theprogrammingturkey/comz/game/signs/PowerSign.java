@@ -32,8 +32,23 @@ public class PowerSign implements IGameSign
 			CommandUtil.sendMessageToPlayer(player, ChatColor.RED + "The power is already on!");
 			return;
 		}
-		game.turnOnPower();
-		CommandUtil.sendMessageToPlayer(player, ChatColor.GREEN + "Power on!");
+		if(game.isPowerSwitchPressed(location))
+		{
+			CommandUtil.sendMessageToPlayer(player, ChatColor.YELLOW + "This switch is already on. Find the other one" + (game.getPowerSwitches() > 2 ? "s" : "") + "!");
+			return;
+		}
+		game.pressPowerSwitch(location);
+		if(game.isPowered())
+			CommandUtil.sendMessageToPlayer(player, ChatColor.GREEN + "Power on!");
+	}
+
+	public static String prompt(Game game, Location location)
+	{
+		if(game.isPowered())
+			return ChatColor.GRAY + "Power is on";
+		if(game.isPowerSwitchPressed(location))
+			return ChatColor.GRAY + "Switch on - Power " + game.pressedPowerSwitchCount() + "/" + game.getPowerSwitches();
+		return ChatColor.GREEN + "[F] Turn on Power" + (game.getPowerSwitches() > 1 ? ChatColor.GRAY + " (" + game.pressedPowerSwitchCount() + "/" + game.getPowerSwitches() + ")" : "");
 	}
 
 	@Override

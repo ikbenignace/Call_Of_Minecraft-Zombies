@@ -42,16 +42,21 @@ import nbtlib
 
 COORD = r"(-?\d+(?:\.\d+)?)"
 SUMMON_SPAWNER = re.compile(r"summon minecraft:marker " + COORD + " " + COORD + " " + COORD + r" \{Tags:\[([^\]]*)\]")
-FILL = re.compile(r"(?:^|run )\s*fill (-?\d+) (-?\d+) (-?\d+) (-?\d+) (-?\d+) (-?\d+) minecraft:air")
-SETBLOCK_AIR = re.compile(r"(?:^|run )\s*setblock (-?\d+) (-?\d+) (-?\d+) minecraft:air")
-SETBLOCK_ANY = re.compile(r"setblock (-?\d+) (-?\d+) (-?\d+) minecraft:([a-z_]+(?:\[[^\]]*\])?)")
+SETBLOCK_ANY = re.compile(r"setblock (-?\d+) (-?\d+) (-?\d+) (?:minecraft:)?([a-z_]+(?:\[[^\]]*\])?)")
 PRICE = re.compile(r"Points=(\d+)\.\.")
 BOX_MARKER = re.compile(r"summon minecraft:marker " + COORD + " " + COORD + " " + COORD + r" \{Tags:\[\"Box\"\](?:,Rotation:\[(-?\d+(?:\.\d+)?)F)?")
 WALL_SIGN_FACING = re.compile(r"_wall_sign\[facing=([a-z]+)\]")
 DATA_MERGE = re.compile(r"data merge block (-?\d+) (-?\d+) (-?\d+) (\{.*\})\s*$")
+SIGN_TEXT = re.compile(r"""Text(\d):(?:'((?:[^'\\]|\\.)*)'|"((?:[^"\\]|\\.)*)")""")
+SIGN_SET = re.compile(r"setblock (-?\d+) (-?\d+) (-?\d+) (?:minecraft:)?([a-z_]+_sign(?:\[[^\]]*\])?)\s*(\{.*\})")
 TP_START = re.compile(r"^tp @[ap](?:\[tag=PlayerOne\])? " + COORD + " " + COORD + " " + COORD + "(?: " + COORD + ")?")
+AIR = 'minecraft:air'
 MAP_MARGIN = 24
-SKIP_SPAWNER_TAGS = ("Monkey", "Boss", "Napalm", "Shrieker", "Thief", "George")
+FAR_FROM_SIGN = 16
+LATE_SPAWNER_REACH = 10
+SKIP_SPAWNER_TAGS = ("Monkey", "Boss", "Napalm", "Shrieker", "Thief", "George", "Item_Spawner")
+PLACEHOLDER_TEXT = ('must turn on', 'must be opened', 'door first', 'destination', 'cooling down', 'lander is',
+                    'lander has', 'link in progress', 'link not active', 'authori', 'recharging', 'currently in use')
 
 
 def rid(n=8):
@@ -146,6 +151,53 @@ def sign_raw(be):
     return ' '.join(str(be.get('Text%d' % i, '')) for i in range(1, 5))
 
 
+def world_sign_lines(be):
+    raw = [str(m) for m in be['front_text']['messages']] if 'front_text' in be else [str(be.get('Text%d' % i, '')) for i in range(1, 5)]
+    return [json_text(r) for r in raw]
+
+
+def is_sign(state):
+    return state.split('[')[0].endswith('_sign')
+
+
+def unescape(snbt):
+    return re.sub(r'\\(.)', r'\1', snbt)
+
+
+def sign_lines(nbt):
+    """The four lines of sign NBT, with components written 'like this' or "like \\"this\\"" alike."""
+    lines = ['', '', '', '']
+    for idx, single, double in SIGN_TEXT.findall(nbt):
+        lines[int(idx) - 1] = json_text(unescape(double) if double else single)
+    return lines
+
+
+def click_text(nbt):
+    """Sign NBT with escaped quotes undone, so click events read the same in both quoting styles."""
+    return nbt.replace('\\"', '"')
+
+
+ROTATION_FACING = ('SOUTH', 'WEST', 'NORTH', 'EAST')
+
+
+def sign_facing(state):
+    m = re.search(r'facing=([a-z]+)', state)
+    if m:
+        return m.group(1).upper()
+    m = re.search(r'rotation=(\d+)', state)
+    return ROTATION_FACING[int(round(int(m.group(1)) / 4.0)) % 4] if m else 'NORTH'
+
+
+def sign_sets(text):
+    """Every sign a function places, wall or standing: (pos, 'minecraft:<state>', nbt)."""
+    return [(tuple(map(int, m.group(1, 2, 3))), 'minecraft:' + m.group(4), m.group(5)) for m in SIGN_SET.finditer(text)]
+
+
+def is_placeholder(lines):
+    text = ' '.join(lines).lower()
+    return any(p in text for p in PLACEHOLDER_TEXT)
+
+
 # ------------------------------------------------------------------ datapack parsing
 def read(path):
     with open(path, encoding='utf-8', errors='replace') as f:
@@ -172,8 +224,36 @@ def door_functions(fn_root):
     return doors
 
 
+def box_points(x0, y0, z0, x1, y1, z1):
+    return [(x, y, z) for x in range(min(x0, x1), max(x0, x1) + 1)
+            for y in range(min(y0, y1), max(y0, y1) + 1) for z in range(min(z0, z1), max(z0, z1) + 1)]
+
+
+def move_sources(line):
+    """The source box of a "clone ... move": a door that slides away leaves its doorway empty."""
+    m = CLONE.search(line)
+    if not m or ' move' not in line[m.end():] or ' filtered' in line[m.end():]:
+        return set()
+    return set(box_points(*map(int, m.groups()[:6])))
+
+
+def condition(line):
+    """What an execute line waits for: (power on, doors that must be open, anything else)."""
+    s = line.strip()
+    if not s.startswith('execute'):
+        return False, frozenset(), False
+    head = s.rsplit(' run ', 1)[0]
+    power = 'Power_On' in head or re.search(r'\bPower=\d', head) is not None
+    doors = frozenset(int(n) for n in re.findall(r'tag=D(\d+)_O\b', head) + re.findall(r'\bDoor(\d+)Open=1\b', head))
+    rest = re.sub(r'tag=!?(?:D\d+_O|Power_On|PlayerOne)\b|\bDoor\d+Open=\d\b|\bPower=\d\b|\bGameOver=0\b', '', head)
+    rest = re.sub(r'scores=\{,*\}', '', rest)
+    return power, doors, '=' in rest
+
+
 def parse_door(paths):
-    price, cleared, spawns = None, set(), []
+    """Price, the blocks a door opens itself, its spawners, and the blocks it only clears or places when
+    something else holds too (power, other doors): [(power, doors, cleared, placed)]."""
+    price, cleared, spawns, conditional = None, set(), [], []
     for path in sorted(paths):
         text = read(path)
         if price is None:
@@ -181,19 +261,24 @@ def parse_door(paths):
             if m:
                 price = int(m.group(1))
         for line in text.splitlines():
-            m = FILL.search(line)
-            if m:
-                x0, y0, z0, x1, y1, z1 = map(int, m.groups())
-                for x in range(min(x0, x1), max(x0, x1) + 1):
-                    for y in range(min(y0, y1), max(y0, y1) + 1):
-                        for z in range(min(z0, z1), max(z0, z1) + 1):
-                            cleared.add((x, y, z))
+            if line.lstrip().startswith('#'):
                 continue
-            m = SETBLOCK_AIR.search(line)
-            if m:
-                cleared.add(tuple(map(int, m.groups())))
+            writes = block_writes(line)
+            gone = {p for p, s in writes.items() if s == AIR} | move_sources(line)
+            fill = FILL_ANY.search(line)
+            if fill and fill.group(7) == 'air':
+                # "fill ... air replace <block>" only clears that block; which one that is, is the door's
+                # start state's business.
+                gone |= set(box_points(*map(int, fill.groups()[:6])))
+            if not gone and not writes:
+                continue
+            power, doors, other = condition(line)
+            if not (power or doors or other):
+                cleared |= gone
+            elif not other:
+                conditional.append((power, doors, gone, {p: s for p, s in writes.items() if s != AIR}))
         spawns += spawners_in(text)
-    return price, cleared, spawns
+    return price, cleared, spawns, conditional
 
 
 def parse_window(path, world):
@@ -214,7 +299,7 @@ def facing_of_yaw(yaw):
 
 
 FILL_MODE = re.compile(r"\s+(hollow|outline|keep|replace)(?:\s+(#?[a-z_:/]+))?")
-FILL_ANY = re.compile(r"fill (-?\d+) (-?\d+) (-?\d+) (-?\d+) (-?\d+) (-?\d+) minecraft:([a-z_]+(?:\[[^\]]*\])?)")
+FILL_ANY = re.compile(r"fill (-?\d+) (-?\d+) (-?\d+) (-?\d+) (-?\d+) (-?\d+) (?:minecraft:)?([a-z_]+(?:\[[^\]]*\])?)")
 
 
 def block_writes(text, world=None):
@@ -230,12 +315,14 @@ def block_writes(text, world=None):
             if world is not None:
                 x0, y0, z0, x1, y1, z1, dx, dy, dz = map(int, m.groups())
                 bx, by, bz = min(x0, x1), min(y0, y1), min(z0, z1)
-                for x in range(bx, max(x0, x1) + 1):
-                    for y in range(by, max(y0, y1) + 1):
-                        for z in range(bz, max(z0, z1) + 1):
-                            state = world.block(x, y, z)
-                            if not (masked and state == 'minecraft:air'):
-                                out[(dx + x - bx, dy + y - by, dz + z - bz)] = state
+                copied = {}
+                for x, y, z in box_points(x0, y0, z0, x1, y1, z1):
+                    state = out.get((x, y, z)) or world.block(x, y, z)
+                    if not (masked and state == AIR):
+                        copied[(dx + x - bx, dy + y - by, dz + z - bz)] = state
+                for p in move_sources(line):
+                    out[p] = AIR
+                out.update(copied)
             continue
         m = FILL_ANY.search(line)
         if m:
@@ -306,39 +393,39 @@ def json_text(component):
     return ''
 
 
-def merged_signs(fn_root):
+def sign_writes(fn_root):
+    """Every sign text the datapack writes, in file order: data merges and sign setblocks alike.
+    [(pos, lines, nbt, function path, line)]"""
+    out = []
+    for path in sorted(glob.glob(os.path.join(fn_root, '**', '*.mcfunction'), recursive=True)):
+        for line in read(path).splitlines():
+            if line.lstrip().startswith('#'):
+                continue
+            m = DATA_MERGE.search(line.strip())
+            if m:
+                out.append((tuple(map(int, m.group(1, 2, 3))), sign_lines(m.group(4)), m.group(4), path, line))
+            for pos, _, nbt in sign_sets(line):
+                out.append((pos, sign_lines(nbt), nbt, path, line))
+    return out
+
+
+def merged_signs(writes):
     """Sign texts the datapack writes with "data merge block" (perk signs that light up at power-on)."""
     out = {}
-    for path in glob.glob(os.path.join(fn_root, '**', '*.mcfunction'), recursive=True):
-        for line in read(path).splitlines():
-            m = DATA_MERGE.search(line.strip())
-            if not m:
-                continue
-            texts = re.findall(r"Text(\d):'((?:[^'\\]|\\.)*)'", m.group(4))
-            lines = ['', '', '', '']
-            for idx, comp in texts:
-                lines[int(idx) - 1] = json_text(comp)
-            pos = (int(m.group(1)), int(m.group(2)), int(m.group(3)))
-            # A sign is often merged twice (powered-off placeholder, then the real buy text); keep the buy text.
-            if any(l.strip() for l in lines) and (pos not in out or has_cost(lines)):
-                out[pos] = lines
+    for pos, lines, _, _, line in writes:
+        if not DATA_MERGE.search(line.strip()):
+            continue
+        # A sign is often merged twice (powered-off placeholder, then the real buy text); keep the buy text.
+        if any(l.strip() for l in lines) and (pos not in out or has_cost(lines)):
+            out[pos] = lines
     return {pos: lines for pos, lines in out.items() if has_cost(lines) and 'random weapon' not in ' '.join(lines).lower()}
 
 
-def merged_signs_all(fn_root):
+def merged_signs_all(writes):
     out = {}
-    for path in glob.glob(os.path.join(fn_root, '**', '*.mcfunction'), recursive=True):
-        for line in read(path).splitlines():
-            m = DATA_MERGE.search(line.strip())
-            if not m:
-                continue
-            texts = re.findall(r"Text(\d):'((?:[^'\\]|\\.)*)'", m.group(4))
-            lines = ['', '', '', '']
-            for idx, comp in texts:
-                lines[int(idx) - 1] = json_text(comp)
-            pos = (int(m.group(1)), int(m.group(2)), int(m.group(3)))
-            if has_cost(lines) or pos not in out:
-                out[pos] = lines
+    for pos, lines, _, _, _ in writes:
+        if has_cost(lines) or pos not in out:
+            out[pos] = lines
     return out
 
 
@@ -456,20 +543,28 @@ def scan_world(world_path):
     return {'commands': commands, 'click_signs': click_signs}
 
 
-def power_blocks(world, index):
-    """Power switches: the lever/button next to each command block that runs maps/power/power."""
+def power_switches(blocks, index):
+    """Power switches: the lever or button by each command block that runs maps/power/power, or one of the
+    power_<side> functions of a map with several switches. That is where the power sign goes."""
     out = []
     for pos, command in index['commands']:
-        if not re.search(r'maps/power/power\b(?!_)', command):
+        if not re.search(r'maps/power/power(?:_[a-z]+)?\b', command):
             continue
-        x, y, z = pos
-        for dx, dy, dz in ((0, 1, 0), (0, 2, 0), (1, 1, 0), (-1, 1, 0), (0, 1, 1), (0, 1, -1)):
-            if any(k in world.block(x + dx, y + dy, z + dz) for k in ('lever', 'button')):
-                out.append((x + dx, y + dy, z + dz))
-                break
-        else:
-            out.append((x, y + 1, z))
+        switch = switch_near(blocks, pos) or (pos[0], pos[1] + 1, pos[2])
+        if switch not in out:
+            out.append(switch)
     return out
+
+
+class StartState:
+    """Block lookups in the map's start state: what its reset functions put back, else the saved world."""
+
+    def __init__(self, world, writes):
+        self.world, self.writes = world, writes
+
+    def block(self, x, y, z):
+        state = self.writes.get((x, y, z))
+        return state if state and state != AIR else self.world.block(x, y, z)
 
 
 def switch_near(world, pos, reach=2):
@@ -561,7 +656,12 @@ def parse_song_egg(fn_root, world, index, lo, hi):
 
 
 # ------------------------------------------------------------------ perk placement pools
-WALL_SIGN_SET = re.compile(r"setblock (-?\d+) (-?\d+) (-?\d+) (minecraft:[a-z_]+_wall_sign\[facing=([a-z]+)\])(\{.*\})")
+MARKER_TAGS = re.compile(r"summon minecraft:marker " + COORD + " " + COORD + " " + COORD + r" \{Tags:\[([^\]]*)\]")
+MARKER_SIGN = re.compile(r"at @e\[tag=([\w-]+)\] run data merge block ~ ~-1 ~ (\{.*\})")
+
+
+def perk_spot(pos, state, lines=None):
+    return {'pos': pos, 'facing': sign_facing(state), 'state': state, 'lines': lines or ['', '', '', '']}
 
 
 def parse_perk_pool(fn_root):
@@ -573,16 +673,13 @@ def parse_perk_pool(fn_root):
         perk = os.path.basename(os.path.dirname(path))
         place = os.path.splitext(os.path.basename(path))[0]
         place = place[len(perk):] if place.startswith(perk) else place
-        m = WALL_SIGN_SET.search(read(path))
-        if not m:
+        found = sign_sets(read(path))
+        if not found:
             continue
-        lines = ['', '', '', '']
-        for idx, comp in re.findall(r"Text(\d):'((?:[^'\\]|\\.)*)'", m.group(6)):
-            lines[int(idx) - 1] = json_text(comp)
-        by_perk.setdefault(perk, {})[place] = {'pos': tuple(map(int, m.group(1, 2, 3))), 'facing': m.group(5).upper(),
-                                               'state': m.group(4), 'lines': lines}
+        pos, state, nbt = found[0]
+        by_perk.setdefault(perk, {})[place] = perk_spot(pos, state, sign_lines(nbt))
     if not by_perk:
-        return None
+        return parse_perk_sets(fn_root)
     perks = sorted(by_perk)
     places = sorted({p for spots in by_perk.values() for p in spots})
     spots, signs = [], []
@@ -592,7 +689,35 @@ def parse_perk_pool(fn_root):
         spots.append(spot)
         if i < len(perks) and place in by_perk[owner]:
             signs.append(spot)
-    return {'spots': spots, 'signs': signs, 'perks': perks, 'places': places}
+    return {'spots': spots, 'signs': signs, 'perks': perks, 'places': places, 'mode': 'random_on_open'}
+
+
+def parse_perk_sets(fn_root):
+    """unique/perks/set/**: random perk layouts, each placing a sign with a perk marker on top; the power
+    function writes each perk's buy text under its marker. Every spot any layout uses becomes a pool spot and
+    the pool deals the perks out at game start."""
+    spots, perks = {}, {}
+    for path in sorted(glob.glob(os.path.join(fn_root, 'unique', 'perks', 'set', '**', '*.mcfunction'), recursive=True)):
+        text = read(path)
+        for pos, state, _ in sign_sets(text):
+            # Layouts with another machine model put the sign one block over; that is the same spot.
+            if not any(near(pos, other, 1) for other in spots):
+                spots[pos] = state
+        for m in MARKER_TAGS.finditer(text):
+            tags = [t.strip().strip('"') for t in m.group(4).split(',')]
+            if 'Perk' in tags:
+                perks.update((t, None) for t in tags if t != 'Perk')
+    if not spots or not perks:
+        return None
+    for path in glob.glob(os.path.join(fn_root, '**', '*.mcfunction'), recursive=True):
+        for m in MARKER_SIGN.finditer(read(path)):
+            if m.group(1) in perks:
+                perks[m.group(1)] = sign_lines(m.group(2))
+    names = sorted(p for p, lines in perks.items() if lines)
+    ordered = [perk_spot(pos, state) for pos, state in sorted(spots.items())]
+    signs = [dict(spot, lines=perks[name]) for spot, name in zip(ordered, names)]
+    return {'spots': ordered, 'signs': signs, 'perks': names, 'places': ['%d %d %d' % s['pos'] for s in ordered],
+            'mode': 'random_on_start'}
 
 
 # ------------------------------------------------------------------ map-specific traps (unique/<trap>/)
@@ -732,57 +857,122 @@ def arc(a, b, lift=20.0):
     return [a, (a[0], top, a[2]), mid, (b[0], top, b[2]), b]
 
 
-def transport(name, style, points, cost, two_way, requires_power=False):
+def transport(name, style, points, cost, two_way, requires_power=False, path=None):
     return {'name': name, 'style': style, 'points': [tuple(round(v, 2) for v in p) for p in points], 'cost': cost,
-            'two_way': two_way, 'requires_power': requires_power}
+            'two_way': two_way, 'requires_power': requires_power, 'path': path}
+
+
+def distinct(points):
+    """The points without immediate repeats (a ride's start is often also its first teleport)."""
+    return [p for i, p in enumerate(points) if i == 0 or not close(p, points[i - 1], 0)]
+
+
+def cooldown_seconds(text):
+    """The longest "<..>Cooldown=N" / "<..>_CD=N" score a transport waits on, in seconds."""
+    ticks = [int(n) for n in re.findall(r"\b\w*(?:Cooldown|_CD)=(\d+)", text)]
+    return max(ticks) // 20 if ticks else 0
 
 
 def parse_landers(fn_root):
-    """unique/landers/launch/lander_N_launch: where the riders stand on pad N. Pad 0 is the main pad; a lander
-    flies from it to every other pad and back."""
-    pads = {}
-    for path in glob.glob(os.path.join(fn_root, 'unique', '*lander*', '**', '*launch*.mcfunction'), recursive=True):
+    """unique/landers/launch/lander_N_launch: where the riders stand on pad N and the height the lander cruises
+    at. Pad 0 is the main pad; a lander rises from it, crosses at cruise height to every other pad and comes
+    back down. The call stations ("Call lander to position") are matched to the nearest pad."""
+    folder = os.path.join(fn_root, 'unique', 'landers')
+    pads, cruise = {}, 0.0
+    for path in glob.glob(os.path.join(fn_root, 'unique', '*lander*', '**', '*.mcfunction'), recursive=True):
         n = re.search(r'(\d+)', os.path.basename(path))
         riders = [tuple(float(v) for v in m.group(2, 3, 4)) for m in PLAYER_TP.finditer(read(path)) if 'tag=Player' in m.group(1)]
-        if n and riders:
-            pads[int(n.group(1))] = mean(riders[:4])
+        if riders:
+            cruise = max([cruise] + [r[1] for r in riders])
+        if n and riders and 'launch' in os.path.basename(path):
+            low = min(r[1] for r in riders)
+            pads[int(n.group(1))] = mean([r for r in riders if r[1] == low][:4])
     if len(pads) < 2:
         return []
-    buy = '\n'.join(read(f) for f in glob.glob(os.path.join(fn_root, 'unique', '*lander*', '**', '*buy*.mcfunction'), recursive=True))
+    files = glob.glob(os.path.join(fn_root, 'unique', '*lander*', '**', '*.mcfunction'), recursive=True)
+    buy = '\n'.join(read(f) for f in files if 'buy' in os.path.basename(f))
     price = PRICE.search(buy)
     power = read(os.path.join(fn_root, 'maps', 'power', 'power.mcfunction')) if os.path.exists(os.path.join(fn_root, 'maps', 'power', 'power.mcfunction')) else ''
-    start = pads[min(pads)]
-    landers = [transport('Lander %d' % n, 'platform', arc(start, pads[n]), int(price.group(1)) if price else 0, True,
-                         'lander' in power.lower()) for n in sorted(pads) if n != min(pads)]
-    for lander in landers:
-        lander['speed'] = 12.0
+    stations = []
+    for f in files:
+        for m in merges(read(f)):
+            if 'call lander' in ' '.join(sign_lines(m.group(4))).lower():
+                pos = tuple(map(int, m.group(1, 2, 3)))
+                if pos not in stations:
+                    stations.append(pos)
+    station = {n: min(stations, key=lambda s: sum((s[i] - p[i]) ** 2 for i in range(3))) for n, p in pads.items()} if stations else {}
+    cooldown = cooldown_seconds('\n'.join(read(f) for f in files))
+    home = min(pads)
+    start = pads[home]
+    landers = []
+    for n in sorted(pads):
+        if n == home:
+            continue
+        end = pads[n]
+        lander = transport('Lander %d' % n, 'platform', [start, (start[0], cruise, start[2]), (end[0], cruise, end[2]), end],
+                           int(price.group(1)) if price else 0, True, 'lander' in power.lower(), path=folder)
+        lander.update(speed=12.0, cooldown=cooldown, cooldown_group='lander',
+                      call_points=[station[k] for k in (home, n) if k in station])
+        landers.append(lander)
     return landers
 
 
-def parse_elevators(fn_root):
+def cabin_clones(text):
+    """clone <cabin> <x y z> lines of an elevator move, by the timer value they run at."""
+    out = []
+    for line in text.splitlines():
+        m = CLONE.search(line)
+        step = re.search(r"Timer=(\d+)\}", line)
+        if m and step:
+            out.append((int(step.group(1)), tuple(map(int, m.groups()))))
+    return sorted(out)
+
+
+def parse_elevators(fn_root, start_block):
     """unique/elevator/<car>/*_to_*: each move tags the riders standing on the car at one floor; every floor of
-    a car is linked to the next one."""
+    a car is linked to the next one. The car itself is a cabin cloned up or down the shaft; wherever a move
+    leaves it the cabin floor is put down when the start state has none, so riders never land in an empty
+    shaft."""
     out = []
     for car in sorted(glob.glob(os.path.join(fn_root, 'unique', 'elevator*', '*'))):
         if not os.path.isdir(car):
             continue
-        floors = []
-        for path in sorted(glob.glob(os.path.join(car, '*_to_*.mcfunction'))):
-            for m in TAG_SPHERE.finditer(read(path)):
+        floors, stops, moves = [], [], sorted(glob.glob(os.path.join(car, '*_to_*.mcfunction')))
+        for path in moves:
+            text = read(path)
+            for m in TAG_SPHERE.finditer(text):
                 p = (float(m.group(1)), float(m.group(2)), float(m.group(3)))
                 if not any(close(p, f) for f in floors):
                     floors.append(p)
+            clones = cabin_clones(text)
+            if clones:
+                stops.append(clones[-1][1])
         floors.sort(key=lambda p: p[1])
+        floor_edits = {}
+        for x0, y0, z0, x1, y1, z1, dx, dy, dz in stops:
+            bx, by, bz = min(x0, x1), min(y0, y1), min(z0, z1)
+            for x in range(bx, max(x0, x1) + 1):
+                for z in range(bz, max(z0, z1) + 1):
+                    target = (dx + x - bx, dy, dz + z - bz)
+                    state = start_block(x, by, z)
+                    if state != AIR and start_block(*target) == AIR:
+                        floor_edits[target] = state
+        buy = '\n'.join(read(f) for f in glob.glob(os.path.join(car, '*buy*.mcfunction')))
+        price = PRICE.search(buy)
         for a, b in zip(floors, floors[1:]):
-            out.append(transport('Elevator %s' % os.path.basename(car), 'teleport', [a, b], 0, True))
+            lift = transport('Elevator %s' % os.path.basename(car), 'teleport', [a, b], int(price.group(1)) if price else 0, True,
+                             path=moves[0] if moves else None)
+            lift['floor_edits'] = floor_edits
+            out.append(lift)
     return out
 
 
 def parse_jump_pads(fn_root):
     """unique/**/jump_pads: a pad tags the players inside its box, then moves them with absolute tps ordered by
-    their own counter. Each pad becomes a one-way ride along those points."""
+    their own counter. Each pad becomes a one-way ride along those points; pads that share a launch spot (the
+    map rotates which one is live) are one ride."""
     out = []
-    for path in glob.glob(os.path.join(fn_root, 'unique', '**', '*jump_pad*', '*.mcfunction'), recursive=True):
+    for path in sorted(glob.glob(os.path.join(fn_root, 'unique', '**', '*jump_pad*', '*.mcfunction'), recursive=True)):
         text = read(path)
         for m in TAG_BOX.finditer(text):
             if m.group(7) != 'add':
@@ -793,8 +983,29 @@ def parse_jump_pads(fn_root):
             steps = {}
             for t in re.finditer(r"tp @e\[tag=" + tag + r"\b[^\]]*scores=\{\w+=(\d+)\}\] (-?[\d.]+) (-?[\d.]+) (-?[\d.]+)", text):
                 steps[int(t.group(1))] = tuple(float(v) for v in t.group(2, 3, 4))
-            if steps:
-                out.append(transport('Jump pad %s' % tag.split('_')[-1], 'platform', [start] + [steps[k] for k in sorted(steps)], 0, False))
+            if steps and not any(close(start, o['points'][0], 1) for o in out):
+                out.append(transport('Jump pad %s' % tag.split('_')[-1], 'platform', [start] + [steps[k] for k in sorted(steps)], 0, False, path=path))
+    return out
+
+
+def parse_geysers(fn_root):
+    """unique/**/geyser_*: standing on the <Tag> marker long enough launches the players straight up to the
+    <Tag>_Clear marker, from where they are put down at the landing spot (the first player tp)."""
+    out = []
+    for path in sorted(glob.glob(os.path.join(fn_root, 'unique', '**', '*geyser*.mcfunction'), recursive=True)):
+        text = read(path)
+        tag = re.search(r"as @e\[tag=(\w+)\] at @s run execute as @p\[distance=\.\.", text)
+        land = re.search(r"tp @p\[[^\]]*\] (-?[\d.]+) (-?[\d.]+) (-?[\d.]+)", text)
+        if not tag or not land:
+            continue
+        base, top = marker_positions(fn_root, tag.group(1)), marker_positions(fn_root, tag.group(1) + '_Clear')
+        if not base or not top:
+            continue
+        a, b = base[0], tuple(float(v) for v in land.groups())
+        label = os.path.splitext(os.path.basename(path))[0]
+        geyser = transport(friendly_name(label), 'platform', [a, (a[0], top[0][1], a[2]), (b[0], top[0][1], b[2]), b], 0, False, path=path)
+        geyser['label'] = label
+        out.append(geyser)
     return out
 
 
@@ -871,33 +1082,59 @@ def plate_gate(fn_root):
     return None
 
 
-def link_chain(fn_root):
-    """A sign the power function writes whose click runs a *link* function, that writes the next sign, and so
-    on (Kino's "Initiate link" -> "Link pad"): the signs to press in order."""
+def first_call(nbt):
+    m = re.search(r"function (?:custom:)?([a-z0-9_/]+)", click_text(nbt))
+    return m.group(1) if m else None
+
+
+def calls_from(fn_root, name, depth=3):
+    """A function's text and that of the functions it runs itself (not the ones its signs run on click)."""
+    path = function_path(fn_root, name)
+    if depth < 0 or not os.path.exists(path):
+        return ''
+    text = read(path)
+    called = [c for line in text.splitlines() if 'clickEvent' not in line for c in FUNCTION_CALL.findall(line)]
+    return '\n'.join([text] + [calls_from(fn_root, c, depth - 1) for c in called])
+
+
+def link_chains(fn_root):
+    """Signs the power function writes whose click runs a *link* function, each followed through the sign that
+    function (or one it runs) writes next, and so on: Kino's "Initiate link" -> "Link pad", Der Riese's pad ->
+    mainframe. [{'signs', 'functions', 'folder', 'pap', 'timer'}]"""
     power = os.path.join(fn_root, 'maps', 'power', 'power.mcfunction')
     if not os.path.exists(power):
-        return None
-    chain, text, seen = [], read(power), set()
-    while True:
-        nxt = None
-        for m in merges(text):
-            call = re.search(r"function custom:([a-z0-9_/]+)", m.group(4))
-            if call and 'link' in call.group(1).split('/')[-1] and call.group(1) not in seen:
-                nxt = (tuple(map(int, m.group(1, 2, 3))), call.group(1))
-                break
-        if not nxt:
-            break
-        seen.add(nxt[1])
-        chain.append(nxt)
-        path = function_path(fn_root, nxt[1])
-        if not os.path.exists(path):
-            break
-        text = read(path)
-    if not chain:
-        return None
-    folder = os.path.dirname(function_path(fn_root, chain[0][1]))
-    opens_pap = any('pap' in read(p).lower() for p in glob.glob(os.path.join(folder, '*.mcfunction')))
-    return {'signs': [p for p, _ in chain], 'pap': opens_pap, 'folder': os.path.basename(folder)}
+        return []
+    chains = []
+    starts = [first_call(m.group(4)) for m in merges(read(power))]
+    for m in merges(read(power)):
+        call = first_call(m.group(4))
+        if not call or 'link' not in call.split('/')[-1]:
+            continue
+        chain, nxt = [], (tuple(map(int, m.group(1, 2, 3))), call)
+        while nxt:
+            chain.append(nxt)
+            text, nxt = calls_from(fn_root, nxt[1]), None
+            for m2 in merges(text):
+                call2 = first_call(m2.group(4))
+                if call2 and 'link' in call2.split('/')[-1] and call2 not in [c for _, c in chain] and call2 not in starts:
+                    nxt = (tuple(map(int, m2.group(1, 2, 3))), call2)
+                    break
+        folder = os.path.dirname(function_path(fn_root, chain[0][1]))
+        timer = re.search(r"objectives add (\w+) minecraft\.custom", calls_from(fn_root, chain[0][1]))
+        chains.append({'signs': [p for p, _ in chain], 'functions': [c for _, c in chain], 'folder': folder,
+                       'pap': any('pap' in read(f).lower() for f in glob.glob(os.path.join(folder, '*.mcfunction'))),
+                       'timer': timer.group(1) if timer else None})
+    return chains
+
+
+def link_time_limit(fn_root, chain):
+    """Seconds a link stays open: the timer value at which its last sign is reset."""
+    if not chain['timer']:
+        return 0
+    last = '%d %d %d' % chain['signs'][-1]
+    ticks = [int(m.group(1)) for path in all_functions(fn_root).values() for line in read(path).splitlines()
+             if 'data merge block ' + last in line for m in [re.search(chain['timer'] + r"=(\d+)", line)] if m]
+    return min(ticks) // 20 if ticks else 0
 
 
 def pap_marker_sign(world, fn_root):
@@ -912,9 +1149,7 @@ def pap_marker_sign(world, fn_root):
             pos = tuple(int(math.floor(v)) for v in pos)
             if 'sign' in world.block(*pos):
                 continue
-            lines = ['', '', '', '']
-            for idx, comp in re.findall(r"Text(\d):'((?:[^'\\]|\\.)*)'", m.group(2)):
-                lines[int(idx) - 1] = json_text(comp)
+            lines = sign_lines(m.group(2))
             if not has_cost(lines):
                 lines[3] = '[Cost: 5000]'
             state = None
@@ -932,7 +1167,12 @@ def pap_marker_sign(world, fn_root):
 # ------------------------------------------------------------------ travel functions
 PER_PLAYER = re.compile(r"tag=Player(?:One|Two|Three|Four)\b|scores=\{Teleroom=\d+\}")
 PAD_MARKER = re.compile(r"as @e\[tag=(\w+)\] at @s run scoreboard players set @a\[distance=\.\.[\d.]+")
-SPECIAL_TRAVEL = ('lander', 'elevator', 'jump_pad')
+SOURCE_SELECTOR = re.compile(r"@[ape]\[x=(-?[\d.]+),y=(-?[\d.]+),z=(-?[\d.]+),distance")
+SPECIAL_TRAVEL = ('lander', 'elevator', 'jump_pad', 'geyser')
+
+
+def moves_zombies(selector):
+    return 'Zombie' in selector or 'zombie' in selector
 
 
 def travel_steps(text):
@@ -942,7 +1182,7 @@ def travel_steps(text):
     group, last_player = 0, False
     for line in text.splitlines():
         m = TP_ANY.search(line)
-        if not m:
+        if not m or moves_zombies(m.group(2) or ''):
             last_player = False
             continue
         step = STEP.search(line)
@@ -963,6 +1203,31 @@ def travel_steps(text):
             source = tuple(float(v) for v in sel.groups())
         everyone = everyone or m.group(1) == '@a'
     return [(k, mean(steps[k])) for k in keys], source, everyone
+
+
+def travel_pairs(text):
+    """Pads that each send whoever stands on them to their own spot (tp @e[x,y,z,distance] X Y Z, no timer),
+    when one function holds several: [(pad, destination)]."""
+    pairs = []
+    for line in text.splitlines():
+        m = TP_ANY.search(line)
+        if not m or STEP.search(line) or moves_zombies(m.group(2) or ''):
+            continue
+        sel = SELECTOR_POS.search(m.group(2) or '')
+        if sel:
+            pad = tuple(float(v) for v in sel.groups())
+            if not any(close(pad, q, 1) for q, _ in pairs):
+                pairs.append((pad, tuple(float(v) for v in m.group(3, 4, 5))))
+    return pairs if len(pairs) >= 2 else []
+
+
+def selector_source(text):
+    """The first spot a function picks riders around (@a[x=..,y=..,z=..,distance=..])."""
+    for line in text.splitlines():
+        m = SOURCE_SELECTOR.search(line)
+        if m and not moves_zombies(line):
+            return tuple(float(v) for v in m.groups())
+    return None
 
 
 def pad_source(fn_root, folder):
@@ -995,29 +1260,59 @@ def friendly_name(label):
     return head + (' (%s)' % ' '.join(parts[1:]) if len(parts) > 1 else '')
 
 
+def teleport_cooldown(steps, text):
+    """Seconds before a teleporter can be used again: its whole timer, or for a tour (it brings the riders back)
+    the time from the last teleport until it rewrites its sign."""
+    numeric = [k for k, _ in steps if isinstance(k, int)]
+    if not numeric:
+        return 0
+    score = re.search(r"scores=\{(\w+)=%d\}" % numeric[0], text)
+    if not score:
+        return 0
+    values = [int(v) for v in re.findall(score.group(1) + r"=(\d+)", text)]
+    if len(numeric) >= 3:
+        rewrites = [int(v) for line in text.splitlines() if 'data merge block' in line for v in re.findall(score.group(1) + r"=(\d+)", line)]
+        later = [v for v in rewrites if v > max(numeric)]
+        return (min(later) - max(numeric)) // 20 if later else 0
+    return max(values) // 20
+
+
 def parse_transports(fn_root):
     """Absolute player teleports in the map's travel functions. Short hops in a row are a ride along a path;
-    otherwise it is a teleporter to its last stop (the longest stop of a tour)."""
+    otherwise it is a teleporter to its last stop (the longest stop of a tour). A function with several pads
+    that each have their own destination is one teleporter per pad. A flinger throws its riders from the spot
+    it watches to where its absolute teleports put them."""
     out = []
-    names = ('zipline', 'teleporter', 'travel', 'minecart', 'slide')
+    names = ('zipline', 'teleporter', 'travel', 'minecart', 'slide', 'flinger')
     files = [f for f in glob.glob(os.path.join(fn_root, 'unique', '**', '*.mcfunction'), recursive=True)
              if any(k in f.lower() for k in names) and not any(k in f.lower() for k in SPECIAL_TRAVEL)]
     for path in sorted(files):
-        steps, source, everyone = travel_steps(read(path))
+        text = read(path)
+        label = os.path.splitext(os.path.basename(path))[0]
+        buy = next((read(f) for f in glob.glob(os.path.join(os.path.dirname(path), '*buy*.mcfunction'))), '')
+        price = PRICE.search(buy)
+        cost = int(price.group(1)) if price else 0
+        pairs = travel_pairs(text)
+        if pairs:
+            for i, (pad, target) in enumerate(pairs, 1):
+                out.append({'name': '%s %d' % (friendly_name(label), i), 'label': '%s_%d' % (label, i), 'style': 'teleport',
+                            'points': [pad, target], 'cost': cost, 'path': path})
+            continue
+        steps, source, everyone = travel_steps(text)
         if not steps:
             continue
         if source is None:
-            source = pad_source(fn_root, os.path.dirname(path))
+            source = pad_source(fn_root, os.path.dirname(path)) or selector_source(text)
         points = [p for _, p in steps]
         if source is not None:
             points.insert(0, source)
         if len(points) < 2:
             continue
         hops = [max(abs(points[i + 1][j] - points[i][j]) for j in range(3)) for i in range(len(points) - 1)]
-        label = os.path.splitext(os.path.basename(path))[0]
-        buy = next((read(f) for f in glob.glob(os.path.join(os.path.dirname(path), '*buy*.mcfunction'))), '')
-        price = PRICE.search(buy)
-        if len(points) >= 3 and max(hops) <= 16 and 'teleport' not in label.lower():
+        cooldown = 0
+        if 'flinger' in label.lower():
+            style, points = 'platform', arc(points[0], points[-1], lift=8.0)
+        elif len(points) >= 3 and max(hops) <= 16 and 'teleport' not in label.lower():
             style = 'cart' if 'minecart' in path.lower() else ('platform' if everyone else 'zipline')
         else:
             style = 'teleport'
@@ -1030,13 +1325,15 @@ def parse_transports(fn_root):
             else:
                 target = points[-1]
             points = [points[0], target]
-        out.append({'name': friendly_name(label), 'label': label, 'style': style, 'points': points, 'cost': int(price.group(1)) if price else 0})
+            cooldown = teleport_cooldown(steps, text)
+        out.append({'name': friendly_name(label), 'label': label, 'style': style, 'points': points, 'cost': cost,
+                    'path': path, 'cooldown': cooldown})
     return dedupe_transports(out)
 
 
 def dedupe_transports(transports):
-    """Drop repeats and fold a reverse path (to-dock / to-main) into one two-way transport. A teleporter that
-    has a separate way back (its own return pad) stays one-way."""
+    """Drop repeats and fold a reverse path (to-dock / to-main) into one two-way transport. Teleporters are
+    one-way unless such a reverse path exists."""
     kept = []
     for t in transports:
         a, b = t['points'][0], t['points'][-1]
@@ -1051,13 +1348,220 @@ def dedupe_transports(transports):
                 twin = k
                 break
         if twin is None:
-            t.setdefault('two_way', t['style'] == 'teleport')
+            t.setdefault('two_way', False)
             kept.append(t)
-    for t in kept:
-        for k in kept:
-            if k is not t and t['style'] == k['style'] == 'teleport' and close(k['points'][-1], t['points'][0], 12):
-                t['two_way'] = k['two_way'] = False
     return kept
+
+
+# ------------------------------------------------------------------ mechanisms (power walls, shared gates)
+MAX_REGION_BLOCKS = 600
+MAX_PLACED_BLOCKS = 2000
+COSMETIC = ('light', 'barrier', 'structure_void')
+
+
+def power_paths(fn_root):
+    """maps/power/power*.mcfunction in the order the map runs them: power, power2, power3, ..., then the
+    per-switch functions of a map with several switches."""
+    def order(path):
+        name = os.path.basename(path)[:-len('.mcfunction')]
+        m = re.fullmatch(r'power(\d*)', name)
+        return (0, int(m.group(1) or 1), name) if m else (1, 0, name)
+    return sorted(glob.glob(os.path.join(fn_root, 'maps', 'power', 'power*.mcfunction')), key=order)
+
+
+def power_effects(fn_root, world):
+    """What turning the power on does to blocks, per doors it also waits for: {doors: {pos: final state}}.
+    Lines that wait on anything else (player counts, timers) are not part of it."""
+    groups = {}
+    for path in power_paths(fn_root):
+        for line in read(path).splitlines():
+            if line.lstrip().startswith('#'):
+                continue
+            _, doors, other = condition(line)
+            if other:
+                continue
+            writes = block_writes(line, world)
+            if writes:
+                groups.setdefault(doors, {}).update(writes)
+    return groups
+
+
+def minimal(options):
+    """Drop the ways to open something that need more than another way does."""
+    return {o for o in options if not any(q != o and q[0] <= o[0] and q[1] <= o[1] for q in options)}
+
+
+def called_paths(fn_root, names, depth=4):
+    """The functions named and what they run themselves (not what their signs run on click)."""
+    out, queue = set(), [(n, 0) for n in names]
+    while queue:
+        name, d = queue.pop()
+        path = function_path(fn_root, name)
+        if path in out or not os.path.exists(path):
+            continue
+        out.add(path)
+        if d < depth:
+            queue += [(c, d + 1) for line in read(path).splitlines() if 'clickEvent' not in line for c in FUNCTION_CALL.findall(line)]
+    return out
+
+
+def power_gated(fn_root):
+    """Functions the map's loop only runs while the power is on."""
+    loops = os.path.join(fn_root, 'unique', 'map_specific_loops.mcfunction')
+    if not os.path.exists(loops):
+        return set()
+    names = [c for line in read(loops).splitlines() if 'Power_On' in line.rsplit(' run ', 1)[0] for c in FUNCTION_CALL.findall(line)]
+    return called_paths(fn_root, names)
+
+
+def relative_name(fn_root, path):
+    return os.path.relpath(path, fn_root)[:-len('.mcfunction')].replace(os.sep, '/')
+
+
+def transport_scope(fn_root, path, others):
+    """The functions that belong to one transport: its folder when no other transport shares it, else its own
+    file, plus whatever those run."""
+    if path is None:
+        return set()
+    if os.path.isdir(path):
+        files = set(glob.glob(os.path.join(path, '**', '*.mcfunction'), recursive=True))
+    else:
+        folder = os.path.dirname(path)
+        shared = any(o and o != path and os.path.dirname(o) == folder for o in others)
+        files = {path} if shared else set(glob.glob(os.path.join(folder, '*.mcfunction')))
+    return files | called_paths(fn_root, [relative_name(fn_root, f) for f in files])
+
+
+def transport_signs(fn_root, scope, writes):
+    """Signs whose click buys this transport (tags one of its *_B tags), else signs whose click runs one of
+    its functions."""
+    text = '\n'.join(read(f) for f in scope)
+    tags = set(re.findall(r'tag=(\w+_B)\b', text))
+    names = {relative_name(fn_root, f) for f in scope}
+    tagged, called = [], []
+    for pos, _, nbt, _, _ in writes:
+        click = click_text(nbt)
+        if tags & set(re.findall(r'add (\w+_B)\b', click)):
+            tagged.append(pos)
+        elif first_call(nbt) in names:
+            called.append(pos)
+    unique = lambda ps: [p for i, p in enumerate(ps) if p not in ps[:i]]
+    return unique(tagged), unique([p for p in called if p not in tagged])
+
+
+def relinks(path):
+    """The transport's own function writes back a sign that starts a link: it has to be linked again after
+    every ride (Kino's teleporter)."""
+    if not path or not os.path.isfile(path):
+        return False
+    return any('link' in (first_call(m.group(4)) or '').split('/')[-1] for m in merges(read(path)))
+
+
+def call_point(p):
+    return {'x': p[0] + 0.5, 'y': float(p[1]), 'z': p[2] + 0.5}
+
+
+def near(a, b, reach):
+    return sum((a[i] - b[i]) ** 2 for i in range(3)) <= reach * reach
+
+
+def sorted_call_points(points, start, end, two_way, reach=8):
+    """Sign spots a rider presses at: by the start, and by the end too when it runs both ways."""
+    first = [p for p in points if near(p, start, reach)]
+    last = [p for p in points if two_way and near(p, end, reach) and p not in first]
+    return first + last
+
+
+def door_zone(n, blocks):
+    xs, ys, zs = [p[0] for p in blocks], [p[1] for p in blocks], [p[2] for p in blocks]
+    return {'id': 'door_%d' % n, 'name': '', 'p1': loc((min(xs), min(ys), min(zs))), 'p2': loc((max(xs), max(ys), max(zs)))}
+
+
+def option_id(option):
+    power, doors = option
+    return '_'.join((['power'] if power else []) + ['door%d' % d for d in sorted(doors)]) + '_opens'
+
+
+def trigger(tid, name, steps, targets, ordered=False, time_limit=0, reset_on_fail=False):
+    return {'id': tid, 'name': name,
+            'options': {'ordered': ordered, 'time_limit_seconds': time_limit, 'reset_on_fail': reset_on_fail,
+                        'all_players': False, 'repeatable': False, 'simultaneous': False},
+            'steps': steps, 'targets': targets}
+
+
+def click_gates(fn_root, writes, reset_solid):
+    """Signs the reset function writes whose click runs a function that clears blocks the reset put up (Shi No
+    Numa's "Turn on Zipline" lifts the gate at the far end of the zipline): [(sign, function, cleared)]."""
+    out = []
+    for pos, _, nbt, path, _ in writes:
+        name = first_call(nbt)
+        if not name or not os.path.basename(path).startswith('reset') or '/song/' in name:
+            continue
+        target = function_path(fn_root, name)
+        if not os.path.exists(target):
+            continue
+        cleared = {p for p, s in block_writes(read(target)).items() if s == AIR and p in reset_solid}
+        if cleared and not any(name == n for _, n, _ in out):
+            out.append((pos, name, cleared))
+    return out
+
+
+def launch_gate(fn_root, folder, start_block):
+    """A sign among the lander functions whose click starts a timer that a function with sliding doors counts
+    (Ascension's "Activate launch" opens the Pack-a-Punch room): (sign, that function, its door blocks)."""
+    files = glob.glob(os.path.join(folder, '**', '*.mcfunction'), recursive=True)
+    for f in files:
+        for m in merges(read(f)):
+            obj = re.search(r"objectives add (\w+)", click_text(m.group(4)))
+            if not obj:
+                continue
+            for g in files:
+                text = read(g)
+                if obj.group(1) not in text:
+                    continue
+                door = set()
+                for line in text.splitlines():
+                    c = CLONE.search(line)
+                    if c and ' move' in line and ' filtered' not in line:
+                        x0, y0, z0, x1, y1, z1 = map(int, c.groups()[:6])
+                        if min(abs(x1 - x0), abs(y1 - y0), abs(z1 - z0)) == 0:
+                            door |= set(box_points(x0, y0, z0, x1, y1, z1))
+                door = {p: start_block(*p) for p in door if start_block(*p) != AIR}
+                if door:
+                    return tuple(map(int, m.group(1, 2, 3))), g, door
+    return None
+
+
+def spare_pap_signs(fn_root, world):
+    """Pack-a-Punch signs on the spare machines the map keeps out of sight to clone into place."""
+    out = set()
+    for path in glob.glob(os.path.join(fn_root, 'unique', 'pap', '**', '*.mcfunction'), recursive=True):
+        for m in CLONE.finditer(read(path)):
+            x0, y0, z0, x1, y1, z1 = map(int, m.groups()[:6])
+            lo, hi = (min(x0, x1), min(y0, y1), min(z0, z1)), (max(x0, x1), max(y0, y1), max(z0, z1))
+            for be in world.signs_in(lo, hi):
+                pos = (int(be['x']), int(be['y']), int(be['z']))
+                if inside(pos, lo, hi) and 'pack' in ' '.join(world_sign_lines(be)).lower():
+                    out.add(pos)
+    return out
+
+
+def power_pap_gate(fn_root):
+    """The map's loop only runs its Pack-a-Punch functions once the power is on."""
+    loops = os.path.join(fn_root, 'unique', 'map_specific_loops.mcfunction')
+    return os.path.exists(loops) and any('Power_On' in line and 'function custom:unique/pap/' in line
+                                         for line in read(loops).splitlines())
+
+
+def comment_before(text, pos):
+    """The last # comment above the line of a function that writes pos."""
+    comment = ''
+    for line in text.splitlines():
+        if line.strip().startswith('#'):
+            comment = line.strip().lower()
+        elif pos in block_writes(line):
+            return comment
+    return None
 
 
 # ------------------------------------------------------------------ assembly
@@ -1079,54 +1583,57 @@ def build(world, datapacks, map_name, arena, world_name, index):
     fn_root = os.path.join(datapacks, map_name, 'data', 'custom', 'functions')
     report = []
     spawns = {}
+    writes = sign_writes(fn_root)
+    has_power = os.path.isdir(os.path.join(fn_root, 'maps', 'power'))
 
     def spawn_id(pos):
         if pos not in spawns:
             spawns[pos] = rid()
         return spawns[pos]
 
-    window_spawns = {}
-    door_spawn_positions = set()
-
     # The map rebuilds its doors when a game starts, so the saved world can hold them open.
-    reset_all = {}
+    reset_all, reset_texts = {}, []
     reset_door_signs = {}
-    for path in glob.glob(os.path.join(fn_root, 'unique', 'reset*.mcfunction')):
+    for path in sorted(glob.glob(os.path.join(fn_root, 'unique', 'reset*.mcfunction'))):
         text = read(path)
+        reset_texts.append(text)
         reset_all.update(block_writes(text, world))
-        for m in WALL_SIGN_SET.finditer(text):
-            d = re.search(r'add D(\d+)_B', m.group(6))
+        for pos, state, nbt in sign_sets(text):
+            d = re.search(r'add D(\d+)_B', click_text(nbt))
             if d:
-                lines = ['', '', '', '']
-                for idx, comp in re.findall(r"Text(\d):'((?:[^'\\]|\\.)*)'", m.group(6)):
-                    lines[int(idx) - 1] = json_text(comp)
-                reset_door_signs.setdefault(int(d.group(1)), []).append((tuple(map(int, m.group(1, 2, 3))), m.group(4), lines))
-    reset_state = {p: st for p, st in reset_all.items() if st != 'minecraft:air'}
+                reset_door_signs.setdefault(int(d.group(1)), []).append((pos, state, sign_lines(nbt)))
+    reset_state = {p: st for p, st in reset_all.items() if st != AIR}
+    start = StartState(world, reset_all)
 
-    doors = []
-    for n, paths in sorted(door_functions(fn_root).items()):
-        price, cleared, door_spawns = parse_door(paths)
-        blocks = [(p, reset_state.get(p) or world.block(*p)) for p in sorted(cleared)]
-        blocks = [(p, s) for p, s in blocks if s != 'minecraft:air' and not s.endswith('_sign') and 'command_block' not in s]
-        ids = []
+    def exact_start(x, y, z):
+        return reset_all.get((x, y, z)) or world.block(x, y, z)
+
+    door_parts = {n: parse_door(paths) for n, paths in sorted(door_functions(fn_root).items())}
+    window_spawns = {}
+    door_spawn_ids = {}
+    for n, (_, _, door_spawns, _) in door_parts.items():
         for pos, window in door_spawns:
-            ids.append(spawn_id(pos))
-            door_spawn_positions.add(pos)
+            door_spawn_ids.setdefault(n, set()).add(spawn_id(pos))
             if window:
                 window_spawns.setdefault(window, set()).add(pos)
-        doors.append({'n': n, 'price': price or 1000, 'blocks': blocks, 'spawns': sorted(set(ids))})
+    door_spawn_positions = set(spawns)
 
-    start_spawns = []
-    for path in glob.glob(os.path.join(fn_root, '**', '*.mcfunction'), recursive=True):
+    start_spawns, late_spawns = [], []
+    for path in sorted(glob.glob(os.path.join(fn_root, '**', '*.mcfunction'), recursive=True)):
         if os.sep + 'doors' + os.sep in path:
             continue
+        at_start = os.path.basename(path) in ('begin.mcfunction', 'prepare.mcfunction')
         for pos, window in spawners_in(read(path)):
             if pos in door_spawn_positions:
                 continue
             spawn_id(pos)
-            start_spawns.append(pos)
             if window:
                 window_spawns.setdefault(window, set()).add(pos)
+            if at_start:
+                start_spawns.append(pos)
+            else:
+                late_spawns.append((pos, path))
+    late_spawns = [(p, f) for p, f in late_spawns if p not in start_spawns]
 
     barriers = []
     for path in sorted(glob.glob(os.path.join(fn_root, 'unique', 'barricades', 'window_*.mcfunction'))):
@@ -1153,11 +1660,11 @@ def build(world, datapacks, map_name, arena, world_name, index):
             'spawns': [spawns[p] for p in linked], 'reward': 0, '_window': w})
 
     boxes, box_edits = parse_boxes(fn_root)
-    start = start_position(fn_root)
+    start_pos = start_position(fn_root)
     anchors = list(spawns) + [p for p, _ in boxes] + \
         [(int(x['x']), int(x['y']), int(x['z'])) for b in barriers for x in b['blocks']]
-    if start:
-        anchors.append(tuple(int(v) for v in start[:3]))
+    if start_pos:
+        anchors.append(tuple(int(v) for v in start_pos[:3]))
     if not anchors:
         raise SystemExit('nothing found for ' + map_name)
 
@@ -1168,112 +1675,313 @@ def build(world, datapacks, map_name, arena, world_name, index):
     for be in world.signs_in(scan_lo, scan_hi):
         m = re.search(r'add D(\d+)_B', sign_raw(be))
         if m:
-            door_signs.setdefault(int(m.group(1)), []).append((int(be['x']), int(be['y']), int(be['z'])))
+            pos = (int(be['x']), int(be['y']), int(be['z']))
+            door_signs.setdefault(int(m.group(1)), {})[pos] = world.block(*pos)
     # Doors standing open in the saved world have no signs there; the reset function puts them back.
     reset_sign_writes = []
     for n, found in reset_door_signs.items():
         for pos, state, lines in found:
-            if pos not in door_signs.get(n, []):
-                door_signs.setdefault(n, []).append(pos)
+            if pos not in door_signs.get(n, {}):
+                door_signs.setdefault(n, {})[pos] = state
                 reset_sign_writes.append({'x': pos[0], 'y': pos[1], 'z': pos[2], 'lines': lines, 'blockdata': state})
+    sign_spots = {p for found in door_signs.values() for p in found}
 
     # Some door functions also clear blocks in a different map (copy-paste leftovers in the datapack);
     # blocks outside this map's footprint are not part of the door.
     foot_lo = [min(p[i] for p in anchors) - MAP_MARGIN for i in range(3)]
     foot_hi = [max(p[i] for p in anchors) + MAP_MARGIN for i in range(3)]
-    for d in doors:
-        kept = [(p, st) for p, st in d['blocks'] if foot_lo[0] <= p[0] <= foot_hi[0] and foot_lo[2] <= p[2] <= foot_hi[2]]
-        if len(kept) < len(d['blocks']):
-            report.append('door %d: dropped %d blocks outside the map' % (d['n'], len(d['blocks']) - len(kept)))
-        d['blocks'] = kept
 
-    every = anchors + [p for d in doors for p, _ in d['blocks']]
+    def in_footprint(p):
+        return foot_lo[0] <= p[0] <= foot_hi[0] and foot_lo[2] <= p[2] <= foot_hi[2]
+
+    def door_block(p, state):
+        return (state != AIR and not is_sign(state) and p not in sign_spots
+                and not any(k in state for k in ('command_block', 'lever', 'button')))
+
+    owners = {}
+    for n, (_, cleared, _, _) in door_parts.items():
+        for p in cleared:
+            owners.setdefault(p, set()).add(n)
+    doors = []
+    for n, (price, cleared, _, _) in door_parts.items():
+        own = [(p, start.block(*p)) for p in sorted(cleared) if owners[p] == {n}]
+        own = [(p, s) for p, s in own if door_block(p, s)]
+        kept = [(p, s) for p, s in own if in_footprint(p)]
+        if len(kept) < len(own):
+            report.append('door %d: dropped %d blocks outside the map' % (n, len(own) - len(kept)))
+        signs_here = list(door_signs.get(n, {}))
+        main = kept
+        if signs_here and kept:
+            groups = clusters([p for p, _ in kept])
+            far = [g for g in groups if not any(near(p, s, FAR_FROM_SIGN) for p in g for s in signs_here)]
+            for g in far:
+                report.append('door %d: %d blocks around %d %d %d are more than %d blocks from its signs' % (
+                    n, len(g), g[0][0], g[0][1], g[0][2], FAR_FROM_SIGN))
+            near_blocks = {p for g in groups if g not in far for p in g}
+            main = [(p, s) for p, s in kept if p in near_blocks] or kept
+        doors.append({'n': n, 'price': price or 1000, 'blocks': kept, 'main': [p for p, _ in main],
+                      'spawns': sorted(door_spawn_ids.get(n, ())), 'id': rid()})
+    door_by_n = {d['n']: d for d in doors if d['blocks']}
+
+    # Blocks that open on more than one door, or on the power: the map's own mechanisms. Each becomes a
+    # door without a price or sign that triggers open: power on, or a player walking through one of the doors.
+    cleared_by, placed_by = {}, {}
+    for p, ns in owners.items():
+        if len(ns) > 1:
+            cleared_by.setdefault(p, set()).update((False, frozenset([n])) for n in ns)
+    for n, (_, _, _, conditional) in door_parts.items():
+        for power, ds, gone, placed in conditional:
+            option = (power, ds | {n})
+            for p in gone:
+                cleared_by.setdefault(p, set()).add(option)
+            for p, s in placed.items():
+                placed_by.setdefault(option, {})[p] = s
+    for ds, final in power_effects(fn_root, world).items():
+        for p, s in final.items():
+            if s == AIR:
+                cleared_by.setdefault(p, set()).add((True, ds))
+            else:
+                placed_by.setdefault((True, ds), {})[p] = s
+    own_blocks = {p for d in doors for p, _ in d['blocks']}
+    regions = {}
+    for p, options in cleared_by.items():
+        state = exact_start(*p)
+        if p not in own_blocks and in_footprint(p) and door_block(p, state):
+            regions.setdefault(frozenset(minimal(options)), {})[p] = state
+    mechanism_doors, option_doors = [], {}
+    for options, blocks in sorted(regions.items(), key=lambda r: min(r[1])):
+        groups = clusters(sorted(blocks))
+        too_large = [box_of(g) for g in groups if len(g) > MAX_REGION_BLOCKS]
+        for group in groups:
+            if len(group) > MAX_REGION_BLOCKS:
+                report.append('mechanism of %d blocks around %d %d %d (%s) is too large for a door; left as the world has it'
+                              % (len(group), group[0][0], group[0][1], group[0][2], ', '.join(option_id(o) for o in options)))
+                continue
+            if any(all(b[0][k] - 4 <= p[i] <= b[1][k] + 4 for i, k in enumerate('xyz')) for b in too_large for p in group):
+                continue
+            door = {'n': None, 'price': 0, 'blocks': [(p, blocks[p]) for p in sorted(group)], 'main': [], 'spawns': [],
+                    'id': rid(), 'options': options}
+            mechanism_doors.append(door)
+            for o in options:
+                option_doors.setdefault(o, []).append(door['id'])
+    placed_once, claimed = {}, set()
+    for option in sorted(placed_by, key=lambda o: (not o[0], sorted(o[1]))):
+        blocks = {p: s for p, s in placed_by[option].items()
+                  if p not in claimed and in_footprint(p) and not any(k in s for k in COSMETIC) and s != exact_start(*p)}
+        if len(blocks) > MAX_PLACED_BLOCKS:
+            report.append('%s places %d blocks; too many to replay, left out' % (option_id(option), len(blocks)))
+            continue
+        if blocks:
+            placed_once[option] = blocks
+            claimed |= set(blocks)
+
+    doors_all = doors + mechanism_doors
+    every = anchors + [p for d in doors_all for p, _ in d['blocks']]
     margin = 12
     lo = [min(p[i] for p in every) - margin for i in range(3)]
     hi = [max(p[i] for p in every) + margin for i in range(3)]
     lo[1] = min(p[1] for p in every) - 6
     hi[1] = max(p[1] for p in every) + 14
 
+    def in_bounds(p):
+        return all(lo[i] <= p[i] <= hi[i] for i in range(3))
+
     door_json = []
     for d in doors:
         if not d['blocks']:
             report.append('door %d: no solid blocks found, skipped' % d['n'])
             continue
-        door_json.append({'id': rid(), 'powerRequired': False, 'price': d['price'],
+        door_json.append({'id': d['id'], 'powerRequired': False, 'price': d['price'],
                           'blocks': [block_json(p, s) for p, s in d['blocks']],
-                          'signs': [loc(p) for p in door_signs.get(d['n'], [])],
+                          'signs': [dict(loc(p), blockdata=s) for p, s in door_signs.get(d['n'], {}).items()],
                           'spawns': d['spawns']})
-        report.append('door %d: %d blocks, %d signs, %d spawns, %d points' % (d['n'], len(d['blocks']), len(door_signs.get(d['n'], [])), len(d['spawns']), d['price']))
+        report.append('door %d: %d blocks, %d signs, %d spawns, %d points' % (d['n'], len(d['blocks']), len(door_signs.get(d['n'], {})), len(d['spawns']), d['price']))
 
-    spawn_json = [dict(loc(p), world=world_name, id=i) for p, i in spawns.items()]
-    box_json = [dict(loc(p), facing=f, cost=950, id=rid()) for p, f in boxes]
+    def add_mechanism_door(blocks, why, spawn_ids=()):
+        door_json.append({'id': blocks['id'], 'powerRequired': False, 'price': 0,
+                          'blocks': [block_json(p, s) for p, s in blocks['blocks']], 'signs': [], 'spawns': list(spawn_ids)})
+        p = blocks['blocks'][0][0]
+        report.append('door (no price, %s): %d blocks at %d %d %d' % (why, len(blocks['blocks']), p[0], p[1], p[2]))
+
+    triggers, zones, pool_spots = [], [], []
+    zone_ids = set()
+    for option in sorted(set(option_doors) | set(placed_once), key=lambda o: (not o[0], sorted(o[1]))):
+        power, ds = option
+        missing = [n for n in ds if n not in door_by_n]
+        if missing:
+            report.append('%s: door %s has no blocks to walk through; left closed' % (option_id(option), missing))
+            option_doors.pop(option, None)
+            continue
+        steps = ([{'kind': 'power_on', 'amount': 0}] if power else []) + \
+                [{'kind': 'stand_on', 'zone': 'door_%d' % n, 'amount': 1} for n in sorted(ds)]
+        for n in ds:
+            if n not in zone_ids:
+                zone_ids.add(n)
+                zones.append(door_zone(n, door_by_n[n]['main']))
+        targets = [{'kind': 'open_door', 'value': i} for i in option_doors.get(option, [])]
+        if option in placed_once:
+            targets.append({'kind': 'place_blocks', 'blocks': [dict(x=p[0], y=p[1], z=p[2], blockdata=s) for p, s in sorted(placed_once[option].items())]})
+        name = ' + '.join((['power'] if power else []) + ['door %d' % n for n in sorted(ds)])
+        triggers.append(trigger(option_id(option), 'Opens with ' + name, steps, targets))
+    for d in mechanism_doors:
+        if any(o in option_doors for o in d['options']):
+            add_mechanism_door(d, 'opens with ' + ' or '.join(option_id(o)[:-len('_opens')] for o in sorted(d['options'], key=lambda o: sorted(o[1])) if o in option_doors))
+    power_placed = {p for (power, _), blocks in placed_once.items() if power for p in blocks}
 
     signs = list(reset_sign_writes)
-    for pos, lines in merged_signs(fn_root).items():
-        if all(lo[i] <= pos[i] <= hi[i] for i in range(3)):
+    for pos, lines in merged_signs(writes).items():
+        if in_bounds(pos):
             signs.append({'x': pos[0], 'y': pos[1], 'z': pos[2], 'lines': lines})
-    for pos in power_blocks(world, index):
-        if all(lo[i] <= pos[i] <= hi[i] for i in range(3)):
-            signs.append({'x': pos[0], 'y': pos[1], 'z': pos[2], 'lines': ['[Zombies]', 'Power', '', ''], 'power': True})
-            report.append('power switch near %s' % (pos,))
+    switches = [p for p in power_switches(start, index) if in_bounds(p)]
+    for pos in switches:
+        signs = [x for x in signs if (x['x'], x['y'], x['z']) != pos]
+        signs.append({'x': pos[0], 'y': pos[1], 'z': pos[2], 'lines': ['[Zombies]', 'Power', '', ''], 'power': True})
+        report.append('power switch at %s' % (pos,))
 
-    merged = merged_signs_all(fn_root)
+    def put_sign(pos, lines, blockdata=None):
+        nonlocal signs
+        signs = [x for x in signs if (x['x'], x['y'], x['z']) != tuple(pos)]
+        entry = {'x': pos[0], 'y': pos[1], 'z': pos[2], 'lines': lines}
+        if blockdata:
+            entry['blockdata'] = blockdata
+        signs.append(entry)
+
+    merged = merged_signs_all(writes)
     trap_json = []
+    trap_spots = set()
 
     def write_trap_signs(trap_id, positions, cost):
-        nonlocal signs
-        signs = [x for x in signs if (x['x'], x['y'], x['z']) not in positions]
         for p in positions:
-            signs.append({'x': p[0], 'y': p[1], 'z': p[2], 'lines': ['[Zombies]', 'Trap', trap_id, str(cost)]})
+            trap_spots.add(p)
+            put_sign(p, ['[Zombies]', 'Trap', trap_id, str(cost)])
+
+    def trap_door(positions):
+        """The door a trap waits for: the door function that writes its buy sign, or the door the power
+        function checks before writing it."""
+        for pos, lines, _, path, line in writes:
+            if pos in positions and has_cost(lines):
+                m = re.search(r'maps/doors/door(\d+)/', path.replace(os.sep, '/'))
+                ds = {int(m.group(1))} if m else condition(line)[1]
+                for n in sorted(ds):
+                    if n in door_by_n:
+                        return door_by_n[n]
+        return None
+
+    def add_trap(entry, positions, cost, describe):
+        trap_signs = [p for p in positions if in_bounds(p)]
+        if len(trap_signs) < len(positions):
+            report.append('trap %s: dropped %d sign(s) outside the map' % (entry['id'], len(positions) - len(trap_signs)))
+        if trap_signs:
+            entry.update(x=float(trap_signs[0][0]), y=float(trap_signs[0][1]), z=float(trap_signs[0][2]))
+        elif 'x' not in entry:
+            box = entry['region']
+            entry.update({k: float((box['p1'][k] + box['p2'][k]) // 2) for k in 'xyz'})
+        door = trap_door(set(trap_signs))
+        if door:
+            entry['requires_door'] = door['id']
+        trap_json.append(entry)
+        write_trap_signs(entry['id'], trap_signs, cost)
+        report.append(describe + (', needs door %d' % door['n'] if door else ''))
 
     for t in parse_traps(fn_root, merged):
-        trap_id = 'trap%s' % t['n']
         main = t['regions'][0]
-        first = t['signs'][0]
-        trap_json.append({'x': float(first[0]), 'y': float(first[1]), 'z': float(first[2]), 'id': trap_id,
-                          'cost': t['cost'], 'type': t['type'], 'requires_power': True,
-                          'duration_seconds': t['duration'], 'cooldown_seconds': t['cooldown'],
-                          'region': {'p1': main[0], 'p2': main[1]},
-                          'extra_regions': [{'p1': r[0], 'p2': r[1]} for r in t['regions'][1:]]})
-        write_trap_signs(trap_id, t['signs'], t['cost'])
-        report.append('trap %s: %s (%s), %d area(s), %d sign(s), %d points' % (t['n'], t['name'], t['type'], len(t['regions']), len(t['signs']), t['cost']))
+        add_trap({'id': 'trap%s' % t['n'], 'cost': t['cost'], 'type': t['type'], 'requires_power': has_power,
+                  'duration_seconds': t['duration'], 'cooldown_seconds': t['cooldown'],
+                  'region': {'p1': main[0], 'p2': main[1]},
+                  'extra_regions': [{'p1': r[0], 'p2': r[1]} for r in t['regions'][1:]]},
+                 t['signs'], t['cost'],
+                 'trap %s: %s (%s), %d area(s), %d sign(s), %d points' % (t['n'], t['name'], t['type'], len(t['regions']), len(t['signs']), t['cost']))
 
     for t in parse_unique_traps(fn_root):
         main = t['regions'][0]
-        anchor = t['signs'][0] if t['signs'] else tuple((main[0][k] + main[1][k]) // 2 for k in 'xyz')
-        trap_json.append({'x': float(anchor[0]), 'y': float(anchor[1]), 'z': float(anchor[2]), 'id': t['id'],
-                          'cost': t['cost'], 'type': t['type'], 'requires_power': not t['automatic'],
-                          'automatic': t['automatic'], 'duration_seconds': t['duration'], 'cooldown_seconds': t['cooldown'],
-                          'region': fbox(main), 'extra_regions': [fbox(r) for r in t['regions'][1:]]})
-        write_trap_signs(t['id'], t['signs'], t['cost'])
-        report.append('trap %s: %s, %s, %d area(s), %ds on / %ds off' % (
-            t['id'], t['type'], 'automatic' if t['automatic'] else '%d points, %d sign(s)' % (t['cost'], len(t['signs'])),
-            len(t['regions']), t['duration'], t['cooldown']))
+        anchor = tuple((main[0][k] + main[1][k]) // 2 for k in 'xyz')
+        add_trap({'x': float(anchor[0]), 'y': float(anchor[1]), 'z': float(anchor[2]), 'id': t['id'],
+                  'cost': t['cost'], 'type': t['type'], 'requires_power': has_power and not t['automatic'],
+                  'automatic': t['automatic'], 'duration_seconds': t['duration'], 'cooldown_seconds': t['cooldown'],
+                  'region': fbox(main), 'extra_regions': [fbox(r) for r in t['regions'][1:]]},
+                 t['signs'], t['cost'],
+                 'trap %s: %s, %s, %d area(s), %ds on / %ds off' % (
+                     t['id'], t['type'], 'automatic' if t['automatic'] else '%d points, %d sign(s)' % (t['cost'], len(t['signs'])),
+                     len(t['regions']), t['duration'], t['cooldown']))
 
     transport_json = []
     speeds = {'zipline': 8.0, 'platform': 4.0, 'cart': 6.0, 'teleport': 4.0}
-    travel = parse_transports(fn_root) + parse_landers(fn_root) + parse_elevators(fn_root) + parse_jump_pads(fn_root)
+    travel = parse_transports(fn_root) + parse_landers(fn_root) + parse_elevators(fn_root, exact_start) + \
+        parse_jump_pads(fn_root) + parse_geysers(fn_root)
+    travel = [t for t in travel if all(lo[0] - 40 <= p[0] <= hi[0] + 40 and lo[2] - 40 <= p[2] <= hi[2] + 40 for p in t['points'])]
+    gated = power_gated(fn_root)
+    placed_signs = {}
+    for _, _, _, _, line in writes:
+        for p, state, _ in sign_sets(line):
+            placed_signs.setdefault(p, state)
+    power_texts = {path: read(path) for path in power_paths(fn_root)}
+    reset_text = '\n'.join(reset_texts)
+    scopes = {}
     for t in travel:
-        if not all(lo[0] - 40 <= p[0] <= hi[0] + 40 and lo[2] - 40 <= p[2] <= hi[2] + 40 for p in t['points']):
-            continue
         t['id'] = re.sub(r'[^a-z0-9]+', '_', t.get('label', t['name']).lower()).strip('_')
-        transport_json.append({'id': t['id'], 'name': t['name'], 'style': t['style'], 'cost': t['cost'],
-                               'requires_power': t.get('requires_power', False), 'cooldown_seconds': 0,
-                               'speed': t.get('speed', speeds[t['style']]),
-                               'two_way': t.get('two_way', False), 'platform_size': 3,
-                               'waypoints': [{'x': p[0], 'y': p[1], 'z': p[2]} for p in t['points']], 'call_points': []})
-        report.append('transport %s: %s, %d points%s%s' % (t['name'], t['style'], len(t['points']), ', two-way' if t.get('two_way') else '',
-                                                         ', %d points' % t['cost'] if t['cost'] else ''))
+        scope = transport_scope(fn_root, t['path'], [o['path'] for o in travel])
+        scopes[t['id']] = scope
+        # A call point needs no sign (an elevator's sign rides along with its cabin); a label does.
+        tagged, called = [[p for p in found if in_bounds(p)] for found in transport_signs(fn_root, scope, writes)]
+        t['signs'] = [p for p in tagged + called if p in placed_signs or is_sign(world.block(*p))]
+        a, b = t['points'][0], t['points'][-1]
+        if 'call_points' not in t:
+            t['call_points'] = sorted_call_points(tagged or called, a, b, t.get('two_way', False))
+        if not t['signs'] and t['style'] != 'teleport':
+            # A sign the map only fills in with placeholder text (Shangri-La's slide: "Destination not open").
+            t['signs'] = [pos for pos, lines, _, _, _ in writes if is_placeholder(lines) and near(pos, a, 4) and in_bounds(pos)][:1]
+            t['call_points'] = t['call_points'] or t['signs']
+        text = '\n'.join(read(f) for f in scope)
+        t['cooldown'] = t.get('cooldown') or cooldown_seconds(text)
+        reasons = []
+        if t.get('requires_power'):
+            reasons.append('power function')
+        if scope & gated:
+            reasons.append('loop runs with power on')
+        if any(pos in t['signs'] and 'must turn on' in ' '.join(lines).lower() for pos, lines, _, path, _ in writes
+               if os.path.basename(path).startswith('reset')):
+            reasons.append('power placeholder on its sign')
+        if any('data merge block %d %d %d' % p in pt for p in t['signs'] for pt in power_texts.values()):
+            reasons.append('power writes its sign')
+        if any(near(q, a, 4) for q in power_placed):
+            reasons.append('power puts its platform in')
+        t['requires_power'] = bool(reasons) and has_power
+        t['relock'] = relinks(t['path'])
+        t['why_power'] = reasons
+    folders_of = {t['id']: {os.path.dirname(f) for f in scopes[t['id']]} - {os.path.dirname(t['path'] or '')} for t in travel}
+    for t in travel:
+        if t.get('cooldown_group') or t['style'] != 'teleport':
+            continue
+        shared = [f for f in sorted(folders_of[t['id']]) if any(f in folders_of[o['id']] for o in travel if o is not t)]
+        if shared:
+            t['cooldown_group'] = os.path.basename(shared[0])
+    for t in travel:
+        entry = {'id': t['id'], 'name': t['name'], 'style': t['style'], 'cost': t['cost'],
+                 'requires_power': t['requires_power'], 'cooldown_seconds': t['cooldown'],
+                 'speed': t.get('speed', speeds[t['style']]), 'two_way': t.get('two_way', False), 'platform_size': 3,
+                 'waypoints': [{'x': p[0], 'y': p[1], 'z': p[2]} for p in distinct(t['points'])],
+                 'call_points': [call_point(p) for p in t['call_points']]}
+        if t.get('cooldown_group'):
+            entry['cooldown_group'] = t['cooldown_group']
+        if t['relock']:
+            entry['relock_after_use'] = True
+        transport_json.append(entry)
+        report.append('transport %s: %s, %d points%s%s%s%s%s%s' % (
+            t['name'], t['style'], len(t['points']), ', two-way' if entry['two_way'] else ', one-way',
+            ', %d points' % t['cost'] if t['cost'] else '', ', needs power (%s)' % '; '.join(t['why_power']) if t['requires_power'] else '',
+            ', %ds cooldown' % t['cooldown'] if t['cooldown'] else '', ' [%s]' % t['cooldown_group'] if t.get('cooldown_group') else '',
+            ', %d call point(s)' % len(t['call_points']) if t['call_points'] else ''))
 
-    # Riders must stay inside the arena all the way: landers arc high above the map.
+    # Riders must stay inside the arena all the way: landers fly high above the map.
     for t in transport_json:
-        for w in t['waypoints']:
+        for w in t['waypoints'] + t['call_points']:
             for i, k in enumerate('xyz'):
                 lo[i] = min(lo[i], math.floor(w[k]) - (2 if k == 'y' else 4))
                 hi[i] = max(hi[i], math.ceil(w[k]) + (8 if k == 'y' else 4))
 
     settings = {'pap_locked': False, 'perk_pool_mode': 'fixed'}
-    triggers, zones, pool_spots = [], [], []
+    if len(switches) > 1:
+        settings['power_switches'] = len(switches)
 
     egg = parse_song_egg(fn_root, world, index, lo, hi)
     if egg:
@@ -1281,13 +1989,16 @@ def build(world, datapacks, map_name, arena, world_name, index):
         report.append('song egg: %d interact(s) at %d spot(s) -> %s' % (len(egg['steps']), len({(s['x'], s['y'], s['z']) for s in egg['steps']}), egg['targets'][0]['value']))
 
     pool = parse_perk_pool(fn_root)
+    pool_positions = set()
     if pool:
-        settings.update({'perk_pool_mode': 'random_on_open', 'perk_pool_reveal': 'door'})
+        settings['perk_pool_mode'] = pool['mode']
+        if pool['mode'] == 'random_on_open':
+            settings['perk_pool_reveal'] = 'door'
         pool_spots = [{'x': s['pos'][0], 'y': s['pos'][1], 'z': s['pos'][2], 'facing': s['facing']} for s in pool['spots']]
+        pool_positions = {s['pos'] for s in pool['spots']}
         for s in pool['signs']:
-            signs = [x for x in signs if (x['x'], x['y'], x['z']) != s['pos']]
-            signs.append({'x': s['pos'][0], 'y': s['pos'][1], 'z': s['pos'][2], 'lines': s['lines'], 'blockdata': s['state']})
-        report.append('perk pool: %d spots (%s), perks %s' % (len(pool_spots), ', '.join(pool['places']), ', '.join(' '.join(s['lines']).split('[')[0].strip() for s in pool['signs'])))
+            put_sign(s['pos'], s['lines'], s['state'])
+        report.append('perk pool (%s): %d spots (%s), perks %s' % (pool['mode'], len(pool_spots), ', '.join(pool['places']), ', '.join(' '.join(s['lines']).split('[')[0].strip() for s in pool['signs'])))
 
     rules = parse_specials(fn_root)
     if rules:
@@ -1305,50 +2016,166 @@ def build(world, datapacks, map_name, arena, world_name, index):
     def by_label(fragment):
         return [t for t in transport_json if fragment in t['id']]
 
+    def transport_in(folder):
+        return [t for t in travel if t['path'] and os.path.dirname(t['path']) == folder and t['id'] in {x['id'] for x in transport_json}]
+
+    # Teleporters that have to be linked first (Der Riese: each pad to the mainframe, Kino: the projector).
+    chains = [c for c in link_chains(fn_root) if all(in_bounds(p) for p in c['signs'])]
+    link_triggers = []
+    for c in chains:
+        if c['pap']:
+            continue
+        linked = transport_in(c['folder'])
+        if not linked:
+            report.append('link at %s: no teleporter found in %s' % (c['signs'][0], c['folder']))
+            continue
+        tid = 'link_' + os.path.basename(c['folder'])
+        steps = [{'kind': 'power_on', 'amount': 0}] + [dict(kind='interact', x=p[0], y=p[1], z=p[2], amount=0, description='Link') for p in c['signs']]
+        limit = link_time_limit(fn_root, c)
+        triggers.append(trigger(tid, 'Link ' + linked[0]['name'], steps, [{'kind': 'enable_teleporter', 'value': t['id']} for t in linked],
+                                ordered=True, time_limit=limit, reset_on_fail=limit > 0))
+        link_triggers.append((tid, c))
+        report.append('link %s: %d sign(s), %ds to finish -> %s' % (tid, len(c['signs']), limit, ', '.join(t['id'] for t in linked)))
+
     gate = None
+    extra_doors = []
     has_pap = os.path.isdir(os.path.join(fn_root, 'unique', 'pap'))
-    switches = switch_group(fn_root, world, index, lo, hi)
+    switch_set = switch_group(fn_root, world, index, lo, hi)
     plates = plate_gate(fn_root)
-    link = link_chain(fn_root)
+    pap_chain = next((c for c in chains if c['pap']), None)
     landers = by_label('lander')
-    if switches and any('pap' in f for f in switches['unlocks']):
+    if switch_set and any('pap' in f for f in switch_set['unlocks']):
         gate = {'id': 'pap_switches', 'name': 'Pack-a-Punch switches', 'ordered': False,
-                'steps': [{'kind': 'power_on', 'amount': 0}] + [dict(kind='interact', x=p[0], y=p[1], z=p[2], amount=0, description='Switch') for p in switches['switches']],
-                'teleporters': [t['id'] for f in switches['unlocks'] for t in transport_json if f.split('/')[-1] in t['id'] and 'pap' in t['id']]}
+                'steps': [{'kind': 'power_on', 'amount': 0}] + [dict(kind='interact', x=p[0], y=p[1], z=p[2], amount=0, description='Switch') for p in switch_set['switches']],
+                'teleporters': [t['id'] for f in switch_set['unlocks'] for t in transport_json if f.split('/')[-1] in t['id'] and 'pap' in t['id']]}
     elif plates and has_pap:
         gate = {'id': 'pap_plates', 'name': 'Stepping stones', 'ordered': False,
                 'steps': ([{'kind': 'power_on', 'amount': 0}] if plates['power'] else []) +
                          [dict(kind='stand_on', x=p[0], y=p[1], z=p[2], amount=1) for p in plates['plates']], 'teleporters': []}
-    elif link and link['pap']:
+    elif pap_chain:
         gate = {'id': 'pap_link', 'name': 'Link the teleporter', 'ordered': True,
-                'steps': [{'kind': 'power_on', 'amount': 0}] + [dict(kind='interact', x=p[0], y=p[1], z=p[2], amount=0, description='Link') for p in link['signs']],
-                'teleporters': [t['id'] for t in transport_json if t['style'] == 'teleport' and link['folder'].rstrip('s') in t['id']]}
+                'steps': [{'kind': 'power_on', 'amount': 0}] + [dict(kind='interact', x=p[0], y=p[1], z=p[2], amount=0, description='Link') for p in pap_chain['signs']],
+                'teleporters': [t['id'] for t in transport_in(pap_chain['folder']) if t['style'] == 'teleport']}
     elif landers and any('pap' in read(f).lower() for f in glob.glob(os.path.join(fn_root, 'unique', '*lander*', '*.mcfunction'))):
-        gate = {'id': 'pap_landers', 'name': 'Ride every lander', 'ordered': False,
+        gate = {'id': 'pap_landers', 'name': 'Ride every lander, then launch', 'ordered': False,
                 'steps': [{'kind': 'ride_transport', 'transport': t['id'], 'amount': 0} for t in landers], 'teleporters': []}
+        launch = launch_gate(fn_root, os.path.join(fn_root, 'unique', 'landers'), exact_start)
+        if launch:
+            sign, path, blocks = launch
+            gate['steps'].append(dict(kind='interact', x=sign[0], y=sign[1], z=sign[2], amount=0, description='Launch'))
+            door = {'id': rid(), 'blocks': sorted(blocks.items()), 'path': path}
+            extra_doors.append(door)
+            gate['doors'] = [door['id']]
+    elif has_power and power_pap_gate(fn_root):
+        gate = {'id': 'pap_power', 'name': 'Pack-a-Punch after power', 'ordered': False,
+                'steps': [{'kind': 'power_on', 'amount': 0}], 'teleporters': []}
+    if link_triggers:
+        # The link function every pad runs: what it clears once all pads are linked is the Pack-a-Punch wall.
+        common = set.intersection(*[set(c['functions'][1:]) for _, c in link_triggers]) if len(link_triggers) > 1 else set()
+        wall = {}
+        for name in sorted(common):
+            for p, s in block_writes(read(function_path(fn_root, name))).items():
+                if s == AIR and p in reset_state and door_block(p, reset_state[p]):
+                    wall[p] = reset_state[p]
+        if wall:
+            is_pap = any('pap' in (comment_before(t, min(wall)) or '') for t in reset_texts)
+            door = {'id': rid(), 'blocks': sorted(wall.items())}
+            add_mechanism_door(door, 'opens once every pad is linked')
+            targets = [{'kind': 'open_door', 'value': door['id']}] + ([{'kind': 'enable_pack_a_punch'}] if is_pap and not gate else [])
+            triggers.append(trigger('all_linked', 'Every pad linked', [{'kind': 'trigger_done', 'trigger': tid, 'amount': 0} for tid, _ in link_triggers], targets))
+            if is_pap and not gate:
+                settings['pap_locked'] = True
+                report.append('pack-a-punch gate: link every pad (%d triggers), opens the wall at %d %d %d' % (len(link_triggers), *min(wall)))
     if gate:
         settings['pap_locked'] = True
-        targets = [{'kind': 'enable_pack_a_punch'}] + [{'kind': 'enable_teleporter', 'value': tid} for tid in gate['teleporters']]
-        triggers.append({'id': gate['id'], 'name': gate['name'],
-                         'options': {'ordered': gate['ordered'], 'time_limit_seconds': 0, 'reset_on_fail': False, 'all_players': False,
-                                     'repeatable': False, 'simultaneous': False},
-                         'steps': gate['steps'], 'targets': targets})
-        report.append('pack-a-punch gate %s: %d step(s)%s' % (gate['name'], len(gate['steps']),
-                                                              ', unlocks ' + ', '.join(gate['teleporters']) if gate['teleporters'] else ''))
+        targets = [{'kind': 'enable_pack_a_punch'}] + [{'kind': 'enable_teleporter', 'value': tid} for tid in gate['teleporters']] + \
+                  [{'kind': 'open_door', 'value': i} for i in gate.get('doors', [])]
+        triggers.append(trigger(gate['id'], gate['name'], gate['steps'], targets, ordered=gate['ordered']))
+        report.append('pack-a-punch gate %s: %d step(s)%s%s' % (gate['name'], len(gate['steps']),
+                                                              ', unlocks ' + ', '.join(gate['teleporters']) if gate['teleporters'] else '',
+                                                              ', opens %d door(s)' % len(gate.get('doors', [])) if gate.get('doors') else ''))
     elif has_pap:
         report.append('pack-a-punch: map has unique/pap but no gate that can be modelled; left unlocked')
+
+    # Gates a sign's own function lifts (Shi No Numa's zipline): opened by riding the transport that function
+    # starts, else by pressing the sign.
+    for sign, name, cleared in click_gates(fn_root, writes, reset_state):
+        blocks = {p: reset_state[p] for p in cleared if door_block(p, reset_state[p]) and in_bounds(p)}
+        if not blocks:
+            continue
+        door = {'id': rid(), 'blocks': sorted(blocks.items())}
+        text = read(function_path(fn_root, name))
+        timers = set(re.findall(r"objectives add (\w+) minecraft\.custom", text))
+        ridden = next((t for t in transport_json if any(re.search(r"\b%s=" % tm, '\n'.join(read(f) for f in scopes[t['id']])) for tm in timers)), None)
+        step = {'kind': 'ride_transport', 'transport': ridden['id'], 'amount': 0} if ridden else \
+            dict(kind='interact', x=sign[0], y=sign[1], z=sign[2], amount=0, description=name.split('/')[-1])
+        add_mechanism_door(door, 'opens with ' + (('a ride on ' + ridden['id']) if ridden else 'the sign at %d %d %d' % sign))
+        triggers.append(trigger('gate_' + name.split('/')[-1], 'Gate of ' + name.split('/')[-1], [step], [{'kind': 'open_door', 'value': door['id']}]))
+
+    gate_spawns = {}
+    for door in extra_doors:
+        late_here = [p for p, f in late_spawns if f == door['path']]
+        gate_spawns[door['id']] = late_here
+        add_mechanism_door(door, 'opened by the %s trigger' % gate['id'], [spawns[p] for p in late_here])
+    attached = {p for ps in gate_spawns.values() for p in ps}
+
+    # Spawners the map only starts later (power, a player reaching a spot) belong to the door of their area,
+    # when one is right by them; the others start with the game.
+    priced = [d for d in door_json if d['price']]
+    power_doors = [d for d in door_json if d['id'] in option_doors.get((True, frozenset()), [])]
+    for pos, path in late_spawns:
+        if pos in attached:
+            continue
+        reach = lambda d: min((b['x'] - pos[0]) ** 2 + (b['y'] - pos[1]) ** 2 + (b['z'] - pos[2]) ** 2 for b in d['blocks'])
+        powered = path in power_texts and power_doors
+        nearest = min(power_doors if powered else priced, key=reach, default=None)
+        if nearest is None or not powered and reach(nearest) > LATE_SPAWNER_REACH ** 2:
+            report.append('spawner %d %d %d from %s starts with the game: the map starts it later, but no door is by it'
+                          % (pos[0], pos[1], pos[2], relative_name(fn_root, path)))
+            continue
+        nearest['spawns'].append(spawns[pos])
+        report.append('spawner %d %d %d from %s opens with door at %d %d %d' % (
+            pos[0], pos[1], pos[2], relative_name(fn_root, path), nearest['blocks'][0]['x'], nearest['blocks'][0]['y'], nearest['blocks'][0]['z']))
 
     pap_sign = pap_marker_sign(world, fn_root)
     if pap_sign and inside((pap_sign['x'], pap_sign['y'], pap_sign['z']), lo, hi):
         signs.append(pap_sign)
         report.append('pack-a-punch sign written at %d %d %d' % (pap_sign['x'], pap_sign['y'], pap_sign['z']))
 
-    if start:
-        spawn = {'x': start[0] + 0.5, 'y': start[1], 'z': start[2] + 0.5}
+    # Transport signs carry a short label: their prompt shows the cost, and buy text the sign converter
+    # doesn't know would be left as an unknown sign.
+    labels = {'teleport': 'Teleporter', 'platform': 'Ride', 'cart': 'Minecart', 'zipline': ''}
+    step_names = {(s['x'], s['y'], s['z']): s.get('description', '') for tr in triggers for s in tr['steps']
+                  if s.get('kind') == 'interact' and s.get('description') != '???'}
+    kept = [t for t in travel if t['id'] in {x['id'] for x in transport_json}]
+    for calls in (False, True):
+        for t in kept:
+            word = '' if 'zipline' in t['id'] else next((w.capitalize() for w in ('lander', 'elevator', 'slide', 'geyser', 'flinger') if w in t['id']), labels[t['style']])
+            for p in t['signs']:
+                if p in trap_spots or p in pool_positions or p in sign_spots or (p in t['call_points']) != calls:
+                    continue
+                put_sign(p, ['', word if calls else step_names.get(p, ''), '', ''])
+    # Signs that only ever show a placeholder ("You must turn on the power first!", "Cooling down...") are
+    # blanked, or labelled with the step a trigger waits for there.
+    sign_states = placed_signs
+    written = {(x['x'], x['y'], x['z']) for x in signs}
+    for pos in sorted({pos for pos, lines, _, _, _ in writes if is_placeholder(lines)}):
+        if pos in written or pos in trap_spots or pos in sign_spots or not in_bounds(pos) or any(near(pos, q, 1) for q in pool_positions):
+            continue
+        state = sign_states.get(pos)
+        if not state and not is_sign(world.block(*pos)):
+            continue
+        put_sign(pos, ['', step_names.get(pos, ''), '', ''], state)
+        written.add(pos)
+
+    if start_pos:
+        spawn = {'x': start_pos[0] + 0.5, 'y': start_pos[1], 'z': start_pos[2] + 0.5}
     else:
         spawn = loc(next(iter(spawns)))
         report.append('no start position found; using a zombie spawn')
 
+    spawn_json = [dict(loc(p), world=world_name, id=i) for p, i in spawns.items()]
+    box_json = [dict(loc(p), facing=f, cost=950, id=rid()) for p, f in boxes]
     save = {
         'world_name': world_name,
         'p1': {'x': float(lo[0]), 'y': float(hi[1]), 'z': float(hi[2])},
@@ -1360,28 +2187,39 @@ def build(world, datapacks, map_name, arena, world_name, index):
         'doors': door_json, 'teleporters': [], 'traps': trap_json, 'transports': transport_json, 'buildables': [],
         'zones': zones, 'triggers': triggers, 'perk_pool_spots': pool_spots,
     }
-    report.insert(0, '%s -> %s: %d spawns (%d at start), %d doors, %d barriers, %d box locations, %d signs to write'
-                  % (map_name, arena, len(spawn_json), len(start_spawns), len(door_json), len(barriers), len(box_json), len(signs)))
+    report.insert(0, '%s -> %s: %d spawns (%d at start), %d doors, %d barriers, %d box locations, %d signs to write, %d transports, %d triggers'
+                  % (map_name, arena, len(spawn_json), len(start_spawns), len(door_json), len(barriers), len(box_json), len(signs),
+                     len(transport_json), len(triggers)))
     # The world was saved mid-game (perks revealed, gates open); the reset function holds the start state.
     # Door blocks are the doors' own business and signs are written separately.
-    # A block the map only puts up at reset and some other function clears mid-game (the gate at the top of
-    # Shi No Numa's zipline, lifted when the zipline is switched on) is a mechanism the plugin doesn't run, so
-    # it would stay shut for good; those keep whatever the saved world has.
+    # A block the map only puts up at reset and some other function clears mid-game is a mechanism the
+    # plugin may not run, so it would stay shut for good; those keep whatever the saved world has.
     opened_later = set()
     for path in all_functions(fn_root).values():
         if os.path.basename(path).startswith('reset'):
             continue
         for pos, state in block_writes(read(path)).items():
-            if state == 'minecraft:air':
+            if state == AIR:
                 opened_later.add(pos)
-    door_blocks = {p for d in doors for p, _ in d['blocks']}
+    door_blocks = {(int(b['x']), int(b['y']), int(b['z'])) for d in door_json for b in d['blocks']}
     start_state = {p: st for p, st in reset_all.items()
-                   if all(lo[i] <= p[i] <= hi[i] for i in range(3)) and p not in door_blocks and '_sign' not in st
-                   and (st == 'minecraft:air' or p not in opened_later)
+                   if in_bounds(p) and p not in door_blocks and '_sign' not in st
+                   and (st == AIR or p not in opened_later)
                    and world.block(*p) != st}
     start_state.update(box_edits)
+    for t in travel:
+        for p, state in t.get('floor_edits', {}).items():
+            start_state[p] = state
+        if t.get('floor_edits'):
+            report.append('%s: cabin floor put down at %d stop block(s)' % (t['id'], len(t['floor_edits'])))
+    spare = spare_pap_signs(fn_root, world)
+    for p in spare:
+        start_state[p] = AIR
+    signs = [x for x in signs if (x['x'], x['y'], x['z']) not in spare]
+    if spare:
+        report.append('removed %d Pack-a-Punch sign(s) on spare machines: %s' % (len(spare), ', '.join('%d %d %d' % p for p in sorted(spare))))
     edits = [{'x': p[0], 'y': p[1], 'z': p[2], 'blockdata': b} for p, b in sorted(start_state.items())
-             if 'barrier' not in b and 'sign' not in b or b == 'minecraft:air']
+             if 'barrier' not in b and 'sign' not in b or b == AIR]
     edits = [e for e in edits if 'barrier' not in e['blockdata']]
     return {'save_data': save, 'settings': settings, 'signs': signs, 'block_edits': edits, 'report': report}
 

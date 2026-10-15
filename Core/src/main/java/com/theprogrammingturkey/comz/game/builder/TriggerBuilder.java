@@ -219,6 +219,14 @@ public final class TriggerBuilder
 			}
 			case POWER_ON:
 				return game.hasPower() ? null : "This arena has no power switch; place one with the Machine tool first.";
+			case TRIGGER_DONE:
+			{
+				Trigger other = triggerNear(game, clicked);
+				if(other == null)
+					return "Click next to a step of the trigger that has to be done first.";
+				step.setTrigger(other.getId());
+				return null;
+			}
 			default:
 				return null;
 		}
@@ -278,6 +286,10 @@ public final class TriggerBuilder
 				return null;
 			case TURN_ON_POWER:
 				return game.hasPower() ? null : "This arena has no power switch; place one with the Machine tool first.";
+			case PLACE_BLOCKS:
+				target.getBlocks().add(new TriggerTarget.PlacedBlock(clicked.getX(), clicked.getY(), clicked.getZ(), clicked.getBlockData().getAsString()));
+				msg(player, ChatColor.GRAY + "Saved this block as it is now; take it away again and it appears when the trigger fires (restored at game end).");
+				return null;
 			default:
 				return null;
 		}
@@ -405,7 +417,7 @@ public final class TriggerBuilder
 		GameManager.INSTANCE.saveAllGames();
 		feedback(player, spot, ChatColor.GREEN + "Perk pool spot " + pool.getSpots().size() + " added");
 		if(pool.getMode() == PerkPoolManager.Mode.FIXED)
-			msg(player, ChatColor.GRAY + "Perks only use pool spots with perk_pool_mode = random_on_open (/zombies settings).");
+			msg(player, ChatColor.GRAY + "Perks only use pool spots with perk_pool_mode = random_on_open or random_on_start (/zombies settings).");
 	}
 
 	/** The cardinal face pointing back at the player, so a machine placed here faces them. */

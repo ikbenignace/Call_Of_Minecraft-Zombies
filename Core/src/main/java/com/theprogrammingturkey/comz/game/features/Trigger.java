@@ -211,13 +211,13 @@ public class Trigger
 	}
 
 	/**
-	 * Re-arms a repeatable trigger after it fired. Power and round steps stay done: they would otherwise be met
+	 * Re-arms a repeatable trigger after it fired. Power, round and trigger-done steps stay done: they would otherwise be met
 	 * again on the next check and fire the trigger every tick.
 	 */
 	public void rearm()
 	{
 		for(TriggerStep step : steps)
-			if(step.getKind() != TriggerStep.Kind.POWER_ON && step.getKind() != TriggerStep.Kind.ROUND_REACHED)
+			if(!step.isStateStep())
 				step.resetProgress();
 		deadlineMs = 0;
 		fired = false;

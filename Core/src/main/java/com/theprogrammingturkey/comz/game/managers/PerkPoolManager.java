@@ -34,13 +34,15 @@ import java.util.Locale;
  * signs are taken off their walls at game start, shuffled, and each one appears at a random pool spot when a
  * door opens (or when a trigger's {@code spawn_perk} target fires). {@code fixed} leaves perks where they are.
  * A revealed perk is a real perk sign written at the spot and, where display entities exist, turned into a
- * machine, so buying it is the normal perk path. Everything is undone on teardown.
+ * machine, so buying it is the normal perk path. {@code random_on_start} fills every spot with a different pooled
+ * perk as soon as the game starts; perks left over when the spots run out stay hidden for {@code spawn_perk}.
+ * Everything is undone on teardown.
  */
 public class PerkPoolManager
 {
 	public enum Mode
 	{
-		FIXED, RANDOM_ON_OPEN;
+		FIXED, RANDOM_ON_OPEN, RANDOM_ON_START;
 
 		public String key()
 		{
@@ -199,7 +201,7 @@ public class PerkPoolManager
 	public void start()
 	{
 		restore();
-		if(mode != Mode.RANDOM_ON_OPEN || spots.isEmpty())
+		if(mode == Mode.FIXED || spots.isEmpty())
 			return;
 		MachineSigns.forEachArenaSign(game, sign ->
 		{
@@ -216,9 +218,20 @@ public class PerkPoolManager
 		active = true;
 	}
 
+	/** {@code random_on_start}: reveals a pooled perk on every spot. Runs after the fixed machines are built. */
+	public void revealOnStart()
+	{
+		if(!active || mode != Mode.RANDOM_ON_START)
+			return;
+		boolean revealed;
+		do
+			revealed = revealNext();
+		while(revealed);
+	}
+
 	public void onDoorOpened()
 	{
-		if(active && revealOnDoor)
+		if(active && revealOnDoor && mode == Mode.RANDOM_ON_OPEN)
 			revealNext();
 	}
 

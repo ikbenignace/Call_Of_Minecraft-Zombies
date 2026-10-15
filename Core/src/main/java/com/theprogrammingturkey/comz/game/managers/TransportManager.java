@@ -68,6 +68,7 @@ public class TransportManager
 	private final Game game;
 	private final Map<String, Transport> transports = new LinkedHashMap<>();
 	private final Map<String, State> states = new HashMap<>();
+	private final Map<String, Long> groupLastUseMs = new HashMap<>();
 	private final List<Ride> rides = new ArrayList<>();
 	private final Map<UUID, Ride> rideByPlayer = new HashMap<>();
 	private final List<Entity> ropes = new ArrayList<>();
@@ -259,6 +260,7 @@ public class TransportManager
 			if(state.platform != null)
 				state.platform.remove();
 		states.clear();
+		groupLastUseMs.clear();
 		tick = 0;
 	}
 
@@ -346,8 +348,10 @@ public class TransportManager
 
 	private int secondsUntilReady(Transport transport)
 	{
-		State state = state(transport);
-		long remaining = state.lastUseMs + transport.getCooldownSeconds() * 1000L - System.currentTimeMillis();
+		long lastUse = state(transport).lastUseMs;
+		if(!transport.getCooldownGroup().isEmpty())
+			lastUse = Math.max(lastUse, groupLastUseMs.getOrDefault(transport.getCooldownGroup(), 0L));
+		long remaining = lastUse + transport.getCooldownSeconds() * 1000L - System.currentTimeMillis();
 		return remaining <= 0 ? 0 : (int) ((remaining + 999L) / 1000L);
 	}
 
@@ -431,7 +435,7 @@ public class TransportManager
 
 		if(isCall(target))
 		{
-			state.lastUseMs = System.currentTimeMillis();
+			markUsed(transport, state);
 			SoundUtil.playKey(player.getWorld(), player.getLocation(), "transport.call", "BLOCK_NOTE_BLOCK_PLING", SoundCategory.MASTER, 1f, 1.2f);
 			sendPlatform(transport, target.atStart);
 			return;
@@ -448,7 +452,7 @@ public class TransportManager
 			PointManager.INSTANCE.takePoints(player, cost);
 			PointManager.INSTANCE.notifyPlayer(player);
 		}
-		state.lastUseMs = System.currentTimeMillis();
+		markUsed(transport, state);
 		boolean reverse = !target.atStart;
 
 		switch(transport.getStyle())
@@ -465,6 +469,13 @@ public class TransportManager
 			default:
 				departZipline(transport, reverse, player);
 		}
+	}
+
+	private void markUsed(Transport transport, State state)
+	{
+		state.lastUseMs = System.currentTimeMillis();
+		if(!transport.getCooldownGroup().isEmpty())
+			groupLastUseMs.put(transport.getCooldownGroup(), state.lastUseMs);
 	}
 
 	/** A trigger with an {@code enable_teleporter} target naming the transport (id or name) keeps it shut until it fires. */
@@ -744,6 +755,9 @@ public class TransportManager
 		}
 		if(cart != null)
 			cart.remove();
+
+		if(arrived && !ride.riders.isEmpty() && transport.isRelockAfterUse())
+			game.triggerManager.relockTeleporter(transport.getId(), transport.getName());
 
 		if(arrived && world != null)
 			SoundUtil.playKey(world, Transport.toLocation(world, end), "transport." + transport.getStyle().key() + ".arrive", "BLOCK_NOTE_BLOCK_BELL", SoundCategory.MASTER, 1f, 1f);

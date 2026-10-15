@@ -29,6 +29,10 @@ public class DoorSign implements IGameSign
 		{
 			CommandUtil.sendMessageToPlayer(player, ChatColor.RED + "An error occured when trying to open this door! Leave the game an contact an admin please.");
 		}
+		else if(door.isTriggerOnly())
+		{
+			return;
+		}
 		else if(door.isOpened())
 		{
 			CommandUtil.sendMessageToPlayer(player, ChatColor.RED + "This door is already open!");

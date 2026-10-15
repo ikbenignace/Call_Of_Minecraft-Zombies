@@ -54,6 +54,12 @@ public class TrapSign implements IGameSign
 			return;
 		}
 
+		if(trap.isDoorLocked(game))
+		{
+			CommandUtil.sendMessageToPlayer(player, ChatColor.RED + "Open the door first!");
+			return;
+		}
+
 		if(trap.isActive())
 		{
 			CommandUtil.sendMessageToPlayer(player, ChatColor.RED + "Trap is already active!");

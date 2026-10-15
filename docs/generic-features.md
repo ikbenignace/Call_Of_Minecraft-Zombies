@@ -20,6 +20,7 @@ Per-arena settings (with config.yml defaults):
 | `force_night`, `fog` | existing night flag plus optional darkness/fog. |
 | `special_enemies` | which special enemy types may appear and how (see 6). |
 | `dog_round_every_x`, `teddy_bear_chance`, `powerup_settings` | existing. |
+| `power_switches` | how many different Power switches must be pressed before the power turns on (default 1; Shangri-La uses 2). Each press shows "Power 1/2". |
 
 ## 2. Zones
 
@@ -41,8 +42,11 @@ A transport is an ordered list of waypoints plus options:
   platform/lander), `cart` (seated ride), `teleport` (fade + instant, used for elevators between floors);
 - `cost`, `requires_power`, `cooldown_seconds`, `speed`;
 - `two_way` (the call point at the far end works too);
+- `cooldown_group`: transports with the same group share one cooldown (Der Riese teleporters, Ascension landers);
 - locked while a trigger has an `enable_teleporter` target naming its id or name (Five's Pack-a-Punch teleporter);
-- `call_points`: where players press F to call or ride;
+- `relock_after_use`: after every ride it locks again and those triggers reset, so it has to be re-linked (Kino);
+- `call_points`: where players press F to call or ride (each resolves to the nearer end); none = both ends;
+- riders are never sent back by the leave-the-arena check while riding;
 - optional `on_arrival` trigger (see 7).
 
 Build mode: Transport tool. Right-click adds waypoints, F switches style, shift-right-click finishes. Moving riders
@@ -72,7 +76,8 @@ Implemented as:
 - `arenas.json` `traps[]`: sign location (`x/y/z`), `id`, `cost`, `type`, `region` (`{"zone": id}` or
   `{"p1", "p2"}`), `extra_regions`, `duration_seconds`, `cooldown_seconds` (-1 = type default), `requires_power`,
   `automatic` (runs by itself whenever it is off cooldown, like the Ascension centrifuge and the Shangri-La
-  spikes; needs no sign). Old entries without `type`/`region` stay generic radius traps (config.yml `trap.*`).
+  spikes; needs no sign), `requires_door` (door id: not usable until that door is open, prompt "Open the door
+  first"; chat edit `door <id|none>`). Old entries without `type`/`region` stay generic radius traps (config.yml `trap.*`).
 - Kills go through `Game.killMobByTrap` (round count, power-up roll, kill stat, optional points to the buyer).
   Burning is visual only. Rotating arms and spikes are block displays on 1.19.4+, particles before.
 - Build mode: Feature tool, variant `Trap: <name>` (F cycles type). Right-click two corners, or sneak-right-click
@@ -135,10 +140,14 @@ after their `lifetime_seconds`.
 A trigger is a set of steps that unlocks a target when finished. Covers PaP gates and Easter eggs generically.
 
 - step kinds: `interact` (press F on a point), `stand_on` (stand on a plate/zone),
-  `kill_in_zone`, `ride_transport`, `power_on`, `round_reached`;
+  `kill_in_zone`, `ride_transport`, `power_on`, `round_reached`, `trigger_done` (`trigger`: id of a trigger that
+  has to fire first);
 - options: `ordered`, `time_limit_seconds`, `reset_on_fail`, `all_players`;
 - targets: `open_door`, `enable_pack_a_punch`, `enable_teleporter` (teleporter sign or transport), `play_song`, `give_powerup`,
-  `spawn_perk`, `message`.
+  `spawn_perk`, `message`, `place_blocks` (`blocks`: `[{x,y,z,blockdata}]` set when it fires, put back at game end;
+  Der Riese bridge).
+- doors with `price` 0 and no `signs` can only be opened by an `open_door` target and show no buy prompt (power
+  walls, Der Riese PaP wall). Door `signs` entries may carry `blockdata`; a missing sign is re-created from it.
 
 Examples: Five DEFCON (4 ordered interacts → PaP teleporter), Shangri-La stepping stones (stand_on, all at once,
 time limit → PaP), Ascension landers (ride all transports → PaP), Easter-egg songs (interact with 3 items →
@@ -147,7 +156,8 @@ play song).
 ## 8. Perk placement pools
 
 A perk machine can be `pooled`: the arena keeps a pool of spots; machines appear at random spots when a door opens
-or a trigger fires (Shi No Numa). Setting: `perk_pool_mode` = `fixed` | `random_on_open`.
+or a trigger fires (Shi No Numa). Setting: `perk_pool_mode` = `fixed` | `random_on_open` | `random_on_start` (every
+spot gets a different random pooled perk at game start; leftovers stay hidden for `spawn_perk`).
 
 ## 9. Import
 
