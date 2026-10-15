@@ -37,6 +37,12 @@ public interface DisplayBackend
 	 */
 	Entity spawnLine(Location from, double dx, double dy, double dz, BlockData block, float thickness);
 
+	/**
+	 * Interpolates a spawned block display to a new box, using the same corner/size/yaw meaning as
+	 * {@link #spawnBlock}. No-op for other entities.
+	 */
+	void animateBlock(Entity display, float cx, float cy, float cz, float sx, float sy, float sz, float yawDegrees, int durationTicks);
+
 	/** Interpolates a spawned item display to a new translation/scale/yaw. No-op for other entities. */
 	void animate(Entity display, float x, float y, float z, float scale, float yawDegrees, int durationTicks);
 

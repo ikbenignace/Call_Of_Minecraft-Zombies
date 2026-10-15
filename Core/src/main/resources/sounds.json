@@ -47,6 +47,36 @@
     "buy": "custom.global.money"
   },
   "trap": "custom.trap.flame",
+  "traps": {
+    "electric": {
+      "activate": "ENTITY_LIGHTNING_BOLT_THUNDER",
+      "loop": "ENTITY_LIGHTNING_BOLT_IMPACT",
+      "kill": "ENTITY_ZOMBIE_DEATH"
+    },
+    "fire": {
+      "activate": "ITEM_FIRECHARGE_USE",
+      "loop": "custom.trap.flame",
+      "kill": "ENTITY_ZOMBIE_DEATH"
+    },
+    "flogger": {
+      "activate": "BLOCK_PISTON_EXTEND",
+      "loop": "ENTITY_PLAYER_ATTACK_SWEEP",
+      "kill": "ENTITY_PLAYER_ATTACK_KNOCKBACK"
+    },
+    "centrifuge": {
+      "activate": "BLOCK_PISTON_EXTEND",
+      "loop": "ENTITY_MINECART_RIDING",
+      "kill": "ENTITY_PLAYER_ATTACK_CRIT"
+    },
+    "spikes": {
+      "activate": "BLOCK_PISTON_EXTEND",
+      "loop": "BLOCK_PISTON_EXTEND",
+      "kill": "ENTITY_ZOMBIE_DEATH"
+    },
+    "generic": {
+      "kill": "ENTITY_ZOMBIE_DEATH"
+    }
+  },
   "gun": {
     "buy": "custom.global.buy",
     "ammo": "custom.pickup.ammo"

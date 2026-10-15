@@ -1,7 +1,5 @@
 package com.theprogrammingturkey.comz.game.signs;
 
-import com.theprogrammingturkey.comz.config.ConfigManager;
-import com.theprogrammingturkey.comz.config.ConfigSetup;
 import com.theprogrammingturkey.comz.economy.PointManager;
 import com.theprogrammingturkey.comz.game.Game;
 import com.theprogrammingturkey.comz.game.GameManager;
@@ -13,12 +11,11 @@ import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.event.block.SignChangeEvent;
 
+import java.util.ArrayList;
+
 /**
- * Tier 2 — sign for buyable, timed kill-zone {@link Trap}s.
- * <p>
- * Line 2 = trap id, line 3 = cost. onChange registers/labels the trap at the
- * sign's location, onInteract activates it (power gate + cooldown + cost),
- * onBreak removes it.
+ * Activation sign (handle) of a {@link Trap}. Line 2 = trap id, line 3 = cost. onChange registers the trap at
+ * the sign (keeping type/region of an existing trap with that id), onInteract buys a run, onBreak removes it.
  */
 public class TrapSign implements IGameSign
 {
@@ -27,8 +24,13 @@ public class TrapSign implements IGameSign
 	{
 		if(game == null)
 			return;
-		// Best-effort: remove any trap registered at this sign's location.
-		game.trapManager.getTraps().values().removeIf(trap -> location.equals(trap.getCenter()));
+		for(Trap trap : new ArrayList<>(game.trapManager.getTraps().values()))
+		{
+			if(!location.equals(trap.getCenter()))
+				continue;
+			trap.reset();
+			game.trapManager.removeTrap(trap.getId());
+		}
 	}
 
 	@Override
@@ -45,14 +47,12 @@ public class TrapSign implements IGameSign
 			return;
 		}
 
-		if(game.hasPower() && !game.isPowered())
+		if(trap.isPowerLocked(game))
 		{
 			CommandUtil.sendMessageToPlayer(player, ChatColor.RED + "You must turn on the power first!");
 			PerkType.noPower(player);
 			return;
 		}
-
-		ConfigSetup cfg = ConfigManager.getMainConfig();
 
 		if(trap.isActive())
 		{
@@ -60,8 +60,8 @@ public class TrapSign implements IGameSign
 			return;
 		}
 
-		// Cooldown gate — check before charging points so a recharging trap never takes points.
-		int secondsLeft = trap.secondsUntilReady(cfg.trapCooldownSeconds);
+		// Cooldown gate before charging, so a recharging trap never takes points.
+		int secondsLeft = trap.secondsUntilReady();
 		if(secondsLeft > 0)
 		{
 			CommandUtil.sendMessageToPlayer(player, ChatColor.RED + "Trap is recharging! " + secondsLeft + "s left.");
@@ -69,17 +69,19 @@ public class TrapSign implements IGameSign
 		}
 
 		int cost = trap.getCost();
-		if(PointManager.INSTANCE.canBuy(player, cost))
-		{
-			PointManager.INSTANCE.takePoints(player, cost);
-			PointManager.INSTANCE.notifyPlayer(player);
-			trap.activate(game);
-			CommandUtil.sendMessageToPlayer(player, ChatColor.GREEN + "Trap activated!");
-		}
-		else
+		if(!PointManager.INSTANCE.canBuy(player, cost))
 		{
 			CommandUtil.sendMessageToPlayer(player, ChatColor.RED + "You don't have enough points!");
+			return;
 		}
+		if(!trap.activate(game, player))
+		{
+			CommandUtil.sendMessageToPlayer(player, ChatColor.RED + "This trap has no valid region.");
+			return;
+		}
+		PointManager.INSTANCE.takePoints(player, cost);
+		PointManager.INSTANCE.notifyPlayer(player);
+		CommandUtil.sendMessageToPlayer(player, ChatColor.GREEN + trap.getType().getName() + " activated!");
 	}
 
 	@Override
@@ -102,7 +104,6 @@ public class TrapSign implements IGameSign
 		else
 			cost = Integer.parseInt(costLine);
 
-		// Register the trap centered on the sign's location.
 		game.trapManager.addTrap(trapId, event.getBlock().getLocation(), cost);
 
 		event.setLine(0, ChatColor.RED + "[Zombies]");

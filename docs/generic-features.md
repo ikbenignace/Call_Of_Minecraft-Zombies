@@ -56,6 +56,26 @@ The existing `Trap` (cost, kill radius, duration, cooldown) gains:
 - `region` (a zone) instead of a single radius, plus the activation sign/handle locations;
 - `requires_power`.
 
+Implemented as:
+
+- `traps.json` (plugin folder, new types merged in on update): root `points_per_kill` (default 0, BO gives no
+  points for trap kills) and `types.<id>` with `name`, `style` (`electric|fire|arm|spikes|generic`), `cost`,
+  `duration_seconds`, `cooldown_seconds`, `requires_power`, `damage_model` (`instant_kill|per_tick`),
+  `mob_damage`/`mob_damage_percent`, `hit_interval_ticks`, `ignite_ticks`, `hurts_players`, `player_damage`,
+  `knockback`, `particles`/`secondary_particles` (candidate names, first known one wins), `density`, arm
+  (`arm_block`, `arm_degrees_per_tick`, `arm_height`, `arm_thickness`, `arm_hit_width`) and spike
+  (`spike_block`, `spike_fallback_block`, `spike_spacing`, `spike_cycle_ticks`) options, and `sounds`
+  (`activate`/`loop`/`kill`: sounds.json `key` + `vanilla` fallback, `volume`, `pitch`, `every_ticks`).
+  Sound keys live under `traps.<type>` in `sounds.json`.
+- `arenas.json` `traps[]`: sign location (`x/y/z`), `id`, `cost`, `type`, `region` (`{"zone": id}` or
+  `{"p1", "p2"}`), `duration_seconds`, `cooldown_seconds` (-1 = type default), `requires_power`. Old entries
+  without `type`/`region` stay generic radius traps (config.yml `trap.*`).
+- Kills go through `Game.killMobByTrap` (round count, power-up roll, kill stat, optional points to the buyer).
+  Burning is visual only. Rotating arms and spikes are block displays on 1.19.4+, particles before.
+- Build mode: Feature tool, variant `Trap: <name>` (F cycles type). Right-click two corners, or sneak-right-click
+  to reuse the zone you stand in, then right-click a wall to place the activation sign. Sneak-right-click a
+  trap sign to edit it in chat (`type`, `cost`, `duration`, `cooldown`, `power`, `zone <id|here>`, `delete`).
+
 ## 5. Equipment
 
 Catalogue `equipment.json`, bought from wall buys like guns:

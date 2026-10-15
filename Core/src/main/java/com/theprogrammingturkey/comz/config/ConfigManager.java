@@ -24,10 +24,12 @@ public class ConfigManager
 		CONFIGS.put(COMZConfig.KITS, new CustomConfig(COMZConfig.KITS));
 		CONFIGS.put(COMZConfig.STATS, new CustomConfig(COMZConfig.STATS));
 		CONFIGS.put(COMZConfig.SOUNDS, new CustomConfig(COMZConfig.SOUNDS));
+		CONFIGS.put(COMZConfig.TRAPS, new CustomConfig(COMZConfig.TRAPS));
 		CONFIGS.put(COMZConfig.PLAYER_DATA, new CustomConfig(COMZConfig.PLAYER_DATA));
 
 		mainConfig.setup();
 		com.theprogrammingturkey.comz.util.SoundConfig.load();
+		com.theprogrammingturkey.comz.game.traps.TrapTypes.load();
 	}
 
 	public static CustomConfig getConfig(COMZConfig comzConfig)

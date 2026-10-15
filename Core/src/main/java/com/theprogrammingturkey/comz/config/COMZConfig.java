@@ -9,6 +9,7 @@ public enum COMZConfig
 	STATS("stats"),
 	SIGNS("signs"),
 	SOUNDS("sounds"),
+	TRAPS("traps"),
 	PLAYER_DATA("playerdata");
 
 	private final String name;

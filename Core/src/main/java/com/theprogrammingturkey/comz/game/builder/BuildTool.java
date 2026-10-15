@@ -4,6 +4,8 @@ import com.theprogrammingturkey.comz.game.equipment.Equipment;
 import com.theprogrammingturkey.comz.game.equipment.EquipmentCatalogue;
 import com.theprogrammingturkey.comz.game.features.PerkType;
 import com.theprogrammingturkey.comz.game.managers.WeaponManager;
+import com.theprogrammingturkey.comz.game.traps.TrapType;
+import com.theprogrammingturkey.comz.game.traps.TrapTypes;
 import com.theprogrammingturkey.comz.game.weapons.BaseGun;
 import com.theprogrammingturkey.comz.util.Compat;
 import org.bukkit.Material;
@@ -39,6 +41,8 @@ public enum BuildTool
 	public static final List<String> MACHINE_VARIANTS =
 			Collections.unmodifiableList(Arrays.asList("Mystery Box", "Pack-a-Punch", "Ammo Crate", "Grenade", "Fridge", "Bank", "Power"));
 
+	public static final String TRAP_VARIANT_PREFIX = "Trap: ";
+
 	public static final String TRANSPORT_VARIANT = "Transport";
 
 	/** Sign features, the transport builder, then one variant per zone preset (two-corner zone placement). */
@@ -66,12 +70,30 @@ public enum BuildTool
 		return icon;
 	}
 
+	/** One variant per trap type (live from traps.json), the other sign features, then one per zone preset. */
 	private static List<String> featureVariants()
 	{
-		List<String> variants = new ArrayList<>(Arrays.asList("Trap", "Buildable", "Quest", TRANSPORT_VARIANT));
+		List<String> variants = new ArrayList<>();
+		for(TrapType type : TrapTypes.all())
+			variants.add(TRAP_VARIANT_PREFIX + type.getName());
+		variants.add("Buildable");
+		variants.add("Quest");
+		variants.add(TRANSPORT_VARIANT);
 		for(ZonePreset preset : ZonePreset.values())
 			variants.add(preset.getLabel());
 		return variants;
+	}
+
+	/** The trap type a Feature-tool variant label stands for, or null when it is not a trap variant. */
+	public static TrapType trapTypeForLabel(String label)
+	{
+		if(label == null || !label.startsWith(TRAP_VARIANT_PREFIX))
+			return null;
+		String name = label.substring(TRAP_VARIANT_PREFIX.length());
+		for(TrapType type : TrapTypes.all())
+			if(type.getName().equals(name))
+				return type;
+		return null;
 	}
 
 	/** The tool occupying a given hotbar slot, or null if the slot is not a tool slot. */
@@ -119,7 +141,7 @@ public enum BuildTool
 			case MACHINE:
 				return MACHINE_VARIANTS;
 			case FEATURE:
-				return FEATURE_VARIANTS;
+				return Collections.unmodifiableList(featureVariants());
 			case LOBBY:
 				return LOBBY_VARIANTS;
 			default:

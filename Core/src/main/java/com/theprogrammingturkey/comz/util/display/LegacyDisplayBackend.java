@@ -56,6 +56,11 @@ public class LegacyDisplayBackend implements DisplayBackend
 	}
 
 	@Override
+	public void animateBlock(Entity display, float cx, float cy, float cz, float sx, float sy, float sz, float yawDegrees, int durationTicks)
+	{
+	}
+
+	@Override
 	public void setItem(Entity display, ItemStack stack)
 	{
 	}

@@ -406,13 +406,14 @@ public class SignPropManager
 				Trap trap = game.trapManager.getTrap(ChatColor.stripColor(prop.lines[2]));
 				if(trap == null)
 					return null;
-				if(powerLocked())
+				String name = trap.getType().getName();
+				if(trap.isPowerLocked(game))
 					return requiresPower();
 				if(trap.isActive())
-					return ChatColor.GRAY + "Trap Active";
-				if(trap.secondsUntilReady(cfg.trapCooldownSeconds) > 0)
-					return ChatColor.GRAY + "Trap Recharging";
-				return ChatColor.AQUA + "Activate Trap " + price(trap.getCost());
+					return ChatColor.GRAY + name + " Active";
+				if(trap.secondsUntilReady() > 0)
+					return ChatColor.GRAY + name + " Recharging";
+				return ChatColor.AQUA + name + " " + price(trap.getCost());
 			}
 			case TELEPORTER:
 			{
@@ -473,14 +474,15 @@ public class SignPropManager
 				Trap trap = game.trapManager.getTrap(ChatColor.stripColor(prop.lines[2]));
 				if(trap == null)
 					return ChatColor.RED + "[F] Invalid trap";
-				if(powerLocked())
-					return ChatColor.RED + "[F] " + ChatColor.GRAY + "Trap - Requires Power";
+				String name = trap.getType().getName();
+				if(trap.isPowerLocked(game))
+					return ChatColor.RED + "[F] " + ChatColor.GRAY + name + " - power required";
 				if(trap.isActive())
-					return ChatColor.GRAY + "Trap active";
-				int seconds = trap.secondsUntilReady(cfg.trapCooldownSeconds);
+					return ChatColor.GRAY + name + " - active";
+				int seconds = trap.secondsUntilReady();
 				if(seconds > 0)
-					return ChatColor.GRAY + "Trap recharging (" + seconds + "s)";
-				return affordable(player, trap.getCost()) + "[F] Activate Trap " + price(trap.getCost());
+					return ChatColor.GRAY + name + " - cooldown " + seconds + "s";
+				return affordable(player, trap.getCost()) + "[F] " + name + " " + price(trap.getCost());
 			}
 			case TELEPORTER:
 			{

@@ -1673,6 +1673,32 @@ public class Game
 		}
 	}
 
+	/**
+	 * Kill by a trap (or other environment hazard): counts toward the round like any kill and credits the
+	 * player who bought it with {@code points} (BO traps give none), a kill stat and the usual power-up roll.
+	 */
+	public void killMobByTrap(Mob mob, Player credit, int points)
+	{
+		if(mob == null || !spawnManager.getEntities().contains(mob))
+			return;
+		boolean creditValid = credit != null && credit.isOnline() && getPlayersInGame().contains(credit);
+		if(creditValid)
+		{
+			powerUpManager.powerUpDrop(mob, credit);
+			if(points > 0)
+			{
+				int score = points * (isDoublePoints() ? 2 : 1);
+				PointManager.INSTANCE.addPoints(credit, score);
+				com.theprogrammingturkey.comz.util.PointPopup.show(credit, mob, score);
+				PointManager.INSTANCE.notifyPlayer(credit);
+			}
+			if(mob instanceof Zombie)
+				zombieKilled(credit);
+		}
+		// killMob → removeEntity advances the round when this was the last zombie.
+		spawnManager.killMob(mob);
+	}
+
 	public float damagePlayer(Player player, float damageAmount)
 	{
 		if(DevTools.isGod(player))

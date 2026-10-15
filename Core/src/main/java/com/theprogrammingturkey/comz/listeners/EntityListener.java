@@ -239,6 +239,12 @@ public class EntityListener implements Listener
 
 			player.getLocation().getWorld().playEffect(player.getLocation().add(0, 1, 0), Effect.STEP_SOUND, 152);
 		}
+		else if((e.getCause() == EntityDamageEvent.DamageCause.FIRE_TICK || e.getCause() == EntityDamageEvent.DamageCause.FIRE) && e.getEntity() instanceof Mob)
+		{
+			// Burning (fire traps, hellhounds) is visual only: zombie deaths must go through the game's kill path
+			// so the round count stays right.
+			e.setCancelled(true);
+		}
 		else if(e.getCause().equals(EntityDamageEvent.DamageCause.LAVA) && e.getEntity() instanceof Mob)
 		{
 			Mob m = (Mob) e.getEntity();

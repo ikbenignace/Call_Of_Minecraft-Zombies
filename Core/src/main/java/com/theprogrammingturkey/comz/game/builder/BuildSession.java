@@ -4,6 +4,7 @@ import com.theprogrammingturkey.comz.COMZombies;
 import com.theprogrammingturkey.comz.game.Game;
 import com.theprogrammingturkey.comz.game.features.Barrier;
 import com.theprogrammingturkey.comz.game.features.Door;
+import com.theprogrammingturkey.comz.game.features.Trap;
 import com.theprogrammingturkey.comz.game.features.Zone;
 import com.theprogrammingturkey.comz.game.features.Transport;
 import com.theprogrammingturkey.comz.game.visuals.MachineLooks;
@@ -104,6 +105,14 @@ public class BuildSession
 
 	/** Zone awaiting typed edits (name / flags) via chat, or null. */
 	private Zone pendingZoneEdit;
+
+	/** Region picked for the next trap placed with a Feature-tool trap variant: corners or a zone id. */
+	private Location trapCorner1;
+	private Location trapCorner2;
+	private String trapZoneId;
+
+	/** Trap awaiting typed edits (type / cost / timings / power / region) via chat, or null. */
+	private Trap pendingTrapEdit;
 
 	private int zoneOutlineTask = -1;
 	private int zoneOutlineTicks;
@@ -418,6 +427,63 @@ public class BuildSession
 	public void setZoneCorner(Location corner)
 	{
 		this.zoneCorner = corner;
+	}
+
+	public Location getTrapCorner1()
+	{
+		return trapCorner1;
+	}
+
+	public Location getTrapCorner2()
+	{
+		return trapCorner2;
+	}
+
+	public String getTrapZoneId()
+	{
+		return trapZoneId;
+	}
+
+	public void setTrapCorner1(Location corner)
+	{
+		trapCorner1 = corner;
+		trapCorner2 = null;
+		trapZoneId = null;
+	}
+
+	public void setTrapCorner2(Location corner)
+	{
+		trapCorner2 = corner;
+	}
+
+	public void setTrapZone(String zoneId)
+	{
+		trapZoneId = zoneId;
+		trapCorner1 = null;
+		trapCorner2 = null;
+	}
+
+	/** True once a zone or both corners have been picked for the next trap. */
+	public boolean hasTrapRegion()
+	{
+		return trapZoneId != null || (trapCorner1 != null && trapCorner2 != null);
+	}
+
+	public void clearTrapRegion()
+	{
+		trapCorner1 = null;
+		trapCorner2 = null;
+		trapZoneId = null;
+	}
+
+	public Trap getPendingTrapEdit()
+	{
+		return pendingTrapEdit;
+	}
+
+	public void setPendingTrapEdit(Trap trap)
+	{
+		pendingTrapEdit = trap;
 	}
 
 	public Zone getPendingZoneEdit()

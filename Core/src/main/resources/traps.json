@@ -1,0 +1,146 @@
+{
+  "_comment": "COM:Z trap catalogue. Each entry under 'types' is a trap type an arena trap can use (arenas.json 'traps[].type'). style: electric | fire | arm | spikes | generic (controls the visual pattern). damage_model: instant_kill | per_tick. mob_damage is absolute health per hit, mob_damage_percent a fraction of the mob's max health per hit (the larger wins). hit_interval_ticks: how often one entity can be hit. particles: candidate particle names, the first one this server knows is used. sounds: sounds.json key plus the vanilla sound used when the key is missing or needs the resource pack. points_per_kill: points the activating player earns per trap kill (BO gives none).",
+  "points_per_kill": 0,
+  "types": {
+    "electric": {
+      "name": "Electric Trap",
+      "style": "electric",
+      "cost": 1000,
+      "duration_seconds": 25,
+      "cooldown_seconds": 25,
+      "requires_power": true,
+      "damage_model": "instant_kill",
+      "hit_interval_ticks": 4,
+      "hurts_players": true,
+      "player_damage": 8.0,
+      "knockback": 0.4,
+      "particles": ["ELECTRIC_SPARK", "CRIT"],
+      "secondary_particles": ["END_ROD"],
+      "density": 6,
+      "sounds": {
+        "activate": {"key": "traps.electric.activate", "vanilla": "ENTITY_LIGHTNING_BOLT_THUNDER", "volume": 0.7, "pitch": 1.4},
+        "loop": {"key": "traps.electric.loop", "vanilla": "ENTITY_LIGHTNING_BOLT_IMPACT", "volume": 0.6, "pitch": 1.6, "every_ticks": 12},
+        "kill": {"key": "traps.electric.kill", "vanilla": "ENTITY_ZOMBIE_DEATH", "volume": 1.0, "pitch": 1.2}
+      }
+    },
+    "fire": {
+      "name": "Fire Trap",
+      "style": "fire",
+      "cost": 1000,
+      "duration_seconds": 25,
+      "cooldown_seconds": 25,
+      "requires_power": true,
+      "damage_model": "per_tick",
+      "mob_damage": 4.0,
+      "mob_damage_percent": 0.34,
+      "hit_interval_ticks": 10,
+      "ignite_ticks": 60,
+      "hurts_players": true,
+      "player_damage": 3.0,
+      "knockback": 0.0,
+      "particles": ["FLAME"],
+      "secondary_particles": ["DRIPPING_LAVA", "DRIP_LAVA"],
+      "density": 10,
+      "sounds": {
+        "activate": {"key": "traps.fire.activate", "vanilla": "ITEM_FIRECHARGE_USE", "volume": 1.0, "pitch": 0.8},
+        "loop": {"key": "traps.fire.loop", "vanilla": "BLOCK_FIRE_AMBIENT", "volume": 1.0, "pitch": 1.0, "every_ticks": 20},
+        "kill": {"key": "traps.fire.kill", "vanilla": "ENTITY_ZOMBIE_DEATH", "volume": 1.0, "pitch": 0.9}
+      }
+    },
+    "flogger": {
+      "name": "Flogger",
+      "style": "arm",
+      "cost": 750,
+      "duration_seconds": 30,
+      "cooldown_seconds": 30,
+      "requires_power": true,
+      "damage_model": "instant_kill",
+      "hit_interval_ticks": 10,
+      "hurts_players": true,
+      "player_damage": 8.0,
+      "knockback": 1.4,
+      "arm_block": "STRIPPED_SPRUCE_LOG",
+      "arm_degrees_per_tick": 6.0,
+      "arm_height": 1.0,
+      "arm_thickness": 0.5,
+      "arm_hit_width": 1.0,
+      "particles": ["SWEEP_ATTACK"],
+      "secondary_particles": ["CRIT"],
+      "density": 1,
+      "sounds": {
+        "activate": {"key": "traps.flogger.activate", "vanilla": "BLOCK_PISTON_EXTEND", "volume": 1.0, "pitch": 0.6},
+        "loop": {"key": "traps.flogger.loop", "vanilla": "ENTITY_PLAYER_ATTACK_SWEEP", "volume": 1.0, "pitch": 0.6, "every_ticks": 15},
+        "kill": {"key": "traps.flogger.kill", "vanilla": "ENTITY_PLAYER_ATTACK_KNOCKBACK", "volume": 1.0, "pitch": 0.8}
+      }
+    },
+    "centrifuge": {
+      "name": "Centrifuge",
+      "style": "arm",
+      "cost": 1000,
+      "duration_seconds": 25,
+      "cooldown_seconds": 30,
+      "requires_power": true,
+      "damage_model": "instant_kill",
+      "hit_interval_ticks": 8,
+      "hurts_players": true,
+      "player_damage": 8.0,
+      "knockback": 1.0,
+      "arm_block": "IRON_BLOCK",
+      "arm_degrees_per_tick": 14.0,
+      "arm_height": 1.3,
+      "arm_thickness": 0.4,
+      "arm_hit_width": 1.0,
+      "particles": ["CRIT"],
+      "secondary_particles": ["SMOKE", "SMOKE_NORMAL"],
+      "density": 2,
+      "sounds": {
+        "activate": {"key": "traps.centrifuge.activate", "vanilla": "BLOCK_PISTON_EXTEND", "volume": 1.0, "pitch": 1.2},
+        "loop": {"key": "traps.centrifuge.loop", "vanilla": "ENTITY_MINECART_RIDING", "volume": 0.8, "pitch": 1.5, "every_ticks": 20},
+        "kill": {"key": "traps.centrifuge.kill", "vanilla": "ENTITY_PLAYER_ATTACK_CRIT", "volume": 1.0, "pitch": 0.8}
+      }
+    },
+    "spikes": {
+      "name": "Spike Trap",
+      "style": "spikes",
+      "cost": 750,
+      "duration_seconds": 20,
+      "cooldown_seconds": 30,
+      "requires_power": true,
+      "damage_model": "instant_kill",
+      "hit_interval_ticks": 20,
+      "hurts_players": true,
+      "player_damage": 6.0,
+      "knockback": 0.3,
+      "spike_block": "POINTED_DRIPSTONE",
+      "spike_fallback_block": "IRON_BARS",
+      "spike_spacing": 1.5,
+      "spike_cycle_ticks": 20,
+      "particles": ["CRIT"],
+      "secondary_particles": ["SMOKE", "SMOKE_NORMAL"],
+      "density": 4,
+      "sounds": {
+        "activate": {"key": "traps.spikes.activate", "vanilla": "BLOCK_PISTON_EXTEND", "volume": 1.0, "pitch": 1.0},
+        "loop": {"key": "traps.spikes.loop", "vanilla": "BLOCK_PISTON_EXTEND", "volume": 0.8, "pitch": 1.6, "every_ticks": 20},
+        "kill": {"key": "traps.spikes.kill", "vanilla": "ENTITY_ZOMBIE_DEATH", "volume": 1.0, "pitch": 1.0}
+      }
+    },
+    "generic": {
+      "name": "Trap",
+      "style": "generic",
+      "requires_power": true,
+      "damage_model": "instant_kill",
+      "hit_interval_ticks": 10,
+      "hurts_players": false,
+      "player_damage": 0.0,
+      "knockback": 0.0,
+      "particles": ["FLAME"],
+      "secondary_particles": [],
+      "density": 30,
+      "sounds": {
+        "activate": {"key": "trap", "vanilla": "BLOCK_FIRE_AMBIENT", "volume": 1.0, "pitch": 1.0},
+        "loop": {"key": "trap", "vanilla": "BLOCK_FIRE_AMBIENT", "volume": 1.0, "pitch": 1.0, "every_ticks": 10},
+        "kill": {"key": "traps.generic.kill", "vanilla": "ENTITY_ZOMBIE_DEATH", "volume": 1.0, "pitch": 1.0}
+      }
+    }
+  }
+}
