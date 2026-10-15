@@ -108,9 +108,10 @@ public class Game
 	 */
 	private boolean powerSetup;
 
-	private int teddyBearPercent;
+	// A freshly created arena is saved before it is ever loaded, so these must hold the load defaults.
+	private int teddyBearPercent = 100;
 
-	private int dogRoundEveryX;
+	private int dogRoundEveryX = -1;
 
 	private boolean maxAmmoReplishClip;
 
@@ -218,11 +219,11 @@ public class Game
 	 * Max players is used to check for player count and if not to remove a player if the game is
 	 * full.
 	 */
-	public int maxPlayers;
+	public int maxPlayers = 8;
 	/**
 	 * minimum number of players before the game will auto start.
 	 */
-	public int minPlayers;
+	public int minPlayers = 1;
 
 	public boolean changingRound = false;
 
@@ -1713,7 +1714,7 @@ public class Game
 
 	public int getDogRoundEveryX()
 	{
-		return dogRoundEveryX;
+		return dogRoundEveryX < 0 ? ConfigManager.getMainConfig().dogRoundEveryX : dogRoundEveryX;
 	}
 
 	public boolean doesMaxAmmoReplenishClip()

@@ -234,6 +234,11 @@ public class CommandManager implements CommandExecutor, TabExecutor
 		// Perm
 		// - zombies.build
 		commandList.put("convertsigns", new ConvertSignsCommand(COMZPermission.BUILD));
+
+		// builds an arena from a standalone map's datapack (tools/mapimport/extract_map.py output):
+		// Perm
+		// - zombies.build
+		commandList.put("importmap", new ImportMapCommand(COMZPermission.BUILD));
 	}
 
 	public void onRemoteCommand(Player player, String[] args)
@@ -250,6 +255,11 @@ public class CommandManager implements CommandExecutor, TabExecutor
 			if(!(sender instanceof Player) && args.length > 0 && args[0].equalsIgnoreCase("convertsigns"))
 			{
 				ConvertSignsCommand.run(sender, args);
+				return true;
+			}
+			if(!(sender instanceof Player) && args.length > 0 && args[0].equalsIgnoreCase("importmap"))
+			{
+				ImportMapCommand.run(sender, args);
 				return true;
 			}
 			if(!(sender instanceof Player))
