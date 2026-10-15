@@ -4,6 +4,7 @@ import com.theprogrammingturkey.comz.config.ConfigManager;
 import com.theprogrammingturkey.comz.economy.PointManager;
 import com.theprogrammingturkey.comz.game.Game;
 import com.theprogrammingturkey.comz.game.features.PerkType;
+import com.theprogrammingturkey.comz.game.features.Wunderfizz;
 import com.theprogrammingturkey.comz.listeners.customEvents.PlayerPerkPurchaseEvent;
 import com.theprogrammingturkey.comz.util.CommandUtil;
 import org.bukkit.Bukkit;
@@ -66,6 +67,9 @@ public class PerkMachineSign implements IGameSign
 		}
 		if(soloRevive)
 			cost = ConfigManager.getMainConfig().soloQuickRevivePrice;
+
+		if(perk == PerkType.DER_WUNDERFIZZ && Wunderfizz.interact(game, player, location, cost))
+			return;
 
 		if(!PointManager.INSTANCE.canBuy(player, cost))
 		{

@@ -333,7 +333,7 @@ public class ProximityBuyManager
 			if(type.equals("pack-a-punch"))
 				return ChatColor.GREEN + "[F] " + ChatColor.RESET + PackAPunchSign.prompt(game, player, m.base, lines);
 			if(type.equals("perk machine"))
-				return perkPrompt(lines, player);
+				return perkPrompt(lines, player, m.base);
 			if(type.equals("ammo crate"))
 				return AmmoCrateSign.prompt(game, player);
 			if(type.equals("power"))
@@ -348,6 +348,11 @@ public class ProximityBuyManager
 
 	public String perkPrompt(String[] lines, Player player)
 	{
+		return perkPrompt(lines, player, null);
+	}
+
+	private String perkPrompt(String[] lines, Player player, Location machine)
+	{
 		PerkType perk = PerkType.getPerkType(ChatColor.stripColor(lines[2]));
 		if(perk == null)
 			return ChatColor.RED + "[F] Unknown perk";
@@ -359,6 +364,12 @@ public class ProximityBuyManager
 			return ChatColor.GRAY + "[F] " + name + " - owned";
 		String costStr = ChatColor.stripColor(lines[3]);
 		int cost = costStr != null && costStr.matches("[0-9]{1,5}") ? Integer.parseInt(costStr) : perk.getDefaultCost();
+		if(perk == PerkType.DER_WUNDERFIZZ && machine != null)
+		{
+			String wunderfizz = com.theprogrammingturkey.comz.game.features.Wunderfizz.prompt(game, player, machine, cost);
+			if(wunderfizz != null)
+				return wunderfizz;
+		}
 		if(soloRevive)
 			cost = ConfigManager.getMainConfig().soloQuickRevivePrice;
 		ChatColor color = PointManager.INSTANCE.canBuy(player, cost) ? ChatColor.GREEN : ChatColor.RED;

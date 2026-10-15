@@ -229,6 +229,11 @@ public class CommandManager implements CommandExecutor, TabExecutor
 		commandList.put("dev", new DevCommand(COMZPermission.DEBUG));
 		commandList.put("dm", commandList.get("dev"));
 		commandList.put("devmenu", commandList.get("dev"));
+
+		// converts an imported map's command-block buy signs into COM:Z features:
+		// Perm
+		// - zombies.build
+		commandList.put("convertsigns", new ConvertSignsCommand(COMZPermission.BUILD));
 	}
 
 	public void onRemoteCommand(Player player, String[] args)
@@ -242,6 +247,11 @@ public class CommandManager implements CommandExecutor, TabExecutor
 		String command = cmd.getName();
 		if(command.equalsIgnoreCase("zombies"))
 		{
+			if(!(sender instanceof Player) && args.length > 0 && args[0].equalsIgnoreCase("convertsigns"))
+			{
+				ConvertSignsCommand.run(sender, args);
+				return true;
+			}
 			if(!(sender instanceof Player))
 			{
 				COMZombies.log.info("You must be in game to issue this command!");

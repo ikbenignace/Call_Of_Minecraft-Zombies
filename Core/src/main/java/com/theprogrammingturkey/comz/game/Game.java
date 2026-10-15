@@ -851,6 +851,7 @@ public class Game
 	public void removePlayer(Player player)
 	{
 		com.theprogrammingturkey.comz.game.signs.PackAPunchSign.onPlayerLeave(this, player);
+		com.theprogrammingturkey.comz.game.features.Wunderfizz.onPlayerLeave(this, player);
 		com.theprogrammingturkey.comz.game.dev.DevTools.clearGod(player);
 		// Tier 3 — Who's Who: if the player leaves mid-ghost, tear down the ghost (cancel its task,
 		// strip glowing/effects) so it can never leak into a later state and the player no longer

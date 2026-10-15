@@ -4,6 +4,7 @@ import com.theprogrammingturkey.comz.COMZombies;
 import com.theprogrammingturkey.comz.config.ConfigManager;
 import com.theprogrammingturkey.comz.game.Game;
 import com.theprogrammingturkey.comz.game.features.PerkType;
+import com.theprogrammingturkey.comz.game.features.Wunderfizz;
 import com.theprogrammingturkey.comz.game.features.RandomBox;
 import com.theprogrammingturkey.comz.game.builder.MachineSigns;
 import com.theprogrammingturkey.comz.game.signs.IGameSign;
@@ -168,6 +169,8 @@ public class MachineModelManager
 		baseLoc.getBlock().setType(base, false);
 		if(ChatColor.stripColor(signLines[1]).trim().equalsIgnoreCase("pack-a-punch"))
 			PackAPunchSign.registerMachine(baseLoc, facing);
+		if(look == MachineLooks.forPerk(PerkType.DER_WUNDERFIZZ))
+			Wunderfizz.registerMachine(game, baseLoc, facing);
 
 		// The pack model is only used when the pack is enabled AND forced, so EVERY player has it (a single
 		// shared ItemDisplay would otherwise render as a missing-model cube for pack-less players); everyone
@@ -308,6 +311,7 @@ public class MachineModelManager
 	public void removeAll()
 	{
 		PackAPunchSign.clearGame(game);
+		Wunderfizz.clearGame(game);
 		for(MachineModel machine : machines)
 			machine.remove();
 		machines.clear();

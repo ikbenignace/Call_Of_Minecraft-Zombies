@@ -206,6 +206,10 @@ public class ConfigSetup
 	public double packAPunchWorkSeconds;
 	/** Seconds the upgraded gun waits in the machine for pickup before it is lost. */
 	public double packAPunchPickupSeconds;
+	public double wunderfizzRollSeconds;
+	public double wunderfizzPickupSeconds;
+	public int wunderfizzTeddyMinUses;
+	public double wunderfizzTeddyChance;
 	/** Seconds a player cannot fire while drinking a perk. */
 	public double perkDrinkLockSeconds;
 	/** Quick Revive price in a solo game. */
@@ -577,6 +581,10 @@ public class ConfigSetup
 		packAPunchRepackCost = plugin.getConfig().getInt("config.gameSettings.packAPunchRepackCost", 2000);
 		packAPunchWorkSeconds = plugin.getConfig().getDouble("config.gameSettings.packAPunchWorkSeconds", 3.5);
 		packAPunchPickupSeconds = plugin.getConfig().getDouble("config.gameSettings.packAPunchPickupSeconds", 15);
+		wunderfizzRollSeconds = plugin.getConfig().getDouble("config.gameSettings.wunderfizzRollSeconds", 4.5);
+		wunderfizzPickupSeconds = plugin.getConfig().getDouble("config.gameSettings.wunderfizzPickupSeconds", 10);
+		wunderfizzTeddyMinUses = plugin.getConfig().getInt("config.gameSettings.wunderfizzTeddyMinUses", 3);
+		wunderfizzTeddyChance = plugin.getConfig().getDouble("config.gameSettings.wunderfizzTeddyChance", 0.2);
 		perkDrinkLockSeconds = plugin.getConfig().getDouble("config.perks.drinkLockSeconds", 2);
 		soloQuickRevivePrice = plugin.getConfig().getInt("config.perks.soloQuickRevivePrice", 500);
 		boxRollSeconds = plugin.getConfig().getDouble("config.gameSettings.boxRollSeconds", 4);

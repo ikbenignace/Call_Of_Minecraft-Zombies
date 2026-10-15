@@ -140,6 +140,14 @@ config:
     packAPunchWorkSeconds: 3.5
     #Seconds the upgraded gun waits in the machine before it is lost (BO2 ~15s).
     packAPunchPickupSeconds: 15
+    #Seconds Der Wunderfizz cycles through perk bottles before one lands (Origins ~4.5s).
+    wunderfizzRollSeconds: 4.5
+    #Seconds the rolled perk waits in Der Wunderfizz before it is lost.
+    wunderfizzPickupSeconds: 10
+    #Uses at one location before a teddy bear can appear and move Der Wunderfizz (needs 2+ machines).
+    wunderfizzTeddyMinUses: 3
+    #Chance per use, once the minimum is reached, that a teddy bear appears and the machine moves.
+    wunderfizzTeddyChance: 0.2
     #Seconds the mystery box spins through weapons.
     boxRollSeconds: 4
     #Seconds the rolled weapon can be taken from the box.
