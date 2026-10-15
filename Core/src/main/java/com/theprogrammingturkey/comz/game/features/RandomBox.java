@@ -12,6 +12,7 @@ import com.theprogrammingturkey.comz.game.visuals.WallGunVisuals;
 import com.theprogrammingturkey.comz.game.weapons.Weapon;
 import com.theprogrammingturkey.comz.util.BlockUtils;
 import com.theprogrammingturkey.comz.util.CommandUtil;
+import com.theprogrammingturkey.comz.util.ModelCentres;
 import com.theprogrammingturkey.comz.util.PackModels;
 import com.theprogrammingturkey.comz.util.display.Displays;
 import org.bukkit.Bukkit;
@@ -72,6 +73,9 @@ public class RandomBox
 	private Item item;
 	/** BO-style weapon that rises out of the open box; replaces {@link #item} when display entities exist. */
 	private Entity display;
+	/** Where the shown item's visual centre belongs; the display is moved off it by the model's own offset. */
+	private Location itemBase;
+	private String shownModel;
 	private boolean sinking;
 	private ArmorStand namePlate;
 	private int teddyLeaveTaskId = -1;
@@ -176,7 +180,7 @@ public class RandomBox
 						Weapon rolled = WeaponManager.getRandomWeapon(false, boxGame.getPlayersWeapons(player));
 						if(rolled != null)
 							weapon = rolled;
-						showStack(weapon.getStack());
+						showStack(weapon.getStack(), weapon.itemModel);
 						namePlate.setCustomName(weapon.getName());
 						if(time % 2 == 0)
 							com.theprogrammingturkey.comz.util.SoundUtil.play(player.getWorld(), boxLoc, com.theprogrammingturkey.comz.util.SoundConfig.get("box.spin", "BLOCK_NOTE_BLOCK_HARP"), org.bukkit.SoundCategory.MASTER, 1f, 1f);
@@ -189,7 +193,7 @@ public class RandomBox
 							com.theprogrammingturkey.comz.util.SoundUtil.play(player.getWorld(), boxLoc, com.theprogrammingturkey.comz.util.SoundConfig.get("box.teddy", "ENTITY_WITHER_SPAWN"), org.bukkit.SoundCategory.MASTER, 1f, 1f);
 							ItemStack teddy = new ItemStack(Material.TOTEM_OF_UNDYING);
 							com.theprogrammingturkey.comz.util.PackModels.apply(teddy, "misc/box_teddy");
-							showStack(teddy);
+							showStack(teddy, "comz:misc/box_teddy");
 							if(display != null)
 							{
 								namePlate.setCustomName("Teddy Bear");
@@ -265,16 +269,30 @@ public class RandomBox
 		return WallGunVisuals.yaw(facing);
 	}
 
+	/** Models with a known centre are placed by {@link #centredAt}; others get a rough lift. */
 	private float displayLift()
 	{
-		return PackModels.isPackEnabled() ? PACK_MODEL_LIFT : 0f;
+		return PackModels.isPackEnabled() && centreShift() == null ? PACK_MODEL_LIFT : 0f;
+	}
+
+	private Vector centreShift()
+	{
+		return ModelCentres.shift(shownModel, DISPLAY_SCALE, displayYaw());
+	}
+
+	private Location centredAt()
+	{
+		Vector shift = centreShift();
+		return shift == null ? itemBase.clone() : itemBase.clone().add(shift);
 	}
 
 	private void spawnWeaponDisplay(Location itemLoc, int rollTicks)
 	{
 		if(!Displays.supportsItemDisplays())
 			return;
-		display = Displays.spawnItem(itemLoc, weapon.getStack(), DISPLAY_SCALE, displayYaw(), HIDDEN_OFFSET + displayLift(), false);
+		itemBase = itemLoc.clone();
+		shownModel = weapon.itemModel;
+		display = Displays.spawnItem(centredAt(), weapon.getStack(), DISPLAY_SCALE, displayYaw(), HIDDEN_OFFSET + displayLift(), false);
 		if(display == null)
 			return;
 		Displays.setBrightness(display, 12, 15);
@@ -282,10 +300,17 @@ public class RandomBox
 		riseTaskId = COMZombies.scheduleTask(2, () -> Displays.animate(rising, 0f, HIDDEN_OFFSET + RISE_BLOCKS + displayLift(), 0f, DISPLAY_SCALE, displayYaw(), Math.max(1, rollTicks)));
 	}
 
-	private void showStack(ItemStack stack)
+	private void showStack(ItemStack stack, String model)
 	{
 		if(display != null)
+		{
 			Displays.setItem(display, stack);
+			if(model == null ? shownModel != null : !model.equals(shownModel))
+			{
+				shownModel = model;
+				display.teleport(centredAt());
+			}
+		}
 		else if(item != null)
 			item.setItemStack(stack);
 	}

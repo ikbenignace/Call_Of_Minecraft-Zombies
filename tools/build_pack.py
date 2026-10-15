@@ -11,7 +11,11 @@ Usage: python3 tools/build_pack.py [--src resourcepack/comz-pack] [--out dist/co
 import argparse
 import hashlib
 import os
+import sys
 import zipfile
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import model_centres
 
 
 def build(src, out):
@@ -40,4 +44,5 @@ if __name__ == "__main__":
     ap.add_argument("--src", default="resourcepack/comz-pack")
     ap.add_argument("--out", default="dist/comz-pack.zip")
     a = ap.parse_args()
+    model_centres.build()
     build(a.src, a.out)

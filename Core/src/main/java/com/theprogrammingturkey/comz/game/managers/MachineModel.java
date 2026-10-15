@@ -23,10 +23,12 @@ import java.util.List;
  */
 public class MachineModel
 {
-	/** The block the machine occupies (its base). Always the sign's own block. */
+	/** The block the machine occupies (its base): the sign's own block, or the floor below a sign hung higher up. */
 	final Location baseLoc;
-	/** Location of the backing feature sign (the data source: type + cost). Same block as {@link #baseLoc}. */
+	/** Location of the backing feature sign (the data source: type + cost). */
 	final Location signLoc;
+	/** What the base block was before the machine took it, when that is not the sign's block; restored on removal. */
+	private final BlockData floorData;
 	/** The sign's material (e.g. {@code OAK_WALL_SIGN}), restored on removal. */
 	private final Material signMaterial;
 	/** The sign's block data (carries facing), restored on removal. */
@@ -47,8 +49,9 @@ public class MachineModel
 	/** Lights up when the arena power comes on (perk machines and Pack-a-Punch). */
 	boolean powerGated;
 
-	MachineModel(Location baseLoc, Location signLoc, Material signMaterial, BlockData signData, String[] signLines, BlockFace facing, Look look)
+	MachineModel(Location baseLoc, Location signLoc, Material signMaterial, BlockData signData, String[] signLines, BlockFace facing, Look look, BlockData floorData)
 	{
+		this.floorData = floorData;
 		this.facing = facing;
 		this.look = look;
 		this.baseLoc = baseLoc;
@@ -71,17 +74,22 @@ public class MachineModel
 				interaction.remove();
 			if(hologram != null && !hologram.isDead())
 				hologram.remove();
-			if(baseLoc.getWorld() != null)
+			if(floorData != null && baseLoc.getWorld() != null)
+			{
+				baseLoc.getBlock().setBlockData(floorData, false);
+				HiddenSignJournal.clear(baseLoc);
+			}
+			if(signLoc.getWorld() != null)
 			{
 				// Restore material + facing first, then re-fetch the fresh tile state to write the text
 				// back (setType/setBlockData drops the Sign tile state, so the lines can't be set until the
 				// sign material is back in place).
-				baseLoc.getBlock().setType(signMaterial, false);
+				signLoc.getBlock().setType(signMaterial, false);
 				if(signData != null)
-					baseLoc.getBlock().setBlockData(signData, false);
+					signLoc.getBlock().setBlockData(signData, false);
 				if(signLines != null)
 				{
-					org.bukkit.block.BlockState state = baseLoc.getBlock().getState();
+					org.bukkit.block.BlockState state = signLoc.getBlock().getState();
 					if(state instanceof Sign)
 					{
 						Sign sign = (Sign) state;
@@ -90,7 +98,7 @@ public class MachineModel
 						sign.update(true);
 					}
 				}
-				HiddenSignJournal.clear(baseLoc);
+				HiddenSignJournal.clear(signLoc);
 			}
 		}
 		catch(Exception e)

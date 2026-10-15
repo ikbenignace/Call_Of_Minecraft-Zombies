@@ -148,7 +148,7 @@ public final class MachineSigns
 			else
 			{
 				Equipment equipment = EquipmentSign.equipmentOf(sign.getLines());
-				model = equipment == null ? null : WallGunVisuals.spawn(sign.getLocation(), wallFacing, equipment.displayStack(usePack), usePack && equipment.hasPackModel(), 0.9);
+				model = equipment == null ? null : WallGunVisuals.spawn(sign.getLocation(), wallFacing, equipment.displayStack(usePack), usePack && equipment.hasPackModel() ? equipment.itemModel : null, 0.9);
 			}
 			if(model != null)
 				preview.add(model);

@@ -9,6 +9,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Entity;
@@ -78,6 +79,7 @@ public final class MachineVisuals
 			if(model != null)
 			{
 				model.setPersistent(false);
+				lightLikeSurroundings(model);
 				spawned.add(model);
 				return spawned;
 			}
@@ -93,6 +95,8 @@ public final class MachineVisuals
 			if(entity != null)
 			{
 				entity.setPersistent(false);
+				if(!part.glow)
+					lightLikeSurroundings(entity);
 				spawned.add(entity);
 			}
 		}
@@ -116,9 +120,31 @@ public final class MachineVisuals
 			else if(!perPart || look.isGlowPart(i))
 				Displays.setBrightness(entity, 15, 15);
 			else
-				Displays.clearBrightness(entity);
+				lightLikeSurroundings(entity);
 		}
 	}
+
+	/**
+	 * A display takes its light from the block it stands in, which for a machine is its own solid base block,
+	 * so it would render pitch black; borrow the brightest open neighbour instead.
+	 */
+	public static void lightLikeSurroundings(Entity display)
+	{
+		Block block = display.getLocation().getBlock();
+		int blockLight = 0;
+		int skyLight = 0;
+		for(BlockFace face : AROUND)
+		{
+			Block side = block.getRelative(face);
+			if(side.getType().isOccluding())
+				continue;
+			blockLight = Math.max(blockLight, side.getLightFromBlocks());
+			skyLight = Math.max(skyLight, side.getLightFromSky());
+		}
+		Displays.setBrightness(display, blockLight, skyLight);
+	}
+
+	private static final BlockFace[] AROUND = {BlockFace.UP, BlockFace.NORTH, BlockFace.EAST, BlockFace.SOUTH, BlockFace.WEST};
 
 	public static void remove(List<Entity> entities)
 	{

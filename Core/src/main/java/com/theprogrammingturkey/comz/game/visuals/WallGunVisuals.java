@@ -2,6 +2,7 @@ package com.theprogrammingturkey.comz.game.visuals;
 
 import com.theprogrammingturkey.comz.game.weapons.BaseGun;
 import com.theprogrammingturkey.comz.util.Compat;
+import com.theprogrammingturkey.comz.util.ModelCentres;
 import com.theprogrammingturkey.comz.util.PackModels;
 import com.theprogrammingturkey.comz.util.display.Displays;
 import org.bukkit.Color;
@@ -11,6 +12,7 @@ import org.bukkit.World;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Entity;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.util.Vector;
 import org.bukkit.Material;
 
 /**
@@ -18,8 +20,8 @@ import org.bukkit.Material;
  */
 public final class WallGunVisuals
 {
-	private static final float SCALE = 1.2f;
-	/** Pack gun models are centred a little below and behind the model origin; this puts them mid-block. */
+	private static final float SCALE = 0.9f;
+	/** Pack gun models sit a little below the model origin; this puts unknown ones roughly mid-block. */
 	private static final float CENTRE_LIFT = 0.16f * SCALE;
 	/** Distance from the block centre towards the wall, so the thin model sits just off the surface. */
 	private static final double WALL_INSET = 0.33;
@@ -68,16 +70,28 @@ public final class WallGunVisuals
 		{
 			stack = new ItemStack(gun.material == null ? gun.getWeaponType().getMaterial() : gun.material);
 		}
-		return spawn(signBlock, facing, stack, usePack, raise);
+		return spawn(signBlock, facing, stack, usePack ? gun.itemModel : null, raise);
 	}
 
-	/** Same wall placement for any item, used by equipment wall buys. */
-	public static Entity spawn(Location signBlock, BlockFace facing, ItemStack stack, boolean usePack, double raise)
+	/**
+	 * Same wall placement for any item, used by equipment wall buys.
+	 *
+	 * @param packModel the pack item model shown, or null for a vanilla item
+	 */
+	public static Entity spawn(Location signBlock, BlockFace facing, ItemStack stack, String packModel, double raise)
 	{
 		if(stack == null || signBlock.getWorld() == null || !Displays.supportsItemDisplays())
 			return null;
 		Location at = signBlock.clone().add(0.5 - facing.getModX() * WALL_INSET, 0.5 + raise, 0.5 - facing.getModZ() * WALL_INSET);
-		Entity display = Displays.spawnItem(at, stack, SCALE, yaw(facing), usePack ? CENTRE_LIFT : 0f, false);
+		float lift = packModel != null ? CENTRE_LIFT : 0f;
+		Vector shift = ModelCentres.shift(packModel, SCALE, yaw(facing));
+		if(shift != null)
+		{
+			// Only along the wall and up: the depth stays at the inset so thick models don't sink into the wall.
+			at.add(facing.getModX() == 0 ? shift.getX() : 0, shift.getY(), facing.getModZ() == 0 ? shift.getZ() : 0);
+			lift = 0f;
+		}
+		Entity display = Displays.spawnItem(at, stack, SCALE, yaw(facing), lift, false);
 		if(display != null)
 			Displays.setBrightness(display, 12, 15);
 		return display;

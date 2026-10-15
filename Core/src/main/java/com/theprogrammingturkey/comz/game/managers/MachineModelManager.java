@@ -21,6 +21,7 @@ import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.BlockState;
 import org.bukkit.block.Sign;
@@ -140,8 +141,9 @@ public class MachineModelManager
 		BlockFace facing = com.theprogrammingturkey.comz.util.Compat.facingOf(sign.getBlockData());
 
 		// The machine occupies the sign's own block (the sign's material/facing/text are snapshotted into
-		// the MachineModel and fully rebuilt on teardown).
-		Location baseLoc = signLoc.clone();
+		// the MachineModel and fully rebuilt on teardown), dropped to the floor when the sign hangs higher
+		// up the wall. The wall-mounted power switch stays where its sign is.
+		Location baseLoc = base == Material.AIR ? signLoc.clone() : floorBelow(signLoc);
 		String[] signLines = sign.getLines().clone();
 
 		// Created before the sign block is overwritten: without a hitbox the machine can't be bought, so
@@ -149,8 +151,16 @@ public class MachineModelManager
 		Entity interaction = Displays.spawnHitbox(baseLoc.clone().add(0.5, 0.0, 0.5), look.hitWidth, look.hitHeight);
 		if(interaction == null)
 			return;
-		HiddenSignJournal.record(sign, base);
-		MachineModel machine = new MachineModel(baseLoc, signLoc, sign.getType(), sign.getBlockData(), signLines, facing, look);
+		boolean lowered = !sameBlock(baseLoc, signLoc);
+		HiddenSignJournal.record(sign, lowered ? Material.AIR : base);
+		BlockData floorData = null;
+		if(lowered)
+		{
+			floorData = baseLoc.getBlock().getBlockData();
+			HiddenSignJournal.record(baseLoc, baseLoc.getBlock().getType(), floorData, null, null, base);
+			signLoc.getBlock().setType(Material.AIR, false);
+		}
+		MachineModel machine = new MachineModel(baseLoc, signLoc, sign.getType(), sign.getBlockData(), signLines, facing, look, floorData);
 		machine.interaction = interaction;
 
 		try
@@ -254,6 +264,25 @@ public class MachineModelManager
 		if(handler != null)
 			handler.onInteract(game, player, machine.baseLoc, lines);
 		return true;
+	}
+
+	/** Maps often hang buy signs at eye height; a machine belongs on the floor, at most two blocks lower. */
+	private static Location floorBelow(Location signLoc)
+	{
+		Location at = signLoc.clone();
+		for(int i = 0; i < 2; i++)
+		{
+			Block below = at.getBlock().getRelative(BlockFace.DOWN);
+			if(!below.isPassable() || below.getState() instanceof Sign)
+				break;
+			at.subtract(0, 1, 0);
+		}
+		return at;
+	}
+
+	private static boolean sameBlock(Location a, Location b)
+	{
+		return a.getBlockX() == b.getBlockX() && a.getBlockY() == b.getBlockY() && a.getBlockZ() == b.getBlockZ();
 	}
 
 	private static String titleCase(String enumName)

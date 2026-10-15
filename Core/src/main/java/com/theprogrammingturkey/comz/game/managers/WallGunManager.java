@@ -124,7 +124,7 @@ public class WallGunManager
 			name = equipment.name;
 			price = EquipmentSign.costOf(lines, equipment);
 			boolean packModel = usePack && equipment.hasPackModel();
-			model = WallGunVisuals.spawn(blockLoc, facing, equipment.displayStack(packModel), packModel, 0.0);
+			model = WallGunVisuals.spawn(blockLoc, facing, equipment.displayStack(packModel), packModel ? equipment.itemModel : null, 0.0);
 		}
 		if(model == null)
 			return;

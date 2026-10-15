@@ -143,6 +143,33 @@ def claymore():
     g.save(HELD)
 
 
+def bouncing_betty():
+    """S-mine (Bouncing Betty): squat olive canister set in a little mound of earth, a short fuze well on top
+    with the three pressure prongs sticking up, and the safety pin ring hanging off it."""
+    g = Gun('bouncing_betty_v3')
+    g.cyl('y', (C, 8), 3.4, 3.0, 3.8, 'rust_brown', seg=16, name='mound')
+    g.cyl('y', (C, 8), 2.6, 3.8, 4.3, 'rust_brown', seg=16, name='mound_top')
+    g.cyl('y', (C, 8), 2.0, 3.6, 7.2, 'polymer_olive', seg=16, name='canister')
+    g.cyl('y', (C, 8), 2.1, 6.9, 7.3, 'darkmetal', seg=16, name='canister_rim')
+    g.cyl('y', (C, 8), 1.6, 7.3, 7.5, 'polymer_olive', seg=16, name='lid')
+    for y in (4.8, 5.9):
+        g.cyl('y', (C, 8), 2.05, y, y + 0.15, 'polymer_dark', seg=16, name='band')
+    g.box((C - 0.6, 5.0, 5.92), (C + 0.6, 5.7, 5.98), 'label_warn', name='stencil')
+    g.cyl('y', (C, 8), 0.6, 7.5, 8.6, 'gunmetal', seg=8, name='fuze_well')
+    g.cyl('y', (C, 8), 0.75, 8.6, 8.9, 'darkmetal', seg=8, name='fuze_cap')
+    import math
+    for i in range(3):
+        a = math.radians(90 + i * 120)
+        x, z = C + 0.4 * math.cos(a), 8 + 0.4 * math.sin(a)
+        g.cyl('y', (x, z), 0.1, 8.9, 10.2, 'steel', seg=8, name='prong')
+        g.cyl('y', (x, z), 0.14, 10.1, 10.3, 'steel', seg=8, name='prong_tip')
+    g.cyl('x', (8.3, 8), 0.07, C + 0.5, C + 1.1, 'steel', seg=8, name='pin')
+    g.ring('z', (C + 1.35, 8.0), 0.18, 0.3, 7.95, 8.05, 'steel', name='pin_ring')
+    for x, z in ((C - 2.4, 6.4), (C + 2.2, 9.8), (C - 1.0, 10.6)):
+        g.box((x - 0.4, 3.8, z - 0.3), (x + 0.4, 4.2, z + 0.3), 'rust_brown', name='clod')
+    g.save(scaled(HELD, 0.8))
+
+
 def monkey_bomb():
     """Cymbal Monkey: sitting wind-up toy facing -Z, oversized head with fez and grin, cymbals held
     out in front, dynamite pack and wind-up key on its back."""
@@ -256,5 +283,5 @@ def gersh():
 
 
 if __name__ == '__main__':
-    for f in (frag, semtex, claymore, monkey_bomb, gersh):
+    for f in (frag, semtex, claymore, bouncing_betty, monkey_bomb, gersh):
         f()

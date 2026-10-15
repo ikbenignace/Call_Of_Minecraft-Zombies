@@ -69,7 +69,7 @@
       "cost": 1000,
       "refill_cost": 1000,
       "material": "HEAVY_WEIGHTED_PRESSURE_PLATE",
-      "item_model": "",
+      "item_model": "comz:throwable/bouncing_betty",
       "per_buy": 2,
       "max_placed": 4,
       "refill_per_round": 2,

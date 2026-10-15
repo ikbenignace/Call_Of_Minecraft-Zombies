@@ -38,6 +38,9 @@ public class TrapRun
 	private final Game game;
 	private final TrapType type;
 	private final TrapArea area;
+	/** Players are hurt at most once a second, so walking out of a running trap is always possible. */
+	private static final int PLAYER_HIT_INTERVAL_TICKS = 20;
+
 	private final Player activator;
 	private final int durationTicks;
 	private final Runnable onFinish;
@@ -159,9 +162,12 @@ public class TrapRun
 			return;
 		for(Player player : new ArrayList<>(game.getPlayersInGame()))
 		{
-			if(player.isDead() || game.downedPlayerManager.isDownedPlayer(player) || !inStrikeZone(player.getLocation()) || !readyToHit(player))
+			if(player.isDead() || game.downedPlayerManager.isDownedPlayer(player) || !inStrikeZone(player.getLocation()) || !readyToHit(player, PLAYER_HIT_INTERVAL_TICKS))
 				continue;
-			knockback(player);
+			// Only a swinging arm throws players; any other push, repeated every hit, pins them against
+			// the walls of a narrow trap so they can never walk out of it.
+			if(type.getStyle() == TrapType.Style.ARM)
+				knockback(player);
 			// Routed through EntityDamageEvent so the game's own player damage rules (downing, god mode) apply.
 			player.damage(type.getPlayerDamage());
 		}
@@ -169,8 +175,13 @@ public class TrapRun
 
 	private boolean readyToHit(Entity entity)
 	{
+		return readyToHit(entity, 0);
+	}
+
+	private boolean readyToHit(Entity entity, int minInterval)
+	{
 		Integer last = lastHit.get(entity.getUniqueId());
-		if(last != null && ticks - last < type.getHitIntervalTicks())
+		if(last != null && ticks - last < Math.max(minInterval, type.getHitIntervalTicks()))
 			return false;
 		lastHit.put(entity.getUniqueId(), ticks);
 		return true;

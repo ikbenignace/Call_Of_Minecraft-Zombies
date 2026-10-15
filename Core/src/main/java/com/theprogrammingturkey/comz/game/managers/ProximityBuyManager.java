@@ -14,6 +14,7 @@ import com.theprogrammingturkey.comz.listeners.BarrierRepairListener;
 import com.theprogrammingturkey.comz.util.CommandUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.FluidCollisionMode;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.util.BoundingBox;
@@ -56,6 +57,9 @@ public class ProximityBuyManager
 	private static final double BOX_REACH = 2.5D;
 	/** Max vertical offset between a player and a sign prop for F to reach it. */
 	private static final double PROP_REACH_Y = 2.5D;
+	/** How far below / above the player's feet a buyable's centre may be: wall buys hang at eye height. */
+	private static final double REACH_BELOW = 1.5D;
+	private static final double REACH_ABOVE = 3.0D;
 	/** How far a crosshair ray counts as looking at something. */
 	private static final double LOOK_RANGE = 6.0D;
 
@@ -212,7 +216,7 @@ public class ProximityBuyManager
 			if(m.centre == null || m.centre.getWorld() == null || !m.centre.getWorld().equals(player.getWorld()))
 				continue;
 			double dSq = distanceSqXZ(player.getLocation(), m.centre.getX(), m.centre.getZ());
-			if(dSq <= MACHINE_REACH * MACHINE_REACH)
+			if(dSq <= MACHINE_REACH * MACHINE_REACH && reachable(player, m.centre))
 				candidates.add(new Candidate(new BuyTarget(TargetType.MACHINE, m.centre.clone(), machinePrompt(m, player), m.label), dSq, aimBox(m.centre, 0.7, 1.0), false));
 		}
 
@@ -221,7 +225,7 @@ public class ProximityBuyManager
 			if(wallGun.centre.getWorld() == null || !wallGun.centre.getWorld().equals(player.getWorld()))
 				continue;
 			double dSq = distanceSqXZ(player.getLocation(), wallGun.centre.getX(), wallGun.centre.getZ());
-			if(dSq <= MACHINE_REACH * MACHINE_REACH)
+			if(dSq <= MACHINE_REACH * MACHINE_REACH && reachable(player, wallGun.centre))
 				candidates.add(new Candidate(new BuyTarget(TargetType.WALL_GUN, wallGun.centre.clone(), game.wallGunManager.prompt(player, wallGun.signLines), wallGun.label), dSq, aimBox(wallGun.centre, 0.7, 0.6), false));
 		}
 
@@ -232,7 +236,7 @@ public class ProximityBuyManager
 			if(loc == null || loc.getWorld() == null || !loc.getWorld().equals(player.getWorld()))
 				continue;
 			double dSq = distanceSqXZ(player.getLocation(), loc.getX() + 0.5, loc.getZ() + 0.5);
-			if(dSq <= BOX_REACH * BOX_REACH)
+			if(dSq <= BOX_REACH * BOX_REACH && reachable(player, loc.clone().add(0.5, 0.5, 0.5)))
 				candidates.add(new Candidate(new BuyTarget(TargetType.BOX, loc.clone(), boxPrompt(box, player), null), dSq, aimBox(loc.clone().add(0.5, 0.5, 0.5), 1.0, 0.6), false));
 		}
 
@@ -244,7 +248,7 @@ public class ProximityBuyManager
 			if(centre.getWorld() == null || !centre.getWorld().equals(player.getWorld()))
 				continue;
 			double dSq = distanceSqXZ(player.getLocation(), centre.getX(), centre.getZ());
-			if(dSq > MACHINE_REACH * MACHINE_REACH || Math.abs(player.getLocation().getY() - centre.getY()) > PROP_REACH_Y)
+			if(dSq > MACHINE_REACH * MACHINE_REACH || Math.abs(player.getLocation().getY() - centre.getY()) > PROP_REACH_Y || !reachable(player, centre))
 				continue;
 			String prompt = game.signPropManager.promptFor(prop, player);
 			if(prompt != null)
@@ -252,11 +256,13 @@ public class ProximityBuyManager
 		}
 
 		for(TriggerManager.InteractPoint point : game.triggerManager.interactPoints(player))
-			candidates.add(new Candidate(new BuyTarget(point, game.triggerManager.prompt(point, player)), point.distanceSq, aimBox(point.centre, 0.5, 0.6), false));
+			if(reachable(player, point.centre))
+				candidates.add(new Candidate(new BuyTarget(point, game.triggerManager.prompt(point, player)), point.distanceSq, aimBox(point.centre, 0.5, 0.6), false));
 
 		for(TransportManager.CallTarget call : game.transportManager.findCallTargets(player))
-			candidates.add(new Candidate(new BuyTarget(call, game.transportManager.prompt(player, call)), call.distanceSq,
-					aimBox(com.theprogrammingturkey.comz.game.features.Transport.toLocation(player.getWorld(), call.point).add(0, 0.5, 0), 0.6, 1.0), false));
+			if(reachable(player, com.theprogrammingturkey.comz.game.features.Transport.toLocation(player.getWorld(), call.point).add(0, 0.5, 0)))
+				candidates.add(new Candidate(new BuyTarget(call, game.transportManager.prompt(player, call)), call.distanceSq,
+						aimBox(com.theprogrammingturkey.comz.game.features.Transport.toLocation(player.getWorld(), call.point).add(0, 0.5, 0), 0.6, 1.0), false));
 
 		return choose(player, candidates);
 	}
@@ -426,6 +432,25 @@ public class ProximityBuyManager
 			maxZ = Math.max(maxZ, b.getZ() + 1);
 		}
 		return new BoundingBox(minX - reach, minY - reach, minZ - reach, maxX + reach, maxY + reach, maxZ + reach);
+	}
+
+	/**
+	 * Same floor and in sight: the buyable's centre is within the player's height window and no block stands
+	 * between their eyes and it, so nothing is bought through a ceiling or a wall. The block the buyable itself
+	 * is built from (a machine's base, the wall behind a wall buy) doesn't count as in the way.
+	 */
+	private static boolean reachable(Player player, Location target)
+	{
+		double dy = target.getY() - player.getLocation().getY();
+		if(dy < -REACH_BELOW || dy > REACH_ABOVE)
+			return false;
+		Location eye = player.getEyeLocation();
+		Vector line = target.toVector().subtract(eye.toVector());
+		double length = line.length();
+		if(length < 0.5D)
+			return true;
+		RayTraceResult hit = player.getWorld().rayTraceBlocks(eye, line.multiply(1.0D / length), length, FluidCollisionMode.NEVER, true);
+		return hit == null || hit.getHitPosition().distanceSquared(target.toVector()) <= 1.0D;
 	}
 
 	private static double distanceSqXZ(Location a, double x, double z)
