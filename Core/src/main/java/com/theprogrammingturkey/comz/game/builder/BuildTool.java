@@ -1,5 +1,7 @@
 package com.theprogrammingturkey.comz.game.builder;
 
+import com.theprogrammingturkey.comz.game.equipment.Equipment;
+import com.theprogrammingturkey.comz.game.equipment.EquipmentCatalogue;
 import com.theprogrammingturkey.comz.game.features.PerkType;
 import com.theprogrammingturkey.comz.game.managers.WeaponManager;
 import com.theprogrammingturkey.comz.game.weapons.BaseGun;
@@ -22,7 +24,7 @@ public enum BuildTool
 	WARP("Warp", Material.BLAZE_ROD),
 	SPAWN("Zombie Spawn", Material.END_PORTAL_FRAME),
 	PERK("Perk Machine", Compat.materialOr(Material.POTION, "HONEY_BOTTLE")),
-	WEAPON("Wall Gun", Material.IRON_HOE),
+	WEAPON("Wall Buy", Material.IRON_HOE),
 	MACHINE("Machine", Material.CHEST),
 	FEATURE("Feature", Material.TRIPWIRE_HOOK),
 	LOBBY("Lobby Sign", Material.OAK_SIGN),
@@ -91,6 +93,11 @@ public enum BuildTool
 		return Character.toUpperCase(name.charAt(0)) + name.substring(1);
 	}
 
+	public static String equipmentLabel(Equipment equipment)
+	{
+		return equipment.name + " (equipment)";
+	}
+
 	/** The variant labels for this tool, computed live. Empty when the tool has no variants. */
 	public List<String> variantLabels()
 	{
@@ -101,7 +108,12 @@ public enum BuildTool
 			case PERK:
 				return placeablePerks().stream().map(BuildTool::perkLabel).collect(Collectors.toList());
 			case WEAPON:
-				return WeaponManager.getBuyableGuns().stream().map(BaseGun::getName).collect(Collectors.toList());
+			{
+				List<String> labels = WeaponManager.getBuyableGuns().stream().map(BaseGun::getName).collect(Collectors.toList());
+				for(Equipment equipment : EquipmentCatalogue.all())
+					labels.add(equipmentLabel(equipment));
+				return labels;
+			}
 			case MACHINE:
 				return MACHINE_VARIANTS;
 			case FEATURE:

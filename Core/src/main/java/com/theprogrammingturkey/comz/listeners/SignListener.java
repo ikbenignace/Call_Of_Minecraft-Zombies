@@ -60,6 +60,9 @@ public class SignListener implements Listener
 		GunSign gun = new GunSign();
 		GAME_SIGNS.put("gun", gun);
 
+		EquipmentSign equipment = new EquipmentSign();
+		GAME_SIGNS.put("equipment", equipment);
+
 		PowerSign power = new PowerSign();
 		GAME_SIGNS.put("power", power);
 

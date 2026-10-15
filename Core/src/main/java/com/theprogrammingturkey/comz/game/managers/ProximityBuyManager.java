@@ -223,7 +223,7 @@ public class ProximityBuyManager
 				continue;
 			double dSq = distanceSqXZ(player.getLocation(), wallGun.centre.getX(), wallGun.centre.getZ());
 			if(dSq <= MACHINE_REACH * MACHINE_REACH)
-				candidates.add(new Candidate(new BuyTarget(TargetType.WALL_GUN, wallGun.centre.clone(), com.theprogrammingturkey.comz.game.signs.GunSign.prompt(game, player, wallGun.signLines), wallGun.label), dSq, aimBox(wallGun.centre, 0.7, 0.6), false));
+				candidates.add(new Candidate(new BuyTarget(TargetType.WALL_GUN, wallGun.centre.clone(), game.wallGunManager.prompt(player, wallGun.signLines), wallGun.label), dSq, aimBox(wallGun.centre, 0.7, 0.6), false));
 		}
 
 		// Mystery boxes: in-game they're a chest at boxLoc. Within BOX_REACH, F starts/picks the box.

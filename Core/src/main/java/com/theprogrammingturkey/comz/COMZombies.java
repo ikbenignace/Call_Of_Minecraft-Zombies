@@ -100,6 +100,7 @@ public class COMZombies extends JavaPlugin
 		reloadConfig();
 		ConfigManager.loadFiles();
 		WeaponManager.loadGuns();
+		com.theprogrammingturkey.comz.game.equipment.EquipmentCatalogue.load();
 		KitManager.loadKits();
 		PointManager.INSTANCE.saveAll();
 	}
@@ -174,6 +175,7 @@ public class COMZombies extends JavaPlugin
 	{
 		PluginManager m = getServer().getPluginManager();
 		m.registerEvents(new WeaponListener(), this);
+		m.registerEvents(new com.theprogrammingturkey.comz.listeners.EquipmentListener(), this);
 		m.registerEvents(new HiddenSignJournal.WorldLoadRetry(), this);
 		m.registerEvents(new ArenaListener(), this);
 		m.registerEvents(new EntityListener(), this);

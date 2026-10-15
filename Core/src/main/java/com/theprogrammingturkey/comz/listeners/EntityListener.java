@@ -188,14 +188,20 @@ public class EntityListener implements Listener
 				{
 					Mob mob = (Mob) entity;
 					double dist = mob.getLocation().distance(player.getLocation());
-					if(dist <= ConfigManager.getMainConfig().meleeRange)
+					if(dist <= ConfigManager.getMainConfig().meleeRange && game.equipmentManager.tryMelee(player))
 					{
-						game.damageMob(mob, player, knifeDamage(ConfigManager.getMainConfig().knifeOneShotThroughRound), false, true);
+						float damage = game.equipmentManager.meleeDamage(player, knifeDamage(ConfigManager.getMainConfig().knifeOneShotThroughRound));
+						game.damageMob(mob, player, damage, false, true);
 						// BO2-fidelity: a knife-slash beat on a connecting melee — sweep arc + slash sound.
 						// Pack-independent (vanilla particle/sound); the player's own arm swing supplies the motion.
 						org.bukkit.Location hit = mob.getLocation().add(0, 1, 0);
 						mob.getWorld().spawnParticle(org.bukkit.Particle.SWEEP_ATTACK, hit, 1, 0, 0, 0, 0);
-						com.theprogrammingturkey.comz.util.SoundUtil.playKey(mob.getWorld(), player.getLocation(), "melee.swing", "ENTITY_PLAYER_ATTACK_SWEEP", org.bukkit.SoundCategory.PLAYERS, 0.8F, 1.0F);
+						com.theprogrammingturkey.comz.game.equipment.Equipment melee = game.equipmentManager.getMelee(player);
+						String swing = melee == null ? null : melee.sound("swing");
+						if(swing != null)
+							com.theprogrammingturkey.comz.util.SoundUtil.play(mob.getWorld(), player.getLocation(), swing, org.bukkit.SoundCategory.PLAYERS, 0.8F, 1.0F);
+						else
+							com.theprogrammingturkey.comz.util.SoundUtil.playKey(mob.getWorld(), player.getLocation(), "melee.swing", "ENTITY_PLAYER_ATTACK_SWEEP", org.bukkit.SoundCategory.PLAYERS, 0.8F, 1.0F);
 						com.theprogrammingturkey.comz.util.SoundUtil.playKey(mob.getWorld(), hit, "melee.hit", "ENTITY_PLAYER_ATTACK_STRONG", org.bukkit.SoundCategory.PLAYERS, 1.0F, 1.0F);
 					}
 				}

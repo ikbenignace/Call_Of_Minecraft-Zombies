@@ -68,7 +68,14 @@ public final class WallGunVisuals
 		{
 			stack = new ItemStack(gun.material == null ? gun.getWeaponType().getMaterial() : gun.material);
 		}
+		return spawn(signBlock, facing, stack, usePack, raise);
+	}
 
+	/** Same wall placement for any item, used by equipment wall buys. */
+	public static Entity spawn(Location signBlock, BlockFace facing, ItemStack stack, boolean usePack, double raise)
+	{
+		if(stack == null || signBlock.getWorld() == null || !Displays.supportsItemDisplays())
+			return null;
 		Location at = signBlock.clone().add(0.5 - facing.getModX() * WALL_INSET, 0.5 + raise, 0.5 - facing.getModZ() * WALL_INSET);
 		Entity display = Displays.spawnItem(at, stack, SCALE, yaw(facing), usePack ? CENTRE_LIFT : 0f, false);
 		if(display != null)

@@ -66,6 +66,32 @@ Catalogue `equipment.json`, bought from wall buys like guns:
 - `tactical`: Gersch Device (black hole), QED (random effect), Monkey Bomb (existing), Matryoshka dolls.
 - `gear`: breathing helmet (P.E.S.), Hacker device (opens/alters things it is used on).
 
+Implementation (`game/equipment`, `equipment.json` in the plugin folder):
+
+- Wall buy sign `[Zombies] / Equipment / <name> / <cost>` (blank cost = catalogue `cost`). In game it shows the
+  item on the wall like a wall gun; F (or clicking the model/sign) buys. Buying owned mines/tacticals again
+  refills them up to `max_carry` for `refill_cost`; anything else shows "owned". Build mode: Wall Buy tool,
+  the equipment entries follow the guns in its variant list. `/zombies convertsigns` turns imported
+  "Bowie Knife", "Sickle", "Claymore", "Bouncing Betty", "Spikemore" signs into equipment wall buys.
+- `settings`: hotbar slots (`melee_slot`, `gear_slot`, `tactical_slot`, `placeable_slot`; -1 = no item),
+  `one_placeable` / `one_tactical` (buying another kind replaces the old one, like BO; false = refuse until used
+  up) and `default_melee_cooldown_ms` for the plain knife.
+- Common fields: `name`, `type`, `cost`, `refill_cost`, `material`, `item_model` (pack model, also used on the
+  wall when the pack is forced), `sounds` (event -> sound enum or namespaced key).
+- `melee`: `one_shot_through_round` (knife one-shots zombies through that round; 0 = base knife),
+  `damage_multiplier`, `swing_cooldown_ms`, `sounds.swing`. One per player, kept when downed, lost on bleed-out.
+- `placeable`: `per_buy`, `max_carry` (defaults to `per_buy`), `max_placed`, `refill_per_round` (topped back up
+  to this each round once bought), `trigger` (`cone` | `radius`), `trigger_radius`, `cone_angle`,
+  `damage_radius`, `damage` or `one_shot_through_round`, `fuse_ticks`, `pop_up`, `effect` (`blast` | `spikes`).
+  Right-click places it at the clicked floor (or your feet) facing where you look.
+- `tactical`: `behaviour` = `gersch` (`radius`, `kill_radius`, `pull_strength`, `duration_ticks`), `qed`
+  (`effects`: weighted `powerup`, `revive_all`, `kill_nearby`, `teleport_player`, `refill_ammo`), `matryoshka`
+  (`chain`, `chain_delay_ticks`, `chain_spread`, `radius`, damage fields) or `monkey_bomb` (sells the existing
+  Monkey Bomb throwable). Plus `per_buy`, `max_carry`, `refill_per_round`, `fuse_ticks`.
+- `gear`: `behaviour` = `breathing` (puts a breathing-gear tagged `helmet_material` on; right-click the hotbar item
+  toggles it) or `none`. The Hacker is such a stub: it can be bought and carried but does nothing yet.
+- Placed mines are removed when their owner goes down, bleeds out or leaves, and with everything else at game end.
+
 ## 6. Special enemies
 
 Catalogue `specials.json`. Each type: base mob, health formula, speed, model/skin, sounds and behaviour:

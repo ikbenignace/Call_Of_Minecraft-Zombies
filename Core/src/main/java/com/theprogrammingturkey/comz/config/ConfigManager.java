@@ -18,6 +18,7 @@ public class ConfigManager
 
 		mainConfig = new ConfigSetup();
 		CONFIGS.put(COMZConfig.GUNS, new CustomConfig(COMZConfig.GUNS));
+		CONFIGS.put(COMZConfig.EQUIPMENT, new CustomConfig(COMZConfig.EQUIPMENT));
 		CONFIGS.put(COMZConfig.ARENAS, new CustomConfig(COMZConfig.ARENAS));
 		CONFIGS.put(COMZConfig.SIGNS, new CustomConfig(COMZConfig.SIGNS));
 		CONFIGS.put(COMZConfig.KITS, new CustomConfig(COMZConfig.KITS));

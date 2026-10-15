@@ -1,0 +1,228 @@
+{
+  "settings": {
+    "melee_slot": 0,
+    "gear_slot": 5,
+    "tactical_slot": 6,
+    "placeable_slot": 7,
+    "one_placeable": true,
+    "one_tactical": true,
+    "default_melee_cooldown_ms": 500
+  },
+  "equipment": [
+    {
+      "name": "Bowie Knife",
+      "type": "melee",
+      "cost": 3000,
+      "material": "IRON_SWORD",
+      "item_model": "",
+      "one_shot_through_round": 11,
+      "damage_multiplier": 1.0,
+      "swing_cooldown_ms": 300,
+      "sounds": {
+        "buy": "ITEM_ARMOR_EQUIP_IRON",
+        "swing": "ENTITY_PLAYER_ATTACK_SWEEP"
+      }
+    },
+    {
+      "name": "Sickle",
+      "type": "melee",
+      "cost": 3000,
+      "material": "IRON_HOE",
+      "item_model": "",
+      "one_shot_through_round": 11,
+      "damage_multiplier": 1.0,
+      "swing_cooldown_ms": 300,
+      "sounds": {
+        "buy": "ITEM_ARMOR_EQUIP_IRON",
+        "swing": "ENTITY_PLAYER_ATTACK_SWEEP"
+      }
+    },
+    {
+      "name": "Claymore",
+      "type": "placeable",
+      "cost": 1000,
+      "refill_cost": 1000,
+      "material": "TRIPWIRE_HOOK",
+      "item_model": "comz:throwable/claymore",
+      "per_buy": 2,
+      "max_placed": 4,
+      "refill_per_round": 2,
+      "trigger": "cone",
+      "trigger_radius": 3.0,
+      "cone_angle": 70,
+      "damage_radius": 5.0,
+      "damage": 0,
+      "one_shot_through_round": 20,
+      "fuse_ticks": 4,
+      "pop_up": false,
+      "effect": "blast",
+      "sounds": {
+        "buy": "ITEM_ARMOR_EQUIP_CHAIN",
+        "place": "BLOCK_STONE_PLACE",
+        "trigger": "BLOCK_TRIPWIRE_CLICK_ON",
+        "explode": "ENTITY_GENERIC_EXPLODE"
+      }
+    },
+    {
+      "name": "Bouncing Betty",
+      "type": "placeable",
+      "cost": 1000,
+      "refill_cost": 1000,
+      "material": "HEAVY_WEIGHTED_PRESSURE_PLATE",
+      "item_model": "",
+      "per_buy": 2,
+      "max_placed": 4,
+      "refill_per_round": 2,
+      "trigger": "radius",
+      "trigger_radius": 2.5,
+      "cone_angle": 360,
+      "damage_radius": 5.0,
+      "damage": 0,
+      "one_shot_through_round": 20,
+      "fuse_ticks": 10,
+      "pop_up": true,
+      "effect": "blast",
+      "sounds": {
+        "buy": "ITEM_ARMOR_EQUIP_CHAIN",
+        "place": "BLOCK_METAL_PLACE",
+        "trigger": "BLOCK_PISTON_EXTEND",
+        "explode": "ENTITY_GENERIC_EXPLODE"
+      }
+    },
+    {
+      "name": "Spikemore",
+      "type": "placeable",
+      "cost": 1000,
+      "refill_cost": 1000,
+      "material": "IRON_BARS",
+      "item_model": "",
+      "per_buy": 2,
+      "max_placed": 4,
+      "refill_per_round": 2,
+      "trigger": "cone",
+      "trigger_radius": 4.0,
+      "cone_angle": 50,
+      "damage_radius": 7.0,
+      "damage": 0,
+      "one_shot_through_round": 25,
+      "fuse_ticks": 2,
+      "pop_up": false,
+      "effect": "spikes",
+      "sounds": {
+        "buy": "ITEM_ARMOR_EQUIP_CHAIN",
+        "place": "BLOCK_WOOD_PLACE",
+        "trigger": "BLOCK_TRIPWIRE_CLICK_ON",
+        "explode": "ENTITY_ARROW_SHOOT"
+      }
+    },
+    {
+      "name": "Gersch Device",
+      "type": "tactical",
+      "behaviour": "gersch",
+      "cost": 2500,
+      "material": "ENDER_EYE",
+      "item_model": "comz:throwable/gersh",
+      "per_buy": 3,
+      "max_carry": 3,
+      "refill_per_round": 0,
+      "fuse_ticks": 30,
+      "duration_ticks": 120,
+      "radius": 10.0,
+      "kill_radius": 1.5,
+      "pull_strength": 0.35,
+      "sounds": {
+        "buy": "ITEM_ARMOR_EQUIP_GENERIC",
+        "throw": "ENTITY_SNOWBALL_THROW",
+        "activate": "BLOCK_BEACON_ACTIVATE",
+        "loop": "BLOCK_PORTAL_AMBIENT",
+        "explode": "ENTITY_ENDERMAN_TELEPORT"
+      }
+    },
+    {
+      "name": "QED",
+      "type": "tactical",
+      "behaviour": "qed",
+      "cost": 2500,
+      "material": "HEART_OF_THE_SEA",
+      "item_model": "",
+      "per_buy": 3,
+      "max_carry": 3,
+      "refill_per_round": 0,
+      "fuse_ticks": 30,
+      "radius": 6.0,
+      "effects": [
+        {"effect": "powerup", "weight": 3},
+        {"effect": "revive_all", "weight": 1},
+        {"effect": "kill_nearby", "weight": 3},
+        {"effect": "teleport_player", "weight": 1},
+        {"effect": "refill_ammo", "weight": 2}
+      ],
+      "sounds": {
+        "buy": "ITEM_ARMOR_EQUIP_GENERIC",
+        "throw": "ENTITY_SNOWBALL_THROW",
+        "explode": "ENTITY_EVOKER_CAST_SPELL"
+      }
+    },
+    {
+      "name": "Matryoshka Dolls",
+      "type": "tactical",
+      "behaviour": "matryoshka",
+      "cost": 2500,
+      "material": "ARMOR_STAND",
+      "item_model": "",
+      "per_buy": 3,
+      "max_carry": 3,
+      "refill_per_round": 0,
+      "fuse_ticks": 40,
+      "chain": 5,
+      "chain_delay_ticks": 15,
+      "chain_spread": 4.0,
+      "radius": 4.5,
+      "damage": 0,
+      "one_shot_through_round": 12,
+      "sounds": {
+        "buy": "ITEM_ARMOR_EQUIP_GENERIC",
+        "throw": "ENTITY_SNOWBALL_THROW",
+        "explode": "ENTITY_GENERIC_EXPLODE"
+      }
+    },
+    {
+      "name": "Monkey Bomb",
+      "type": "tactical",
+      "behaviour": "monkey_bomb",
+      "cost": 2500,
+      "material": "MAGMA_CREAM",
+      "item_model": "comz:throwable/monkey_bomb",
+      "per_buy": 3,
+      "max_carry": 3,
+      "refill_per_round": 0,
+      "sounds": {
+        "buy": "ITEM_ARMOR_EQUIP_GENERIC"
+      }
+    },
+    {
+      "name": "P.E.S.",
+      "type": "gear",
+      "behaviour": "breathing",
+      "cost": 0,
+      "material": "GLASS_PANE",
+      "item_model": "",
+      "helmet_material": "WHITE_STAINED_GLASS",
+      "sounds": {
+        "buy": "ITEM_ARMOR_EQUIP_GENERIC",
+        "toggle": "BLOCK_PISTON_CONTRACT"
+      }
+    },
+    {
+      "name": "Hacker",
+      "type": "gear",
+      "behaviour": "none",
+      "cost": 0,
+      "material": "COMPARATOR",
+      "item_model": "",
+      "sounds": {
+        "buy": "ITEM_ARMOR_EQUIP_GENERIC"
+      }
+    }
+  ]
+}
