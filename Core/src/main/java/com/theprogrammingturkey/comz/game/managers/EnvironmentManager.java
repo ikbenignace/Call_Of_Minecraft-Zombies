@@ -112,7 +112,20 @@ public class EnvironmentManager
 	{
 		stop();
 		tick = 0;
-		taskId = COMZombies.scheduleTask(1L, 1L, this::update);
+		if(hasAnythingToApply())
+			taskId = COMZombies.scheduleTask(1L, 1L, this::update);
+	}
+
+	/** Zones and arena settings only change in build mode, which disables the arena, so checking at start suffices. */
+	private boolean hasAnythingToApply()
+	{
+		if(Math.abs(getGravity() - 1.0) > 1e-6 || Math.abs(getJumpBoost() - 1.0) > 1e-6 || hasFog())
+			return true;
+		boolean titles = ConfigManager.getMainConfig().environmentZoneTitles;
+		for(Zone zone : game.zoneManager.getZones())
+			if((titles && zone.hasName()) || zone.isNoAir() || zone.getDamagePerSecond() > 0 || zone.hasGravityOverride())
+				return true;
+		return false;
 	}
 
 	public void stop()

@@ -19,7 +19,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -33,6 +32,8 @@ public class TrapRun
 	private static final int STEP_TICKS = 2;
 	private static final int MAX_SPIKES = 64;
 	private static final Particle LAVA = Compat.particle("LAVA");
+	/** Share of max health an insta-kill trap takes per hit from specials immune to insta-kills (bosses). */
+	private static final double IMMUNE_HIT_PERCENT = 0.1;
 
 	private final Game game;
 	private final TrapType type;
@@ -41,7 +42,7 @@ public class TrapRun
 	private final int durationTicks;
 	private final Runnable onFinish;
 
-	private final Map<UUID, Integer> lastHit = new HashMap<>();
+	private final Map<UUID, Integer> lastHit;
 	private final List<Entity> displays = new ArrayList<>();
 	private final List<double[]> spikePositions = new ArrayList<>();
 
@@ -54,8 +55,9 @@ public class TrapRun
 	private double armLength;
 	private double armY;
 
-	public TrapRun(Game game, TrapType type, TrapArea area, Player activator, int durationSeconds, Runnable onFinish)
+	public TrapRun(Game game, TrapType type, TrapArea area, Player activator, int durationSeconds, Map<UUID, Integer> lastHit, Runnable onFinish)
 	{
+		this.lastHit = lastHit;
 		this.game = game;
 		this.type = type;
 		this.area = area;
@@ -113,7 +115,6 @@ public class TrapRun
 				display.remove();
 		displays.clear();
 		arm = null;
-		lastHit.clear();
 	}
 
 	private void step()
@@ -197,13 +198,16 @@ public class TrapRun
 		if(type.getIgniteTicks() > 0)
 			mob.setFireTicks(type.getIgniteTicks());
 
-		if(type.getDamageModel() == TrapType.DamageModel.INSTANT_KILL)
+		boolean instantKill = type.getDamageModel() == TrapType.DamageModel.INSTANT_KILL;
+		boolean immune = instantKill && game.specialEnemyManager.isInstaKillImmune(mob);
+		if(instantKill && !immune)
 		{
 			kill(mob);
 			return;
 		}
 
-		double damage = type.mobDamageFor(maxHealth(mob));
+		double maxHealth = maxHealth(mob);
+		double damage = immune ? Math.max(type.mobDamageFor(maxHealth), maxHealth * IMMUNE_HIT_PERCENT) : type.mobDamageFor(maxHealth);
 		double health = mob.getHealth() - damage;
 		if(health < 1)
 		{

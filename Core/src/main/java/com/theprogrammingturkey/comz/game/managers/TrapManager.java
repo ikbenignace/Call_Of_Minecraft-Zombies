@@ -8,6 +8,7 @@ import com.theprogrammingturkey.comz.game.Game;
 import com.theprogrammingturkey.comz.game.GameManager;
 import com.theprogrammingturkey.comz.game.features.Trap;
 import com.theprogrammingturkey.comz.game.traps.TrapType;
+import com.theprogrammingturkey.comz.util.Util;
 import org.bukkit.Location;
 
 import java.util.HashMap;
@@ -16,7 +17,7 @@ import java.util.Map;
 /**
  * Per-Game store of buyable {@link Trap}s, mirroring {@link TeleporterManager}. Each saved trap keeps its sign
  * location (top-level x/y/z), id, cost, type, region ({"zone": id} or {"p1", "p2"}), duration_seconds,
- * cooldown_seconds (-1 = type default) and requires_power.
+ * cooldown_seconds (-1 = type default) and requires_power (absent = type default).
  */
 public class TrapManager
 {
@@ -43,7 +44,10 @@ public class TrapManager
 			// Traps saved before types existed have no "type": they stay generic radius traps that follow
 			// the config.yml trap timings and are power-gated like before.
 			trap.setTypeId(CustomConfig.getString(trapJson, "type", TrapType.GENERIC_ID));
-			trap.setRequiresPower(CustomConfig.getBoolean(trapJson, "requires_power", true));
+			if(trapJson.has("requires_power"))
+				trap.setRequiresPower(CustomConfig.getBoolean(trapJson, "requires_power", true));
+			else if(!trapJson.has("type"))
+				trap.setRequiresPower(true);
 			trap.setDurationSeconds(CustomConfig.getInt(trapJson, "duration_seconds", Trap.USE_TYPE_DEFAULT));
 			trap.setCooldownSeconds(CustomConfig.getInt(trapJson, "cooldown_seconds", Trap.USE_TYPE_DEFAULT));
 			trap.setRadius(CustomConfig.getDouble(trapJson, "radius", -1));
@@ -79,7 +83,8 @@ public class TrapManager
 			trapJson.addProperty("id", entry.getKey());
 			trapJson.addProperty("cost", trap.getCost());
 			trapJson.addProperty("type", trap.getTypeId());
-			trapJson.addProperty("requires_power", trap.requiresPower());
+			if(trap.getRawRequiresPower() != null)
+				trapJson.addProperty("requires_power", trap.getRawRequiresPower());
 			trapJson.addProperty("duration_seconds", trap.getRawDurationSeconds());
 			trapJson.addProperty("cooldown_seconds", trap.getRawCooldownSeconds());
 			if(trap.getRadius() >= 0)
@@ -134,13 +139,9 @@ public class TrapManager
 		return trap;
 	}
 
-	/** First free id of the form {@code trap<n>}. */
 	public String nextId()
 	{
-		int n = traps.size() + 1;
-		while(traps.containsKey("trap" + n))
-			n++;
-		return "trap" + n;
+		return Util.nextFreeId("trap", traps.size() + 1, traps::containsKey);
 	}
 
 	public void removeTrap(String id)

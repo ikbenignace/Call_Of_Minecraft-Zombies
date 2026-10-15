@@ -13,6 +13,7 @@ import com.theprogrammingturkey.comz.util.CommandUtil;
 import com.theprogrammingturkey.comz.util.Compat;
 import com.theprogrammingturkey.comz.util.EntitySpawner;
 import com.theprogrammingturkey.comz.util.SoundUtil;
+import com.theprogrammingturkey.comz.util.Util;
 import com.theprogrammingturkey.comz.util.display.Displays;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -193,10 +194,7 @@ public class TransportManager
 
 	public String nextId()
 	{
-		int n = transports.size() + 1;
-		while(transports.containsKey("transport" + n))
-			n++;
-		return "transport" + n;
+		return Util.nextFreeId("transport", transports.size() + 1, transports::containsKey);
 	}
 
 	/** The transport with a waypoint or call point within {@code reach} blocks of {@code point}, closest first. */
@@ -225,17 +223,21 @@ public class TransportManager
 		World world = game.getWorld();
 		if(world == null)
 			return;
+		boolean anyUsable = false;
 		for(Transport transport : transports.values())
 		{
 			if(!transport.isUsable())
 				continue;
+			anyUsable = true;
 			State state = state(transport);
 			if(transport.getStyle() == Transport.Style.ZIPLINE)
 				spawnRope(world, transport);
 			else if(transport.getStyle() == Transport.Style.PLATFORM)
 				state.platform = spawnPlatform(world, transport, transport.start());
 		}
-		taskId = COMZombies.scheduleTask(1L, 1L, this::tick);
+		// Transports only change in build mode, which disables the arena, so the next game start picks them up.
+		if(anyUsable)
+			taskId = COMZombies.scheduleTask(1L, 1L, this::tick);
 	}
 
 	/** Drops every rider safely, despawns all transport entities and cancels the ride task. */
@@ -342,11 +344,6 @@ public class TransportManager
 		return null;
 	}
 
-	private boolean powerLocked(Transport transport)
-	{
-		return transport.requiresPower() && game.hasPower() && !game.isPowered();
-	}
-
 	private int secondsUntilReady(Transport transport)
 	{
 		State state = state(transport);
@@ -375,7 +372,7 @@ public class TransportManager
 		Transport transport = target.transport;
 		String name = transport.displayName();
 		State state = state(transport);
-		if(powerLocked(transport))
+		if(game.isPowerLocked(transport.requiresPower()))
 			return ChatColor.RED + "[F] " + name + ChatColor.GRAY + " - power required";
 		if(state.busy)
 			return ChatColor.GRAY + name + " is moving";
@@ -402,7 +399,7 @@ public class TransportManager
 		if(!transports.containsKey(transport.getId()) || !transport.isUsable() || !canRide(player) || isRiding(player))
 			return;
 		State state = state(transport);
-		if(powerLocked(transport))
+		if(game.isPowerLocked(transport.requiresPower()))
 		{
 			CommandUtil.sendMessageToPlayer(player, ChatColor.RED + "You must turn on the power first!");
 			PerkType.noPower(player);

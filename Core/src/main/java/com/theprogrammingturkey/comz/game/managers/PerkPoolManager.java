@@ -236,24 +236,22 @@ public class PerkPoolManager
 		if(perk == null)
 			return false;
 
-		String[] lines = null;
-		for(Iterator<String[]> it = pending.iterator(); it.hasNext(); )
-		{
-			String[] candidate = it.next();
+		String[] pooled = null;
+		for(String[] candidate : pending)
 			if(PerkType.getPerkType(ChatColor.stripColor(candidate[2]).trim()) == perk)
 			{
-				lines = candidate;
-				it.remove();
+				pooled = candidate;
 				break;
 			}
-		}
-		if(lines == null)
-			lines = new String[]{ChatColor.RED + "[Zombies]", ChatColor.AQUA + "Perk Machine", perk.toString().toLowerCase(Locale.ROOT), Integer.toString(perk.getDefaultCost())};
+		String[] lines = pooled != null ? pooled
+				: new String[]{ChatColor.RED + "[Zombies]", ChatColor.AQUA + "Perk Machine", perk.toString().toLowerCase(Locale.ROOT), Integer.toString(perk.getDefaultCost())};
 
-		Spot spot = at != null ? new Spot(at.toVector(), BlockFace.SOUTH) : takeFreeSpot();
-		if(spot == null)
+		Spot spot = at != null ? new Spot(at.toVector(), BlockFace.SOUTH) : nextFreeSpot();
+		if(spot == null || !place(lines, spot))
 			return false;
-		place(lines, spot);
+		if(pooled != null)
+			pending.remove(pooled);
+		freeSpots.remove(spot);
 		return true;
 	}
 
@@ -261,28 +259,46 @@ public class PerkPoolManager
 	{
 		if(pending.isEmpty())
 			return false;
-		Spot spot = takeFreeSpot();
-		if(spot == null)
+		Spot spot = nextFreeSpot();
+		if(spot == null || !place(pending.get(0), spot))
 			return false;
-		place(pending.remove(0), spot);
+		pending.remove(0);
+		freeSpots.remove(spot);
 		return true;
 	}
 
-	private Spot takeFreeSpot()
+	/** First free spot, dropping spots a perk was already placed on by an explicit {@code spawn_perk} location. */
+	private Spot nextFreeSpot()
 	{
-		return freeSpots.isEmpty() ? null : freeSpots.remove(0);
+		World world = game.getWorld();
+		while(!freeSpots.isEmpty())
+		{
+			Spot spot = freeSpots.get(0);
+			if(world == null || !isOccupied(spot.location(world).getBlock()))
+				return spot;
+			freeSpots.remove(0);
+		}
+		return null;
 	}
 
-	private void place(String[] lines, Spot spot)
+	private boolean isOccupied(Block block)
+	{
+		for(Placed existing : placed)
+			if(existing.location.getBlock().equals(block))
+				return true;
+		return false;
+	}
+
+	/** Builds the perk sign and machine at {@code spot}; false when nothing was placed so the caller keeps the perk. */
+	private boolean place(String[] lines, Spot spot)
 	{
 		World world = game.getWorld();
 		if(world == null)
-			return;
+			return false;
 		Location location = spot.location(world);
 		Block block = location.getBlock();
-		for(Placed existing : placed)
-			if(existing.location.getBlock().equals(block))
-				return;
+		if(isOccupied(block))
+			return false;
 		placed.add(new Placed(location, block.getType(), block.getBlockData()));
 		// Journal the spot's real block first: a crash mid-game then restores the empty spot, not a perk sign.
 		HiddenSignJournal.record(location, block.getType(), block.getBlockData(), new String[4], null, Material.OAK_WALL_SIGN);
@@ -296,7 +312,7 @@ public class PerkPoolManager
 		}
 		BlockState state = block.getState();
 		if(!(state instanceof Sign))
-			return;
+			return false;
 		Sign sign = (Sign) state;
 		for(int i = 0; i < 4 && i < lines.length; i++)
 			sign.setLine(i, lines[i] == null ? "" : lines[i]);
@@ -306,6 +322,7 @@ public class PerkPoolManager
 		Location centre = location.clone().add(0.5, 0.5, 0.5);
 		ParticleFX.lightColumn(world, centre, 3.0);
 		SoundUtil.play(world, centre, SoundConfig.get("trigger.perk_reveal", "BLOCK_BEACON_ACTIVATE"), SoundCategory.MASTER, 1.5f, 1f);
+		return true;
 	}
 
 	/**

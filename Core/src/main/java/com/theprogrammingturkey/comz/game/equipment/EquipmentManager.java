@@ -6,8 +6,6 @@ import com.theprogrammingturkey.comz.game.Game;
 import com.theprogrammingturkey.comz.util.BreathingGear;
 import com.theprogrammingturkey.comz.util.CommandUtil;
 import com.theprogrammingturkey.comz.util.SoundUtil;
-import net.md_5.bungee.api.ChatMessageType;
-import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
@@ -244,7 +242,7 @@ public class EquipmentManager
 			return;
 		if(!"breathing".equals(equipment.behaviour))
 		{
-			actionBar(player, ChatColor.GRAY + equipment.name + ": nothing to use it on here");
+			CommandUtil.actionBar(player, ChatColor.GRAY + equipment.name + ": nothing to use it on here");
 			return;
 		}
 		setBreathing(player, equipment, !BreathingGear.isWearing(player));
@@ -259,7 +257,7 @@ public class EquipmentManager
 		if(slot >= 0)
 			inventory.setItem(slot, gearItem(player, equipment));
 		player.updateInventory();
-		actionBar(player, on ? ChatColor.GREEN + equipment.name + " on" : ChatColor.GRAY + equipment.name + " off");
+		CommandUtil.actionBar(player, on ? ChatColor.GREEN + equipment.name + " on" : ChatColor.GRAY + equipment.name + " off");
 	}
 
 	private void takeOffGear(Player player, Equipment gear)
@@ -299,7 +297,7 @@ public class EquipmentManager
 			return;
 		if(mines.countPlaced(player, equipment) >= equipment.maxPlaced)
 		{
-			actionBar(player, ChatColor.RED + "You can't place more than " + equipment.maxPlaced + " " + equipment.name + "s");
+			CommandUtil.actionBar(player, ChatColor.RED + "You can't place more than " + equipment.maxPlaced + " " + equipment.name + "s");
 			return;
 		}
 		if(mines.place(player, equipment, at, facingYaw))
@@ -425,10 +423,6 @@ public class EquipmentManager
 		return game.getStatus() == Game.GameStatus.INGAME;
 	}
 
-	static void actionBar(Player player, String text)
-	{
-		player.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(text));
-	}
 
 	/** Damage that one-shots zombies through {@code oneShotThroughRound}, else the flat {@code damage}. */
 	static float damageOf(Equipment equipment)

@@ -12,7 +12,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-/** Live state of one spawned special enemy. */
 class ActiveSpecial
 {
 	final Mob mob;

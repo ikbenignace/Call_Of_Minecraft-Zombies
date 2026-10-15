@@ -12,16 +12,19 @@ import org.bukkit.entity.Player;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 /**
  * A buyable, timed trap. Its {@link TrapType} decides the look, sound and damage; its region is a zone (by id),
  * its own two corners, or - for traps saved before regions existed - a radius around the activation sign.
- * After a run it cools down before it can be bought again.
+ * Typed traps cool down from the end of their run (Black Ops); legacy generic traps keep the old behaviour of
+ * counting the cooldown from activation.
  */
 public class Trap
 {
-	/** Duration/cooldown value meaning "use the type's default". */
 	public static final int USE_TYPE_DEFAULT = -1;
 
 	private final String id;
@@ -34,9 +37,10 @@ public class Trap
 	private double radius = -1;
 	private int durationSeconds = USE_TYPE_DEFAULT;
 	private int cooldownSeconds = USE_TYPE_DEFAULT;
-	private boolean requiresPower = true;
+	/** Null follows the type's requires_power. */
+	private Boolean requiresPower;
 
-	/** Epoch millis the last run ended; 0 = never used. Transient. */
+	/** Epoch millis the cooldown counts from; 0 = never used. Transient. */
 	private long lastUsed = 0L;
 	private final List<TrapRun> runs = new ArrayList<>();
 	/** More boxes the same handle switches on (one trap guarding two doorways); each is a two-corner pair. */
@@ -168,18 +172,22 @@ public class Trap
 
 	public boolean requiresPower()
 	{
+		return requiresPower != null ? requiresPower : getType().requiresPower();
+	}
+
+	public Boolean getRawRequiresPower()
+	{
 		return requiresPower;
 	}
 
-	public void setRequiresPower(boolean requiresPower)
+	public void setRequiresPower(Boolean requiresPower)
 	{
 		this.requiresPower = requiresPower;
 	}
 
-	/** True when the arena has a power switch, this trap needs it, and it is still off. */
 	public boolean isPowerLocked(Game game)
 	{
-		return requiresPower && game.hasPower() && !game.isPowered();
+		return game.isPowerLocked(requiresPower());
 	}
 
 	/** Short description of where the trap acts, for build-mode messages. */
@@ -289,7 +297,12 @@ public class Trap
 		runs.clear();
 	}
 
-	/** Starts a run credited to {@code activator}; the cooldown starts when the run ends. */
+	private boolean cooldownFromActivation()
+	{
+		return TrapType.GENERIC_ID.equals(typeId);
+	}
+
+	/** Starts a run credited to {@code activator} over the main region and every extra region. */
 	public boolean activate(Game game, Player activator)
 	{
 		TrapArea area = resolveArea(game);
@@ -301,9 +314,15 @@ public class Trap
 		for(Location[] extra : extraRegions)
 			if(extra[0] != null && extra[1] != null && extra[0].getWorld() != null)
 				areas.add(TrapArea.box(extra[0], extra[1]));
+		boolean fromActivation = cooldownFromActivation();
+		if(fromActivation)
+			lastUsed = System.currentTimeMillis();
+		Runnable onFinish = fromActivation ? () -> {} : () -> lastUsed = System.currentTimeMillis();
+		// Shared so an entity standing where regions overlap is still hit only once per interval.
+		Map<UUID, Integer> lastHit = new HashMap<>();
 		for(TrapArea each : areas)
 		{
-			TrapRun thisRun = new TrapRun(game, getType(), each, activator, getDurationSeconds(), () -> lastUsed = System.currentTimeMillis());
+			TrapRun thisRun = new TrapRun(game, getType(), each, activator, getDurationSeconds(), lastHit, onFinish);
 			runs.add(thisRun);
 			thisRun.start();
 		}

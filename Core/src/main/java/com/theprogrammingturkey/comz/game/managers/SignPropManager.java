@@ -363,7 +363,7 @@ public class SignPropManager
 
 	private boolean powerLocked()
 	{
-		return game.hasPower() && !game.isPowered();
+		return game.isPowerLocked(true);
 	}
 
 	private static String cap(String id)

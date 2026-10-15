@@ -10,8 +10,6 @@ import com.theprogrammingturkey.comz.game.traps.TrapType;
 import com.theprogrammingturkey.comz.game.traps.TrapTypes;
 import com.theprogrammingturkey.comz.util.BlockUtils;
 import com.theprogrammingturkey.comz.util.CommandUtil;
-import net.md_5.bungee.api.ChatMessageType;
-import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.ChatColor;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
@@ -89,7 +87,7 @@ public final class BuildModeManager
 		CommandUtil.sendMessageToPlayer(player, ChatColor.GREEN + "" + ChatColor.BOLD + "Build mode" + ChatColor.GREEN + " for arena " + ChatColor.AQUA + game.getName());
 		CommandUtil.sendMessageToPlayer(player, ChatColor.GRAY + "Scroll = switch tool, " + ChatColor.YELLOW + "F" + ChatColor.GRAY + " = cycle variant, right-click = place, left-click = remove.");
 		CommandUtil.sendMessageToPlayer(player, ChatColor.GRAY + "Type " + ChatColor.YELLOW + "/zombies build" + ChatColor.GRAY + " again to save & exit.");
-		actionBar(player, currentToolText(session, 0));
+		CommandUtil.actionBar(player, currentToolText(session, 0));
 	}
 
 	/** Save & exit: restore the player's world state, despawn previews, persist the arena. */
@@ -201,10 +199,6 @@ public final class BuildModeManager
 		return ChatColor.stripColor(toolDisplayName(tool, variantFor(tool, session), session));
 	}
 
-	public void actionBar(Player player, String text)
-	{
-		player.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(text));
-	}
 
 	public boolean hasPendingZoneEdit(Player player)
 	{
@@ -284,7 +278,7 @@ public final class BuildModeManager
 		CommandUtil.sendMessageToPlayer(player, ChatColor.AQUA + "Editing " + trap.getId() + ChatColor.GRAY + " (" + describeTrap(trap) + "). Type in chat:");
 		CommandUtil.sendMessageToPlayer(player, ChatColor.YELLOW + "type <" + String.join("|", trapTypeIds()) + ">" + ChatColor.GRAY + ", "
 				+ ChatColor.YELLOW + "cost <n>" + ChatColor.GRAY + ", " + ChatColor.YELLOW + "duration <s|default>" + ChatColor.GRAY + ", "
-				+ ChatColor.YELLOW + "cooldown <s|default>" + ChatColor.GRAY + ", " + ChatColor.YELLOW + "power <on|off>" + ChatColor.GRAY + ", "
+				+ ChatColor.YELLOW + "cooldown <s|default>" + ChatColor.GRAY + ", " + ChatColor.YELLOW + "power <on|off|default>" + ChatColor.GRAY + ", "
 				+ ChatColor.YELLOW + "zone <id|here>" + ChatColor.GRAY + ", " + ChatColor.YELLOW + "delete" + ChatColor.GRAY + " or " + ChatColor.YELLOW + "done");
 	}
 
@@ -350,7 +344,7 @@ public final class BuildModeManager
 					trap.setCooldownSeconds(arg.equalsIgnoreCase("default") ? Trap.USE_TYPE_DEFAULT : Integer.parseInt(arg));
 					break;
 				case "power":
-					trap.setRequiresPower(arg.equalsIgnoreCase("on") || arg.equalsIgnoreCase("true"));
+					trap.setRequiresPower(arg.equalsIgnoreCase("default") ? null : arg.equalsIgnoreCase("on") || arg.equalsIgnoreCase("true"));
 					break;
 				case "zone":
 				{

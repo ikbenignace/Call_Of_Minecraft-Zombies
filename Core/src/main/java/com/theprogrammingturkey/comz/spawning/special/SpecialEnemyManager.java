@@ -452,7 +452,10 @@ public class SpecialEnemyManager
 		return a == null ? regular : a.type.points;
 	}
 
-	/** A player killed the special: drop its reward. Runs before the mob leaves the spawn manager. */
+	/**
+	 * The special was killed by a player or a trap ({@code killer} null when the trap's buyer left): drop its
+	 * reward. Runs before the mob leaves the spawn manager.
+	 */
 	public void onKilled(Mob mob, Player killer)
 	{
 		ActiveSpecial a = active.get(mob);
@@ -461,7 +464,9 @@ public class SpecialEnemyManager
 		if(a.type.rewardPowerUp != PowerUp.NONE)
 			game.powerUpManager.dropPowerUp(mob, a.type.rewardPowerUp);
 		if(a.type.behaviour == SpecialBehaviour.BOSS)
-			broadcast(ChatColor.GOLD + killer.getName() + ChatColor.YELLOW + " killed " + ChatColor.RED + a.type.displayName + ChatColor.YELLOW + "!");
+			broadcast(killer != null
+					? ChatColor.GOLD + killer.getName() + ChatColor.YELLOW + " killed " + ChatColor.RED + a.type.displayName + ChatColor.YELLOW + "!"
+					: ChatColor.RED + a.type.displayName + ChatColor.YELLOW + " was killed!");
 	}
 
 	/** The mob left the spawn manager for any reason; runs death effects unless the special removed itself. */

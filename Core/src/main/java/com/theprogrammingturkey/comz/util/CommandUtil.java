@@ -1,6 +1,7 @@
 package com.theprogrammingturkey.comz.util;
 
 import com.theprogrammingturkey.comz.COMZombies;
+import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.BaseComponent;
 import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.HoverEvent;
@@ -42,5 +43,10 @@ public class CommandUtil
 	public static void noPermission(Player player, String action)
 	{
 		player.sendMessage(COMZombies.PREFIX + ChatColor.RED + "You do not have permission to " + action + "!");
+	}
+
+	public static void actionBar(Player player, String text)
+	{
+		player.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(text));
 	}
 }

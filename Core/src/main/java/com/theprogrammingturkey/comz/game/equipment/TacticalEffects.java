@@ -3,6 +3,7 @@ package com.theprogrammingturkey.comz.game.equipment;
 import com.theprogrammingturkey.comz.COMZombies;
 import com.theprogrammingturkey.comz.game.Game;
 import com.theprogrammingturkey.comz.game.features.PowerUp;
+import com.theprogrammingturkey.comz.util.CommandUtil;
 import com.theprogrammingturkey.comz.util.Compat;
 import com.theprogrammingturkey.comz.util.ParticleFX;
 import com.theprogrammingturkey.comz.util.SoundUtil;
@@ -150,7 +151,7 @@ final class TacticalEffects
 				break;
 		}
 		if(!effect.isEmpty())
-			EquipmentManager.actionBar(player, ChatColor.LIGHT_PURPLE + equipment.name + ": " + effect.replace('_', ' '));
+			CommandUtil.actionBar(player, ChatColor.LIGHT_PURPLE + equipment.name + ": " + effect.replace('_', ' '));
 	}
 
 	private static String pick(Equipment equipment)

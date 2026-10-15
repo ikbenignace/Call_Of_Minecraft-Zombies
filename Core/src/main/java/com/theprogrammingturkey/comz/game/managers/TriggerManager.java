@@ -20,9 +20,8 @@ import com.theprogrammingturkey.comz.util.PackModels;
 import com.theprogrammingturkey.comz.util.ParticleFX;
 import com.theprogrammingturkey.comz.util.SoundConfig;
 import com.theprogrammingturkey.comz.util.SoundUtil;
+import com.theprogrammingturkey.comz.util.Util;
 import com.theprogrammingturkey.comz.util.display.Displays;
-import net.md_5.bungee.api.ChatMessageType;
-import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Color;
@@ -117,10 +116,7 @@ public class TriggerManager
 
 	public String nextId()
 	{
-		int n = triggers.size() + 1;
-		while(getTrigger("trigger" + n) != null)
-			n++;
-		return "trigger" + n;
+		return Util.nextFreeId("trigger", triggers.size() + 1, id -> getTrigger(id) != null);
 	}
 
 	public void load(JsonArray json)
@@ -196,7 +192,8 @@ public class TriggerManager
 		stop();
 		for(Trigger trigger : triggers)
 			spawnVisuals(trigger);
-		taskId = COMZombies.scheduleTask(TICK_PERIOD, TICK_PERIOD, this::tick);
+		if(!triggers.isEmpty())
+			taskId = COMZombies.scheduleTask(TICK_PERIOD, TICK_PERIOD, this::tick);
 	}
 
 	/** Ends the game's run: stops ticking, removes visuals and forgets all progress and unlocks. */
@@ -387,7 +384,7 @@ public class TriggerManager
 			return;
 		}
 		SoundUtil.play(player, where, SoundConfig.get("trigger.denied", "ENTITY_VILLAGER_NO"), SoundCategory.MASTER, 1, 1);
-		actionBar(player, ChatColor.GRAY + "Nothing happens...");
+		CommandUtil.actionBar(player, ChatColor.GRAY + "Nothing happens...");
 	}
 
 	// ---------------------------------------------------------------- other events
@@ -766,13 +763,9 @@ public class TriggerManager
 	private void actionBarAll(String text)
 	{
 		for(Player player : game.getPlayersAndSpectators())
-			actionBar(player, text);
+			CommandUtil.actionBar(player, text);
 	}
 
-	private static void actionBar(Player player, String text)
-	{
-		player.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(text));
-	}
 
 	private static int parseInt(String raw, int fallback)
 	{

@@ -4,6 +4,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.theprogrammingturkey.comz.game.Game;
 import com.theprogrammingturkey.comz.game.features.Zone;
+import com.theprogrammingturkey.comz.util.Util;
 import org.bukkit.Location;
 
 import java.util.ArrayList;
@@ -71,13 +72,9 @@ public class ZoneManager
 		return false;
 	}
 
-	/** First free id of the form {@code zone<n>}. */
 	public String nextId()
 	{
-		int n = zones.size() + 1;
-		while(getZone("zone" + n) != null)
-			n++;
-		return "zone" + n;
+		return Util.nextFreeId("zone", zones.size() + 1, id -> getZone(id) != null);
 	}
 
 	public void addZone(Zone zone)

@@ -179,7 +179,6 @@ public class Game
 	 */
 	public TrapManager trapManager;
 
-	/** Ziplines, platforms, carts and elevators of this arena. */
 	public TransportManager transportManager;
 
 	/**
@@ -190,7 +189,6 @@ public class Game
 	/** Step sequences that unlock things (Pack-a-Punch gates, easter eggs, songs); also runs legacy quests. */
 	public TriggerManager triggerManager;
 
-	/** Perk machines that appear at random pool spots when doors open. */
 	public PerkPoolManager perkPoolManager;
 
 	/**
@@ -415,6 +413,12 @@ public class Game
 	public boolean hasPower()
 	{
 		return powerSetup;
+	}
+
+	/** True when the arena has a power switch, the feature needs it, and it is still off. */
+	public boolean isPowerLocked(boolean requiresPower)
+	{
+		return requiresPower && powerSetup && !powerOn;
 	}
 
 	public GameStatus getStatus()
@@ -1638,6 +1642,7 @@ public class Game
 
 			powerUpManager.powerUpDrop(mob, player);
 			specialEnemyManager.onKilled(mob, player);
+			triggerManager.onMobKilled(mob.getLocation());
 			mob.remove();
 			int killScore = killPoints(specialEnemyManager.killPoints(mob, ConfigManager.getMainConfig().pointsOnKill), headshotKill, meleeKill,
 					ConfigManager.getMainConfig().headshotKillBonus, ConfigManager.getMainConfig().meleeKillBonus, isDoublePoints());
@@ -1671,6 +1676,7 @@ public class Game
 
 			powerUpManager.powerUpDrop(mob, player);
 			specialEnemyManager.onKilled(mob, player);
+			triggerManager.onMobKilled(mob.getLocation());
 			mob.remove();
 			int killScore = killPoints(specialEnemyManager.killPoints(mob, ConfigManager.getMainConfig().pointsOnKill), headshotKill, meleeKill,
 					ConfigManager.getMainConfig().headshotKillBonus, ConfigManager.getMainConfig().meleeKillBonus, isDoublePoints());
@@ -1727,12 +1733,15 @@ public class Game
 		if(mob == null || !spawnManager.getEntities().contains(mob))
 			return;
 		boolean creditValid = credit != null && credit.isOnline() && getPlayersInGame().contains(credit);
+		specialEnemyManager.onKilled(mob, creditValid ? credit : null);
+		triggerManager.onMobKilled(mob.getLocation());
 		if(creditValid)
 		{
 			powerUpManager.powerUpDrop(mob, credit);
-			if(points > 0)
+			int killScore = specialEnemyManager.killPoints(mob, points);
+			if(killScore > 0)
 			{
-				int score = points * (isDoublePoints() ? 2 : 1);
+				int score = killScore * (isDoublePoints() ? 2 : 1);
 				PointManager.INSTANCE.addPoints(credit, score);
 				com.theprogrammingturkey.comz.util.PointPopup.show(credit, mob, score);
 				PointManager.INSTANCE.notifyPlayer(credit);

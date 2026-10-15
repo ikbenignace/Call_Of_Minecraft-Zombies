@@ -11,8 +11,7 @@ import com.theprogrammingturkey.comz.game.features.PerkType;
 import com.theprogrammingturkey.comz.game.signs.AmmoCrateSign;
 import com.theprogrammingturkey.comz.game.signs.PackAPunchSign;
 import com.theprogrammingturkey.comz.listeners.BarrierRepairListener;
-import net.md_5.bungee.api.ChatMessageType;
-import net.md_5.bungee.api.chat.TextComponent;
+import com.theprogrammingturkey.comz.util.CommandUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
@@ -159,7 +158,7 @@ public class ProximityBuyManager
 				activeTargets.remove(player.getUniqueId());
 				String barrierPrompt = barrierPrompt(player);
 				if(barrierPrompt != null)
-					sendPrompt(player, barrierPrompt);
+					CommandUtil.actionBar(player, barrierPrompt);
 			}
 		}
 
@@ -400,14 +399,10 @@ public class ProximityBuyManager
 		return color + "[F] Open Door " + ChatColor.YELLOW + "[" + cost + "]";
 	}
 
-	private static void sendPrompt(Player player, String text)
-	{
-		player.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(text));
-	}
 
 	private static void sendPrompt(Player player, BuyTarget target)
 	{
-		sendPrompt(player, target.prompt);
+		CommandUtil.actionBar(player, target.prompt);
 	}
 
 	/**

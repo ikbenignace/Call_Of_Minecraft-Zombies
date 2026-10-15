@@ -13,8 +13,6 @@ import com.theprogrammingturkey.comz.game.managers.PerkPoolManager;
 import com.theprogrammingturkey.comz.util.BlockUtils;
 import com.theprogrammingturkey.comz.util.CommandUtil;
 import com.theprogrammingturkey.comz.util.Compat;
-import net.md_5.bungee.api.ChatMessageType;
-import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Color;
@@ -110,7 +108,7 @@ public final class TriggerBuilder
 			return true;
 		}
 		draft.cycleElement();
-		actionBar(player, ChatColor.AQUA + "Next click adds " + ChatColor.WHITE + draft.elementLabel() + ChatColor.GRAY + " (F = next, Sneak + F = finish)");
+		CommandUtil.actionBar(player, ChatColor.AQUA + "Next click adds " + ChatColor.WHITE + draft.elementLabel() + ChatColor.GRAY + " (F = next, Sneak + F = finish)");
 		return true;
 	}
 
@@ -292,10 +290,10 @@ public final class TriggerBuilder
 		if(draft.history.isEmpty() || draft.building.getSteps().isEmpty() && (draft.songPreset || draft.building.getTargets().isEmpty()))
 		{
 			draft.clear();
-			actionBar(player, ChatColor.YELLOW + "Trigger discarded");
+			CommandUtil.actionBar(player, ChatColor.YELLOW + "Trigger discarded");
 			return;
 		}
-		actionBar(player, ChatColor.RED + "Removed last" + ChatColor.GRAY + " - " + draft.building.getSteps().size() + " step(s), "
+		CommandUtil.actionBar(player, ChatColor.RED + "Removed last" + ChatColor.GRAY + " - " + draft.building.getSteps().size() + " step(s), "
 				+ draft.building.getTargets().size() + " target(s)");
 	}
 
@@ -632,13 +630,9 @@ public final class TriggerBuilder
 	private static void feedback(Player player, Block block, String text)
 	{
 		block.getWorld().spawnParticle(Compat.HAPPY_VILLAGER, block.getLocation().add(0.5, 0.8, 0.5), 6, 0.3, 0.3, 0.3, 0);
-		actionBar(player, text);
+		CommandUtil.actionBar(player, text);
 	}
 
-	private static void actionBar(Player player, String text)
-	{
-		player.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(text));
-	}
 
 	private static void msg(Player player, String text)
 	{

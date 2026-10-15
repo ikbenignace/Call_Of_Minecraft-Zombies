@@ -180,7 +180,7 @@ public class BuildModeListener implements Listener
 			session.cycleVariant(tool, tool.variantLabels().size());
 
 		manager.refreshToolItem(player, session, tool);
-		manager.actionBar(player, manager.currentToolText(session, slot));
+		CommandUtil.actionBar(player, manager.currentToolText(session, slot));
 	}
 
 	/** Advance the active room through: starting room → each existing door → back to starting room. */
@@ -212,7 +212,7 @@ public class BuildModeListener implements Listener
 		BuildTool newTool = BuildTool.fromSlot(event.getNewSlot());
 		if(oldTool != newTool && session.isEditingExisting())
 			session.cancelEditInProgress();
-		manager.actionBar(player, manager.currentToolText(session, event.getNewSlot()));
+		CommandUtil.actionBar(player, manager.currentToolText(session, event.getNewSlot()));
 	}
 
 	@EventHandler
@@ -341,7 +341,7 @@ public class BuildModeListener implements Listener
 		if(session.getActiveRoomDoor() != null)
 			session.getActiveRoomDoor().addSpawnPoint(point);
 
-		manager.actionBar(player, ChatColor.GREEN + "Zombie spawn added to " + session.roomLabel());
+		CommandUtil.actionBar(player, ChatColor.GREEN + "Zombie spawn added to " + session.roomLabel());
 	}
 
 	private void placeSignTool(Player player, BuildSession session, Game game, BuildTool tool, Block clicked, BlockFace face)
@@ -391,7 +391,7 @@ public class BuildModeListener implements Listener
 		// block look-alike otherwise. Cleared again when the sign is removed.
 		session.removePreview(signBlock.getLocation());
 		session.addPreview(signBlock.getLocation(), MachineSigns.previewModel(sign, MachineSigns.previewUsesPack(player)));
-		manager.actionBar(player, ChatColor.GREEN + "Placed " + placedLabel(sign));
+		CommandUtil.actionBar(player, ChatColor.GREEN + "Placed " + placedLabel(sign));
 		return true;
 	}
 
@@ -547,7 +547,7 @@ public class BuildModeListener implements Listener
 		if(corner != null && (sneaking || action == Action.LEFT_CLICK_BLOCK))
 		{
 			session.setZoneCorner(null);
-			manager.actionBar(player, ChatColor.YELLOW + "Zone placement cancelled.");
+			CommandUtil.actionBar(player, ChatColor.YELLOW + "Zone placement cancelled.");
 			return;
 		}
 
@@ -587,7 +587,7 @@ public class BuildModeListener implements Listener
 		if(corner == null)
 		{
 			session.setZoneCorner(clicked.getLocation());
-			manager.actionBar(player, ChatColor.GREEN + "Corner 1 set. Right-click the opposite corner (sneak/left-click cancels).");
+			CommandUtil.actionBar(player, ChatColor.GREEN + "Corner 1 set. Right-click the opposite corner (sneak/left-click cancels).");
 			return;
 		}
 
@@ -616,7 +616,7 @@ public class BuildModeListener implements Listener
 			if(session.getTrapCorner1() != null || session.hasTrapRegion())
 			{
 				session.clearTrapRegion();
-				manager.actionBar(player, ChatColor.YELLOW + "Trap region cleared.");
+				CommandUtil.actionBar(player, ChatColor.YELLOW + "Trap region cleared.");
 			}
 			else
 				msg(player, ChatColor.GRAY + "Nothing to remove there. Left-click a trap sign to remove a trap.");
@@ -652,7 +652,7 @@ public class BuildModeListener implements Listener
 			if(session.getTrapCorner1() == null)
 			{
 				session.setTrapCorner1(clicked.getLocation());
-				manager.actionBar(player, ChatColor.GREEN + "Trap corner 1 set. Right-click the opposite corner (left-click cancels).");
+				CommandUtil.actionBar(player, ChatColor.GREEN + "Trap corner 1 set. Right-click the opposite corner (left-click cancels).");
 			}
 			else
 			{
@@ -680,9 +680,6 @@ public class BuildModeListener implements Listener
 		if(trap == null)
 			return;
 		trap.setTypeId(type.getId());
-		trap.setRequiresPower(type.requiresPower());
-		trap.setDurationSeconds(type.getDurationSeconds());
-		trap.setCooldownSeconds(type.getCooldownSeconds());
 		if(session.getTrapZoneId() != null)
 			trap.setZone(session.getTrapZoneId());
 		else
@@ -771,7 +768,7 @@ public class BuildModeListener implements Listener
 	private void doorFeedback(Player player, Block block, Door door, String what)
 	{
 		block.getWorld().spawnParticle(Compat.HAPPY_VILLAGER, block.getLocation().add(0.5, 0.5, 0.5), 6, 0.3, 0.3, 0.3, 0);
-		manager.actionBar(player, what + ChatColor.GRAY + " — door has " + door.getBlocks().size() + " block(s). Sneak-right-click to finish.");
+		CommandUtil.actionBar(player, what + ChatColor.GRAY + " — door has " + door.getBlocks().size() + " block(s). Sneak-right-click to finish.");
 	}
 
 	private void finalizeDoor(Player player, BuildSession session)
@@ -954,14 +951,14 @@ public class BuildModeListener implements Listener
 		{
 			barrier.removeBarrierBlock(clicked.getLocation());
 			session.restoreMarker(clicked);
-			manager.actionBar(player, ChatColor.RED + "Block removed" + ChatColor.GRAY + " — " + barrier.getBlocks().size() + " block(s). Sneak-right to finish.");
+			CommandUtil.actionBar(player, ChatColor.RED + "Block removed" + ChatColor.GRAY + " — " + barrier.getBlocks().size() + " block(s). Sneak-right to finish.");
 			return;
 		}
 
 		barrier.addBarrierBlock(clicked.getLocation()); // captures real BlockData before we mark it
 		session.addMarker(clicked, Material.ORANGE_STAINED_GLASS);
 		clicked.getWorld().spawnParticle(Compat.HAPPY_VILLAGER, clicked.getLocation().add(0.5, 0.5, 0.5), 6, 0.3, 0.3, 0.3, 0);
-		manager.actionBar(player, ChatColor.GREEN + "Block added" + ChatColor.GRAY + " — " + barrier.getBlocks().size() + " block(s). Sneak-right to finish.");
+		CommandUtil.actionBar(player, ChatColor.GREEN + "Block added" + ChatColor.GRAY + " — " + barrier.getBlocks().size() + " block(s). Sneak-right to finish.");
 	}
 
 	private void finalizeBarrier(Player player, BuildSession session)
@@ -1087,7 +1084,7 @@ public class BuildModeListener implements Listener
 			if(building.getWaypoints().isEmpty() && building.getCallPoints().isEmpty())
 			{
 				session.clearTransportInProgress();
-				manager.actionBar(player, ChatColor.YELLOW + "Transport discarded");
+				CommandUtil.actionBar(player, ChatColor.YELLOW + "Transport discarded");
 				return;
 			}
 			transportFeedback(player, session, spot, ChatColor.RED + "Last point removed");
@@ -1114,7 +1111,7 @@ public class BuildModeListener implements Listener
 	{
 		Transport building = session.getTransportInProgress();
 		spot.getWorld().spawnParticle(Compat.HAPPY_VILLAGER, spot.getLocation().add(0.5, 0.5, 0.5), 6, 0.3, 0.3, 0.3, 0);
-		manager.actionBar(player, what + ChatColor.GRAY + " - " + building.getStyle().getLabel() + ", " + building.getWaypoints().size()
+		CommandUtil.actionBar(player, what + ChatColor.GRAY + " - " + building.getStyle().getLabel() + ", " + building.getWaypoints().size()
 				+ " waypoint(s), " + building.getCallPoints().size() + " call point(s). F = style, Sneak + F = finish.");
 	}
 
@@ -1123,7 +1120,7 @@ public class BuildModeListener implements Listener
 		Transport building = session.getTransportInProgress();
 		building.setStyle(building.getStyle().next());
 		building.applyStyleDefaults();
-		manager.actionBar(player, ChatColor.AQUA + "Style: " + building.getStyle().getLabel() + ChatColor.GRAY + " (cost " + building.getCost()
+		CommandUtil.actionBar(player, ChatColor.AQUA + "Style: " + building.getStyle().getLabel() + ChatColor.GRAY + " (cost " + building.getCost()
 				+ ", cooldown " + building.getCooldownSeconds() + "s, speed " + building.getSpeed() + ")");
 	}
 
