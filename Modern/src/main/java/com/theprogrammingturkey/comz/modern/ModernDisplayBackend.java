@@ -41,22 +41,12 @@ public class ModernDisplayBackend implements DisplayBackend
 	@Override
 	public Entity spawnBlock(Location loc, BlockData block, float cx, float cy, float cz, float sx, float sy, float sz, float yawDegrees, boolean glow)
 	{
-		double yaw = Math.toRadians(yawDegrees);
-		float cos = (float) Math.cos(yaw);
-		float sin = (float) Math.sin(yaw);
-		// Left rotation turns the scaled box about its own origin, so the corner offset is rotated by hand
-		// to keep every part of a composite on the same pivot (the spawn location).
-		float tx = cx * cos + cz * sin;
-		float tz = -cx * sin + cz * cos;
+		Transformation transformation = blockTransform(cx, cy, cz, sx, sy, sz, yawDegrees);
 		return EntitySpawner.spawn(loc.getWorld(), loc, BlockDisplay.class, display ->
 		{
 			display.setBlock(block);
 			display.setBillboard(Display.Billboard.FIXED);
-			display.setTransformation(new Transformation(
-					new Vector3f(tx, cy, tz),
-					new AxisAngle4f((float) yaw, 0f, 1f, 0f),
-					new Vector3f(sx, sy, sz),
-					new AxisAngle4f(0f, 0f, 1f, 0f)));
+			display.setTransformation(transformation);
 			if(glow)
 				display.setBrightness(new Display.Brightness(15, 15));
 			// A zero-size cull box makes the part pop out whenever its origin leaves the screen.
@@ -64,6 +54,33 @@ public class ModernDisplayBackend implements DisplayBackend
 			display.setDisplayHeight(4f);
 			display.setViewRange(1.5f);
 		});
+	}
+
+	@Override
+	public void animateBlock(Entity entity, float cx, float cy, float cz, float sx, float sy, float sz, float yawDegrees, int durationTicks)
+	{
+		if(!(entity instanceof BlockDisplay))
+			return;
+		BlockDisplay display = (BlockDisplay) entity;
+		display.setInterpolationDelay(0);
+		display.setInterpolationDuration(durationTicks);
+		display.setTransformation(blockTransform(cx, cy, cz, sx, sy, sz, yawDegrees));
+	}
+
+	private static Transformation blockTransform(float cx, float cy, float cz, float sx, float sy, float sz, float yawDegrees)
+	{
+		double yaw = Math.toRadians(yawDegrees);
+		float cos = (float) Math.cos(yaw);
+		float sin = (float) Math.sin(yaw);
+		// Left rotation turns the scaled box about its own origin, so the corner offset is rotated by hand
+		// to keep every part of a composite on the same pivot (the spawn location).
+		float tx = cx * cos + cz * sin;
+		float tz = -cx * sin + cz * cos;
+		return new Transformation(
+				new Vector3f(tx, cy, tz),
+				new AxisAngle4f((float) yaw, 0f, 1f, 0f),
+				new Vector3f(sx, sy, sz),
+				new AxisAngle4f(0f, 0f, 1f, 0f));
 	}
 
 	@Override

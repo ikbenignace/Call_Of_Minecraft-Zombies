@@ -13,8 +13,10 @@ import com.theprogrammingturkey.comz.game.features.Barrier;
 import com.theprogrammingturkey.comz.game.features.BuildableItems;
 import com.theprogrammingturkey.comz.game.features.Door;
 import com.theprogrammingturkey.comz.game.features.PerkType;
+import com.theprogrammingturkey.comz.game.features.Trap;
 import com.theprogrammingturkey.comz.game.features.Zone;
 import com.theprogrammingturkey.comz.game.signs.IGameSign;
+import com.theprogrammingturkey.comz.game.traps.TrapType;
 import com.theprogrammingturkey.comz.game.weapons.BaseGun;
 import com.theprogrammingturkey.comz.game.managers.WeaponManager;
 import com.theprogrammingturkey.comz.kits.KitManager;
@@ -99,6 +101,14 @@ public class BuildModeListener implements Listener
 		if(tool == BuildTool.BARRIER)
 		{
 			barrierInteract(player, session, clicked, event.getAction(), player.isSneaking());
+			return;
+		}
+		TrapType trapType = tool == BuildTool.FEATURE ? BuildTool.trapTypeForLabel(tool.variantLabel(session.getVariant(tool))) : null;
+		if(trapType != null && !(event.getAction() == Action.LEFT_CLICK_BLOCK && isComzSign(clicked)))
+		{
+			if(event.getAction() == Action.RIGHT_CLICK_BLOCK && session.onPlaceCooldown())
+				return;
+			trapInteract(player, session, trapType, clicked, event.getBlockFace(), event.getAction(), player.isSneaking());
 			return;
 		}
 		ZonePreset zonePreset = tool == BuildTool.FEATURE ? session.selectedZonePreset() : null;
@@ -323,19 +333,24 @@ public class BuildModeListener implements Listener
 		String[] kv = signParams(session, game, tool);
 		if(kv == null)
 			return;
+		placeSign(player, session, game, signBlock, face, kv);
+	}
 
+	/** Places a [Zombies] sign with {keyword, line2, line3} at {@code signBlock}; false after messaging an error. */
+	private boolean placeSign(Player player, BuildSession session, Game game, Block signBlock, BlockFace face, String[] kv)
+	{
 		IGameSign handler = com.theprogrammingturkey.comz.listeners.SignListener.getSignHandler(kv[0]);
 		if(handler != null && handler.requiresGame() && !game.arena.containsBlock(signBlock.getLocation()))
 		{
 			msg(player, ChatColor.RED + "That must be placed inside the arena!");
-			return;
+			return false;
 		}
 
 		boolean ok = MachineSigns.placeSign(game, player, signBlock, face, kv[0], kv[1], kv[2]);
 		if(!ok)
 		{
 			msg(player, ChatColor.RED + "Could not place that (unknown sign type).");
-			return;
+			return false;
 		}
 
 		Sign sign = (Sign) signBlock.getState();
@@ -349,6 +364,7 @@ public class BuildModeListener implements Listener
 		session.removePreview(signBlock.getLocation());
 		session.addPreview(signBlock.getLocation(), MachineSigns.previewModel(sign, MachineSigns.previewUsesPack(player)));
 		manager.actionBar(player, ChatColor.GREEN + "Placed " + placedLabel(sign));
+		return true;
 	}
 
 	private String placedLabel(Sign sign)
@@ -404,16 +420,9 @@ public class BuildModeListener implements Listener
 			}
 			case FEATURE:
 			{
-				String label = BuildTool.FEATURE_VARIANTS.get(session.getVariant(tool) % BuildTool.FEATURE_VARIANTS.size());
-				switch(label)
+				String label = tool.variantLabel(session.getVariant(tool));
+				switch(label == null ? "" : label)
 				{
-					case "Trap":
-					{
-						int trapNum = game.trapManager.getTraps().size() + 1;
-						while(game.trapManager.getTrap("trap" + trapNum) != null)
-							trapNum++;
-						return new String[]{"trap", "trap" + trapNum, "1000"};
-					}
 					case "Buildable":
 						return new String[]{"buildable", BuildableItems.ZOMBIE_SHIELD_ID, ""};
 					case "Quest":
@@ -557,6 +566,95 @@ public class BuildModeListener implements Listener
 		msg(player, ChatColor.GREEN + "Created " + zone.getId() + ChatColor.GRAY + " (" + zone.describeFlags() + "). Sneak-right-click inside it to name it or change flags.");
 		if(preset == ZonePreset.NAMED_AREA)
 			manager.startZoneEdit(player, session, zone);
+	}
+
+	/**
+	 * Feature-tool trap placement. First the region: right-click two corners, or sneak-right-click to reuse
+	 * the zone you stand in (or clicked). Then right-click a wall face to place the activation sign, which
+	 * creates the trap with the selected type. Left-click clears a half-picked region.
+	 */
+	private void trapInteract(Player player, BuildSession session, TrapType type, Block clicked, BlockFace face, Action action, boolean sneaking)
+	{
+		Game game = session.getGame();
+		if(action == Action.LEFT_CLICK_BLOCK)
+		{
+			if(session.getTrapCorner1() != null || session.hasTrapRegion())
+			{
+				session.clearTrapRegion();
+				manager.actionBar(player, ChatColor.YELLOW + "Trap region cleared.");
+			}
+			else
+				msg(player, ChatColor.GRAY + "Nothing to remove there. Left-click a trap sign to remove a trap.");
+			return;
+		}
+		if(action != Action.RIGHT_CLICK_BLOCK)
+			return;
+
+		if(sneaking)
+		{
+			Zone zone = game.zoneManager.getSmallestZoneAt(player.getLocation());
+			if(zone == null)
+				zone = zoneAt(game, clicked);
+			if(zone == null)
+			{
+				msg(player, ChatColor.RED + "No zone here. Stand in (or click inside) a zone, or right-click two corners instead.");
+				return;
+			}
+			session.setTrapZone(zone.getId());
+			msg(player, ChatColor.GREEN + type.getName() + " region: " + zone.getId() + (zone.hasName() ? " \"" + zone.getName() + "\"" : "")
+					+ ChatColor.GRAY + ". Now right-click a wall to place its activation sign.");
+			return;
+		}
+
+		if(!session.hasTrapRegion())
+		{
+			if(!game.arena.containsBlock(clicked.getLocation()))
+			{
+				msg(player, ChatColor.RED + "Trap regions must be inside the arena!");
+				return;
+			}
+			clicked.getWorld().spawnParticle(Compat.HAPPY_VILLAGER, clicked.getLocation().add(0.5, 1.2, 0.5), 10, 0.3, 0.2, 0.3, 0);
+			if(session.getTrapCorner1() == null)
+			{
+				session.setTrapCorner1(clicked.getLocation());
+				manager.actionBar(player, ChatColor.GREEN + "Trap corner 1 set. Right-click the opposite corner (left-click cancels).");
+			}
+			else
+			{
+				session.setTrapCorner2(clicked.getLocation());
+				msg(player, ChatColor.GREEN + type.getName() + " region set" + ChatColor.GRAY + ". Now right-click a wall to place its activation sign.");
+			}
+			return;
+		}
+
+		if(face != BlockFace.NORTH && face != BlockFace.SOUTH && face != BlockFace.EAST && face != BlockFace.WEST)
+		{
+			msg(player, ChatColor.RED + "Aim at a wall face to place the trap's activation sign.");
+			return;
+		}
+		Block signBlock = clicked.getRelative(face);
+		if(!signBlock.getType().isAir())
+		{
+			msg(player, ChatColor.RED + "There is no room for a sign there.");
+			return;
+		}
+		String id = game.trapManager.nextId();
+		if(!placeSign(player, session, game, signBlock, face, new String[]{"trap", id, String.valueOf(type.getCost())}))
+			return;
+		Trap trap = game.trapManager.getTrap(id);
+		if(trap == null)
+			return;
+		trap.setTypeId(type.getId());
+		trap.setRequiresPower(type.requiresPower());
+		trap.setDurationSeconds(type.getDurationSeconds());
+		trap.setCooldownSeconds(type.getCooldownSeconds());
+		if(session.getTrapZoneId() != null)
+			trap.setZone(session.getTrapZoneId());
+		else
+			trap.setCorners(session.getTrapCorner1(), session.getTrapCorner2());
+		session.clearTrapRegion();
+		GameManager.INSTANCE.saveAllGames();
+		msg(player, ChatColor.GREEN + "Created " + id + ChatColor.GRAY + " (" + BuildModeManager.describeTrap(trap) + "). Sneak-right-click its sign to change it.");
 	}
 
 	/** Smallest zone holding the clicked block or the block above it (clicks usually land on the floor). */
@@ -918,6 +1016,16 @@ public class BuildModeListener implements Listener
 	/** Begin editing a placed sign's price/cost — the next chat message becomes the new value. */
 	private void startPriceEdit(Player player, BuildSession session, Block signBlock)
 	{
+		Sign trapSign = (Sign) signBlock.getState();
+		if(ChatColor.stripColor(trapSign.getLine(1)).equalsIgnoreCase("Trap"))
+		{
+			Trap trap = session.getGame().trapManager.getTrap(ChatColor.stripColor(trapSign.getLine(2)));
+			if(trap != null)
+			{
+				manager.startTrapEdit(player, session, trap);
+				return;
+			}
+		}
 		session.setPendingPriceSign(signBlock.getLocation());
 		Sign sign = (Sign) signBlock.getState();
 		String type = ChatColor.stripColor(sign.getLine(1));

@@ -85,6 +85,13 @@ public final class Displays
 		backend.animate(display, x, y, z, scale, yawDegrees, durationTicks);
 	}
 
+	public static void animateBlock(Entity display, float cx, float cy, float cz, float sx, float sy, float sz, float yawDegrees, int durationTicks)
+	{
+		if(display == null || display.isDead())
+			return;
+		backend.animateBlock(display, cx, cy, cz, sx, sy, sz, yawDegrees, durationTicks);
+	}
+
 	public static Entity spawnText(Location loc, String text, boolean seeThrough)
 	{
 		if(loc.getWorld() == null)

@@ -3,7 +3,10 @@ package com.theprogrammingturkey.comz.game.builder;
 import com.theprogrammingturkey.comz.game.Game;
 import com.theprogrammingturkey.comz.game.GameManager;
 import com.theprogrammingturkey.comz.game.features.Door;
+import com.theprogrammingturkey.comz.game.features.Trap;
 import com.theprogrammingturkey.comz.game.features.Zone;
+import com.theprogrammingturkey.comz.game.traps.TrapType;
+import com.theprogrammingturkey.comz.game.traps.TrapTypes;
 import com.theprogrammingturkey.comz.util.BlockUtils;
 import com.theprogrammingturkey.comz.util.CommandUtil;
 import net.md_5.bungee.api.ChatMessageType;
@@ -259,6 +262,123 @@ public final class BuildModeManager
 		}
 		GameManager.INSTANCE.saveAllGames();
 		CommandUtil.sendMessageToPlayer(player, ChatColor.GREEN + zone.getId() + (zone.hasName() ? " \"" + zone.getName() + "\"" : "") + ": " + zone.describeFlags());
+	}
+
+	public boolean hasPendingTrapEdit(Player player)
+	{
+		BuildSession session = sessions.get(player.getUniqueId());
+		return session != null && session.getPendingTrapEdit() != null;
+	}
+
+	/** Explain the trap chat prompt and arm it for {@code trap}. */
+	public void startTrapEdit(Player player, BuildSession session, Trap trap)
+	{
+		session.setPendingTrapEdit(trap);
+		CommandUtil.sendMessageToPlayer(player, ChatColor.AQUA + "Editing " + trap.getId() + ChatColor.GRAY + " (" + describeTrap(trap) + "). Type in chat:");
+		CommandUtil.sendMessageToPlayer(player, ChatColor.YELLOW + "type <" + String.join("|", trapTypeIds()) + ">" + ChatColor.GRAY + ", "
+				+ ChatColor.YELLOW + "cost <n>" + ChatColor.GRAY + ", " + ChatColor.YELLOW + "duration <s|default>" + ChatColor.GRAY + ", "
+				+ ChatColor.YELLOW + "cooldown <s|default>" + ChatColor.GRAY + ", " + ChatColor.YELLOW + "power <on|off>" + ChatColor.GRAY + ", "
+				+ ChatColor.YELLOW + "zone <id|here>" + ChatColor.GRAY + ", " + ChatColor.YELLOW + "delete" + ChatColor.GRAY + " or " + ChatColor.YELLOW + "done");
+	}
+
+	private static List<String> trapTypeIds()
+	{
+		List<String> ids = new java.util.ArrayList<>();
+		for(TrapType type : TrapTypes.all())
+			ids.add(type.getId());
+		return ids;
+	}
+
+	public static String describeTrap(Trap trap)
+	{
+		return trap.getType().getId() + ", cost " + trap.getCost() + ", " + trap.getDurationSeconds() + "s on, "
+				+ trap.getCooldownSeconds() + "s cooldown, " + (trap.requiresPower() ? "needs power" : "no power needed") + ", " + trap.describeRegion();
+	}
+
+	/** Apply one chat line to the trap being edited. MUST run on the main thread. */
+	public void handleTrapChat(Player player, String message)
+	{
+		BuildSession session = sessions.get(player.getUniqueId());
+		if(session == null || session.getPendingTrapEdit() == null)
+			return;
+		Trap trap = session.getPendingTrapEdit();
+		Game game = session.getGame();
+		String[] parts = message.trim().split("\\s+", 2);
+		String command = parts[0].toLowerCase(Locale.ROOT);
+		String arg = parts.length > 1 ? parts[1].trim() : "";
+		try
+		{
+			switch(command)
+			{
+				case "done":
+				case "cancel":
+					session.setPendingTrapEdit(null);
+					CommandUtil.sendMessageToPlayer(player, ChatColor.GRAY + "Finished editing " + trap.getId() + ".");
+					return;
+				case "delete":
+					trap.reset();
+					if(trap.getCenter() != null && BlockUtils.isSign(trap.getCenter().getBlock().getType()))
+						BlockUtils.setBlockToAir(trap.getCenter().getBlock());
+					session.removePreview(trap.getCenter());
+					game.trapManager.removeTrap(trap.getId());
+					session.setPendingTrapEdit(null);
+					CommandUtil.sendMessageToPlayer(player, ChatColor.YELLOW + "Deleted " + trap.getId() + ".");
+					return;
+				case "type":
+					if(!TrapTypes.exists(arg))
+					{
+						CommandUtil.sendMessageToPlayer(player, ChatColor.RED + "Unknown trap type '" + arg + "'. Known: " + String.join(", ", trapTypeIds()));
+						return;
+					}
+					trap.setTypeId(arg);
+					break;
+				case "cost":
+					trap.setCost(Integer.parseInt(arg));
+					updateTrapSignCost(trap);
+					break;
+				case "duration":
+					trap.setDurationSeconds(arg.equalsIgnoreCase("default") ? Trap.USE_TYPE_DEFAULT : Integer.parseInt(arg));
+					break;
+				case "cooldown":
+					trap.setCooldownSeconds(arg.equalsIgnoreCase("default") ? Trap.USE_TYPE_DEFAULT : Integer.parseInt(arg));
+					break;
+				case "power":
+					trap.setRequiresPower(arg.equalsIgnoreCase("on") || arg.equalsIgnoreCase("true"));
+					break;
+				case "zone":
+				{
+					Zone zone = arg.equalsIgnoreCase("here") ? game.zoneManager.getSmallestZoneAt(player.getLocation()) : game.zoneManager.getZone(arg);
+					if(zone == null)
+						zone = game.zoneManager.getZoneByName(arg);
+					if(zone == null)
+					{
+						CommandUtil.sendMessageToPlayer(player, ChatColor.RED + "No zone '" + arg + "'" + (arg.equalsIgnoreCase("here") ? " where you stand." : "."));
+						return;
+					}
+					trap.setZone(zone.getId());
+					break;
+				}
+				default:
+					CommandUtil.sendMessageToPlayer(player, ChatColor.RED + "Unknown trap option '" + command + "'. Type done to stop editing.");
+					return;
+			}
+		} catch(NumberFormatException e)
+		{
+			CommandUtil.sendMessageToPlayer(player, ChatColor.RED + "'" + arg + "' is not a whole number.");
+			return;
+		}
+		GameManager.INSTANCE.saveAllGames();
+		CommandUtil.sendMessageToPlayer(player, ChatColor.GREEN + trap.getId() + ": " + describeTrap(trap));
+	}
+
+	private static void updateTrapSignCost(Trap trap)
+	{
+		Location loc = trap.getCenter();
+		if(loc == null || !(loc.getBlock().getState() instanceof Sign))
+			return;
+		Sign sign = (Sign) loc.getBlock().getState();
+		sign.setLine(3, String.valueOf(trap.getCost()));
+		sign.update(true);
 	}
 
 	/** True if this build player is mid price-edit (a sneak-right-click armed a sign, or the Door tool's

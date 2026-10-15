@@ -1,43 +1,45 @@
 package com.theprogrammingturkey.comz.game.features;
 
-import com.theprogrammingturkey.comz.COMZombies;
 import com.theprogrammingturkey.comz.config.ConfigManager;
 import com.theprogrammingturkey.comz.config.ConfigSetup;
 import com.theprogrammingturkey.comz.game.Game;
+import com.theprogrammingturkey.comz.game.traps.TrapArea;
+import com.theprogrammingturkey.comz.game.traps.TrapRun;
+import com.theprogrammingturkey.comz.game.traps.TrapType;
+import com.theprogrammingturkey.comz.game.traps.TrapTypes;
 import org.bukkit.Location;
-import org.bukkit.Particle;
-import org.bukkit.Sound;
-import org.bukkit.World;
-import org.bukkit.entity.Mob;
+import org.bukkit.entity.Player;
 
 /**
- * Tier 2 — a buyable, timed kill-zone trap.
- * <p>
- * When activated the trap repeatedly kills any tracked zombies within
- * {@link ConfigSetup#trapKillRadius} of its center for
- * {@link ConfigSetup#trapDurationSeconds}, then enters a cooldown for
- * {@link ConfigSetup#trapCooldownSeconds}. It cannot be re-triggered while
- * active or cooling down.
+ * A buyable, timed trap. Its {@link TrapType} decides the look, sound and damage; its region is a zone (by id),
+ * its own two corners, or - for traps saved before regions existed - a radius around the activation sign.
+ * After a run it cools down before it can be bought again.
  */
 public class Trap
 {
-	/** How often (ticks) the trap sweeps for zombies while active. */
-	private static final long SWEEP_PERIOD_TICKS = 10L;
+	/** Duration/cooldown value meaning "use the type's default". */
+	public static final int USE_TYPE_DEFAULT = -1;
 
 	private final String id;
-	private final Location center;
-	private final int cost;
+	private Location handle;
+	private int cost;
+	private String typeId = TrapType.GENERIC_ID;
+	private String zoneId;
+	private Location corner1;
+	private Location corner2;
+	private double radius = -1;
+	private int durationSeconds = USE_TYPE_DEFAULT;
+	private int cooldownSeconds = USE_TYPE_DEFAULT;
+	private boolean requiresPower = true;
 
-	/** Epoch millis the trap was last activated; 0 = never used. Transient. */
+	/** Epoch millis the last run ended; 0 = never used. Transient. */
 	private long lastUsed = 0L;
-	/** True while the trap is mid-activation (killing). Transient. */
-	private boolean active = false;
-	private int activation = 0;
+	private TrapRun run;
 
-	public Trap(String id, Location center, int cost)
+	public Trap(String id, Location handle, int cost)
 	{
 		this.id = id;
-		this.center = center;
+		this.handle = handle;
 		this.cost = cost;
 	}
 
@@ -46,9 +48,15 @@ public class Trap
 		return id;
 	}
 
+	/** Where the activation sign/handle is. */
 	public Location getCenter()
 	{
-		return center;
+		return handle;
+	}
+
+	public void setHandle(Location handle)
+	{
+		this.handle = handle;
 	}
 
 	public int getCost()
@@ -56,9 +64,156 @@ public class Trap
 		return cost;
 	}
 
+	public void setCost(int cost)
+	{
+		this.cost = Math.max(0, cost);
+	}
+
+	public TrapType getType()
+	{
+		return TrapTypes.get(typeId);
+	}
+
+	public String getTypeId()
+	{
+		return typeId;
+	}
+
+	public void setTypeId(String typeId)
+	{
+		this.typeId = typeId == null || typeId.isEmpty() ? TrapType.GENERIC_ID : typeId.toLowerCase();
+	}
+
+	public String getZoneId()
+	{
+		return zoneId;
+	}
+
+	/** Use a zone as the region; clears any own corners. */
+	public void setZone(String zoneId)
+	{
+		this.zoneId = zoneId == null || zoneId.isEmpty() ? null : zoneId;
+		if(this.zoneId != null)
+		{
+			corner1 = null;
+			corner2 = null;
+		}
+	}
+
+	public Location getCorner1()
+	{
+		return corner1;
+	}
+
+	public Location getCorner2()
+	{
+		return corner2;
+	}
+
+	/** Use an own box as the region; clears any zone link. */
+	public void setCorners(Location corner1, Location corner2)
+	{
+		this.corner1 = corner1;
+		this.corner2 = corner2;
+		if(corner1 != null && corner2 != null)
+			zoneId = null;
+	}
+
+	/** Legacy kill radius around the sign; negative means the config.yml default. */
+	public double getRadius()
+	{
+		return radius;
+	}
+
+	public void setRadius(double radius)
+	{
+		this.radius = radius;
+	}
+
+	public int getRawDurationSeconds()
+	{
+		return durationSeconds;
+	}
+
+	public int getRawCooldownSeconds()
+	{
+		return cooldownSeconds;
+	}
+
+	public void setDurationSeconds(int seconds)
+	{
+		durationSeconds = seconds < 0 ? USE_TYPE_DEFAULT : seconds;
+	}
+
+	public void setCooldownSeconds(int seconds)
+	{
+		cooldownSeconds = seconds < 0 ? USE_TYPE_DEFAULT : seconds;
+	}
+
+	public int getDurationSeconds()
+	{
+		return durationSeconds >= 0 ? Math.max(1, durationSeconds) : getType().getDurationSeconds();
+	}
+
+	public int getCooldownSeconds()
+	{
+		return cooldownSeconds >= 0 ? cooldownSeconds : getType().getCooldownSeconds();
+	}
+
+	public boolean requiresPower()
+	{
+		return requiresPower;
+	}
+
+	public void setRequiresPower(boolean requiresPower)
+	{
+		this.requiresPower = requiresPower;
+	}
+
+	/** True when the arena has a power switch, this trap needs it, and it is still off. */
+	public boolean isPowerLocked(Game game)
+	{
+		return requiresPower && game.hasPower() && !game.isPowered();
+	}
+
+	/** Short description of where the trap acts, for build-mode messages. */
+	public String describeRegion()
+	{
+		if(zoneId != null)
+			return "zone " + zoneId;
+		if(corner1 != null && corner2 != null)
+			return "box " + corner1.getBlockX() + "," + corner1.getBlockY() + "," + corner1.getBlockZ()
+					+ " -> " + corner2.getBlockX() + "," + corner2.getBlockY() + "," + corner2.getBlockZ();
+		return "radius " + effectiveRadius() + " around the sign";
+	}
+
+	private double effectiveRadius()
+	{
+		if(radius >= 0)
+			return radius;
+		ConfigSetup cfg = ConfigManager.getMainConfig();
+		return cfg == null ? 4.0 : cfg.trapKillRadius;
+	}
+
+	/** The region to act on right now, or null when it cannot be resolved (missing world). */
+	public TrapArea resolveArea(Game game)
+	{
+		if(zoneId != null)
+		{
+			Zone zone = game.zoneManager.getZone(zoneId);
+			if(zone != null && zone.getWorld() != null)
+				return TrapArea.box(zone.getMin(), zone.getMax());
+		}
+		if(corner1 != null && corner2 != null && corner1.getWorld() != null)
+			return TrapArea.box(corner1, corner2);
+		if(handle == null || handle.getWorld() == null)
+			return null;
+		return TrapArea.sphere(handle.clone().add(0.5, 0, 0.5), effectiveRadius());
+	}
+
 	public boolean isActive()
 	{
-		return active;
+		return run != null && run.isRunning();
 	}
 
 	public long getLastUsed()
@@ -67,8 +222,7 @@ public class Trap
 	}
 
 	/**
-	 * Pure cooldown decision, extracted for testing. Mirrors
-	 * {@code TeleporterManager.offCooldown}.
+	 * Pure cooldown decision, extracted for testing. Mirrors {@code TeleporterManager.offCooldown}.
 	 *
 	 * @return true if enough time has elapsed since the last use for the trap to fire again.
 	 */
@@ -79,94 +233,44 @@ public class Trap
 		return (nowMs - lastUsedMs) >= (cooldownSeconds * 1000L);
 	}
 
-	/**
-	 * @return seconds remaining before this trap can be used again, or 0 if it is ready now.
-	 */
-	public int secondsUntilReady(int cooldownSeconds)
+	/** Seconds before this trap can be bought again, or 0 when ready. */
+	public int secondsUntilReady()
 	{
-		if(cooldownSeconds <= 0)
+		int cooldown = getCooldownSeconds();
+		if(cooldown <= 0)
 			return 0;
 		long now = System.currentTimeMillis();
-		if(isReady(lastUsed, now, cooldownSeconds))
+		if(isReady(lastUsed, now, cooldown))
 			return 0;
-		long remainingMs = (cooldownSeconds * 1000L) - (now - lastUsed);
+		long remainingMs = (cooldown * 1000L) - (now - lastUsed);
 		// Round up so a partial second still reads as "1s left" rather than "0s".
 		return (int) ((remainingMs + 999L) / 1000L);
 	}
 
-	/**
-	 * @return true if the trap can be triggered right now (not active and off cooldown).
-	 */
-	public boolean canActivate(int cooldownSeconds)
+	public boolean canActivate()
 	{
-		return !active && isReady(lastUsed, System.currentTimeMillis(), cooldownSeconds);
+		return !isActive() && secondsUntilReady() == 0;
 	}
 
 	public void reset()
 	{
 		lastUsed = 0L;
-		active = false;
-		activation++;
+		if(run != null)
+			run.cancel();
+		run = null;
 	}
 
-	/**
-	 * Activates the trap: marks it used, then for {@code trapDurationSeconds} repeatedly
-	 * (every {@link #SWEEP_PERIOD_TICKS} ticks) kills tracked zombies within
-	 * {@code trapKillRadius} of the center and plays an effect. Enters cooldown afterwards.
-	 */
-	public void activate(Game game)
+	/** Starts a run credited to {@code activator}; the cooldown starts when the run ends. */
+	public boolean activate(Game game, Player activator)
 	{
-		ConfigSetup cfg = ConfigManager.getMainConfig();
-		lastUsed = System.currentTimeMillis();
-		active = true;
-		final int thisActivation = ++activation;
-
-		long durationTicks = Math.max(1L, cfg.trapDurationSeconds * 20L);
-		// Number of sweeps over the active window.
-		long sweeps = Math.max(1L, durationTicks / SWEEP_PERIOD_TICKS);
-
-		for(long i = 0; i <= sweeps; i++)
-		{
-			final boolean last = (i == sweeps);
-			COMZombies.scheduleTask(i * SWEEP_PERIOD_TICKS, () -> {
-				if(thisActivation != activation)
-					return;
-				if(last)
-				{
-					active = false;
-					return;
-				}
-				sweep(game, cfg.trapKillRadius);
-			});
-		}
-	}
-
-	/**
-	 * Kills tracked zombies within {@code radius} of the trap center and plays an effect.
-	 */
-	private void sweep(Game game, double radius)
-	{
-		World world = center.getWorld();
-		if(world == null)
-			return;
-
-		world.spawnParticle(Particle.FLAME, center.getX(), center.getY() + 1, center.getZ(), 30, radius / 2, 0.5, radius / 2, 0.01);
-		com.theprogrammingturkey.comz.util.SoundUtil.play(world, center, com.theprogrammingturkey.comz.util.SoundConfig.get("trap", "BLOCK_FIRE_AMBIENT"), org.bukkit.SoundCategory.MASTER, 1.0f, 1.0f);
-
-		if(radius <= 0)
-			return;
-
-		// Copy first: killMob mutates the tracked-mob list.
-		for(Mob mob : new java.util.ArrayList<>(game.spawnManager.getEntities()))
-		{
-			if(mob == null)
-				continue;
-			Location mobLoc = mob.getLocation();
-			// Guard against null / cross-world distance (distance() throws if worlds differ).
-			if(mobLoc.getWorld() == null || !mobLoc.getWorld().equals(world))
-				continue;
-			if(mobLoc.distance(center) <= radius)
-				game.spawnManager.killMob(mob);
-		}
+		TrapArea area = resolveArea(game);
+		if(area == null)
+			return false;
+		if(run != null)
+			run.cancel();
+		TrapRun thisRun = new TrapRun(game, getType(), area, activator, getDurationSeconds(), () -> lastUsed = System.currentTimeMillis());
+		run = thisRun;
+		thisRun.start();
+		return true;
 	}
 }

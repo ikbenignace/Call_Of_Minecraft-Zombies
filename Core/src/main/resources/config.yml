@@ -205,7 +205,8 @@ config:
     durationSeconds: 10
     #Cooldown (seconds) after a trap finishes before it can be re-triggered.
     cooldownSeconds: 60
-    #Radius (blocks) around the trap center within which zombies are killed.
+    #Defaults for traps without a type or region (older saves). Typed traps use traps.json.
+    #Radius (blocks) around the trap sign within which zombies are killed.
     killRadius: 4.0
   quest:
     #Tier 4 easter-egg quest framework. A per-arena multi-step objective engine.
