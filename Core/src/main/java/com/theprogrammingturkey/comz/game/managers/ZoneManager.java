@@ -10,7 +10,10 @@ import org.bukkit.Location;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
+import java.util.Set;
 
 /**
  * The zones of one arena. Shared registry: the environment, traps and triggers look regions up here.
@@ -19,6 +22,7 @@ public class ZoneManager
 {
 	private final Game game;
 	private final List<Zone> zones = new ArrayList<>();
+	private final Set<String> switchedOff = new HashSet<>();
 
 	public ZoneManager(Game game)
 	{
@@ -46,12 +50,29 @@ public class ZoneManager
 		return null;
 	}
 
-	/** Every zone containing {@code location}, smallest first so nested zones win over their parents. */
+	/**
+	 * Switches a zone off for the rest of the game (or back on): a switched-off zone no longer applies its
+	 * environment, e.g. an air pocket after Moon's excavators breach it. Every zone is on again at game end.
+	 */
+	public void setSwitchedOff(String id, boolean off)
+	{
+		if(off)
+			switchedOff.add(id.toLowerCase(Locale.ROOT));
+		else
+			switchedOff.remove(id.toLowerCase(Locale.ROOT));
+	}
+
+	public void switchAllOn()
+	{
+		switchedOff.clear();
+	}
+
+	/** Every switched-on zone containing {@code location}, smallest first so nested zones win over their parents. */
 	public List<Zone> getZonesAt(Location location)
 	{
 		List<Zone> found = new ArrayList<>(2);
 		for(Zone zone : zones)
-			if(zone.contains(location))
+			if(zone.contains(location) && !switchedOff.contains(zone.getId().toLowerCase(Locale.ROOT)))
 				found.add(zone);
 		if(found.size() > 1)
 			found.sort(Comparator.comparingLong(Zone::volume));

@@ -28,6 +28,8 @@ public class Trigger
 	private boolean repeatable;
 	/** Stand-on steps only count while occupied, so every plate must be held at the same moment. */
 	private boolean simultaneous;
+	/** Machinery that runs on its own (excavators, rockets): no step chimes, progress bar or completion toast. */
+	private boolean silent;
 
 	private long deadlineMs;
 	private boolean fired;
@@ -116,6 +118,16 @@ public class Trigger
 	public void setRepeatable(boolean repeatable)
 	{
 		this.repeatable = repeatable;
+	}
+
+	public boolean isSilent()
+	{
+		return silent;
+	}
+
+	public void setSilent(boolean silent)
+	{
+		this.silent = silent;
 	}
 
 	public boolean isSimultaneous()
@@ -231,7 +243,8 @@ public class Trigger
 				+ (resetOnFail ? ", resets on fail" : ", fails for the game")
 				+ (allPlayers ? ", all players" : "")
 				+ (simultaneous ? ", simultaneous" : "")
-				+ (repeatable ? ", repeatable" : "");
+				+ (repeatable ? ", repeatable" : "")
+				+ (silent ? ", silent" : "");
 	}
 
 	public static Trigger load(JsonObject json)
@@ -245,6 +258,7 @@ public class Trigger
 		trigger.setAllPlayers(CustomConfig.getBoolean(options, "all_players", false));
 		trigger.setRepeatable(CustomConfig.getBoolean(options, "repeatable", false));
 		trigger.setSimultaneous(CustomConfig.getBoolean(options, "simultaneous", false));
+		trigger.setSilent(CustomConfig.getBoolean(options, "silent", false));
 
 		if(json.has("steps") && json.get("steps").isJsonArray())
 			for(JsonElement element : json.getAsJsonArray("steps"))
@@ -277,6 +291,8 @@ public class Trigger
 		options.addProperty("all_players", allPlayers);
 		options.addProperty("repeatable", repeatable);
 		options.addProperty("simultaneous", simultaneous);
+		if(silent)
+			options.addProperty("silent", true);
 		json.add("options", options);
 		JsonArray stepsJson = new JsonArray();
 		for(TriggerStep step : steps)

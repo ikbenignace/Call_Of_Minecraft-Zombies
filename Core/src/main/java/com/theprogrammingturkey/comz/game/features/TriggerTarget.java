@@ -17,6 +17,14 @@ import java.util.Locale;
  * teleporter sign name or transport id/name (locked until the trigger fires), sound key, power-up type ({@code random} allowed), perk type ({@code pool} reveals the next
  * pooled perk machine) or the message text ({@code &} colour codes). {@code place_blocks} uses {@code blocks} instead:
  * block states set when the trigger fires and put back at game end.
+ * <p>
+ * Map machinery is built from a few more kinds, all undone at game end: {@code after} runs its own {@code targets}
+ * {@code amount} ticks later (a timeline); {@code clone_blocks} copies {@code box} to the point like /clone
+ * ({@code value} = {@code replace}, {@code masked} or {@code move}, optional {@code filter} block or {@code #tag});
+ * {@code fill_blocks} fills {@code box} with the {@code value} block state (optional {@code filter} to replace only
+ * that); {@code play_sound} plays {@code value} at the point with {@code volume}; {@code reset_trigger} cancels a
+ * trigger's pending timeline and arms it again; {@code set_zone} switches zone {@code value} off ({@code amount} 0)
+ * or on (1); {@code lock_teleporter} and {@code disable_pack_a_punch} undo their enable counterparts.
  */
 public class TriggerTarget
 {
@@ -31,7 +39,16 @@ public class TriggerTarget
 		MESSAGE("Message", "&dSomething stirs..."),
 		TURN_ON_POWER("Turn on power", ""),
 		GIVE_POINTS("Give points", ""),
-		PLACE_BLOCKS("Place blocks", "");
+		PLACE_BLOCKS("Place blocks", ""),
+		AFTER("After a delay", ""),
+		CLONE_BLOCKS("Clone blocks", "replace"),
+		FILL_BLOCKS("Fill blocks", "minecraft:air"),
+		PLAY_SOUND("Play sound", ""),
+		RESET_TRIGGER("Reset trigger", ""),
+		SET_ZONE("Switch zone", ""),
+		LOCK_TELEPORTER("Lock teleporter", ""),
+		DISABLE_PACK_A_PUNCH("Disable Pack-a-Punch", ""),
+		GIVE_POINTS_TO_PLAYER("Give points to the player", "");
 
 		private final String label;
 		private final String defaultValue;
@@ -69,6 +86,11 @@ public class TriggerTarget
 	private int amount;
 	private boolean title = true;
 	private final List<PlacedBlock> blocks = new ArrayList<>();
+	private final List<TriggerTarget> targets = new ArrayList<>();
+	private Vector boxMin;
+	private Vector boxMax;
+	private String filter = "";
+	private float volume = 2f;
 
 	/** One block of a {@code place_blocks} target; {@code blockData} is a block state string like {@code minecraft:oak_planks}. */
 	public static final class PlacedBlock
@@ -91,7 +113,7 @@ public class TriggerTarget
 	{
 		this.kind = kind;
 		this.value = kind.defaultValue;
-		this.amount = kind == Kind.GIVE_POINTS ? 5000 : 0;
+		this.amount = kind == Kind.GIVE_POINTS || kind == Kind.GIVE_POINTS_TO_PLAYER ? 5000 : kind == Kind.AFTER ? 20 : 0;
 	}
 
 	public Kind getKind()
@@ -139,6 +161,50 @@ public class TriggerTarget
 		return blocks;
 	}
 
+	/** {@code after}: what runs once the delay is over. */
+	public List<TriggerTarget> getTargets()
+	{
+		return targets;
+	}
+
+	/** Lowest corner of a {@code clone_blocks} source or {@code fill_blocks} box; null when unset. */
+	public Vector getBoxMin()
+	{
+		return boxMin;
+	}
+
+	public Vector getBoxMax()
+	{
+		return boxMax;
+	}
+
+	public void setBox(Vector a, Vector b)
+	{
+		boxMin = Vector.getMinimum(a, b).toBlockVector();
+		boxMax = Vector.getMaximum(a, b).toBlockVector();
+	}
+
+	/** Block id or {@code #tag} a clone or fill is limited to; empty = every block. */
+	public String getFilter()
+	{
+		return filter;
+	}
+
+	public void setFilter(String filter)
+	{
+		this.filter = filter == null ? "" : filter.trim();
+	}
+
+	public float getVolume()
+	{
+		return volume;
+	}
+
+	public void setVolume(float volume)
+	{
+		this.volume = Math.max(0f, volume);
+	}
+
 	/** Messages: shown as a title (true) or in chat (false). */
 	public boolean isTitle()
 	{
@@ -170,6 +236,22 @@ public class TriggerTarget
 				return "give " + amount + " points";
 			case PLACE_BLOCKS:
 				return "place " + blocks.size() + " block(s)";
+			case AFTER:
+				return "after " + amount + " ticks: " + targets.size() + " target(s)";
+			case CLONE_BLOCKS:
+				return "clone blocks (" + value + ")";
+			case FILL_BLOCKS:
+				return "fill blocks with " + value;
+			case PLAY_SOUND:
+				return "play sound " + value;
+			case RESET_TRIGGER:
+				return "reset trigger " + value;
+			case SET_ZONE:
+				return (amount > 0 ? "switch on zone " : "switch off zone ") + value;
+			case LOCK_TELEPORTER:
+				return "lock teleporter " + value;
+			case GIVE_POINTS_TO_PLAYER:
+				return "give the player " + amount + " points";
 			default:
 				return kind.getLabel().toLowerCase(Locale.ROOT);
 		}
@@ -186,6 +268,21 @@ public class TriggerTarget
 			target.setPoint(new Vector(CustomConfig.getInt(json, "x", 0), CustomConfig.getInt(json, "y", 0), CustomConfig.getInt(json, "z", 0)));
 		target.setAmount(CustomConfig.getInt(json, "amount", target.amount));
 		target.setTitle(CustomConfig.getBoolean(json, "title", true));
+		target.setFilter(CustomConfig.getString(json, "filter", ""));
+		target.setVolume((float) CustomConfig.getDouble(json, "volume", 2.0));
+		if(json.has("box") && json.get("box").isJsonObject())
+		{
+			JsonObject box = json.getAsJsonObject("box");
+			target.setBox(new Vector(CustomConfig.getInt(box, "x1", 0), CustomConfig.getInt(box, "y1", 0), CustomConfig.getInt(box, "z1", 0)),
+					new Vector(CustomConfig.getInt(box, "x2", 0), CustomConfig.getInt(box, "y2", 0), CustomConfig.getInt(box, "z2", 0)));
+		}
+		if(json.has("targets") && json.get("targets").isJsonArray())
+			for(JsonElement element : json.getAsJsonArray("targets"))
+			{
+				TriggerTarget nested = element.isJsonObject() ? load(element.getAsJsonObject()) : null;
+				if(nested != null)
+					target.targets.add(nested);
+			}
 		if(json.has("blocks") && json.get("blocks").isJsonArray())
 			for(JsonElement element : json.getAsJsonArray("blocks"))
 			{
@@ -211,8 +308,30 @@ public class TriggerTarget
 			json.addProperty("y", point.getBlockY());
 			json.addProperty("z", point.getBlockZ());
 		}
-		if(kind == Kind.GIVE_POINTS)
+		if(kind == Kind.GIVE_POINTS || kind == Kind.GIVE_POINTS_TO_PLAYER || kind == Kind.AFTER || kind == Kind.SET_ZONE)
 			json.addProperty("amount", amount);
+		if(!filter.isEmpty())
+			json.addProperty("filter", filter);
+		if(kind == Kind.PLAY_SOUND)
+			json.addProperty("volume", volume);
+		if(boxMin != null)
+		{
+			JsonObject box = new JsonObject();
+			box.addProperty("x1", boxMin.getBlockX());
+			box.addProperty("y1", boxMin.getBlockY());
+			box.addProperty("z1", boxMin.getBlockZ());
+			box.addProperty("x2", boxMax.getBlockX());
+			box.addProperty("y2", boxMax.getBlockY());
+			box.addProperty("z2", boxMax.getBlockZ());
+			json.add("box", box);
+		}
+		if(!targets.isEmpty())
+		{
+			JsonArray nested = new JsonArray();
+			for(TriggerTarget target : targets)
+				nested.add(target.save());
+			json.add("targets", nested);
+		}
 		if(kind == Kind.MESSAGE)
 			json.addProperty("title", title);
 		if(!blocks.isEmpty())

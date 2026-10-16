@@ -20,7 +20,12 @@ import java.util.UUID;
  *     <li>{@code kill_in_zone}: {@code zone} and {@code amount} kills;</li>
  *     <li>{@code ride_transport}: {@code transport} id;</li>
  *     <li>{@code round_reached}: {@code amount} is the round;</li>
- *     <li>{@code trigger_done}: {@code trigger} id, met once that trigger has fired this game.</li>
+ *     <li>{@code trigger_done}: {@code trigger} id, met once that trigger has fired this game;</li>
+ *     <li>{@code round_chance}: {@code amount} percent chance, rolled at the start of every round.</li>
+ * </ul>
+ * An {@code interact} step may also need a piece of {@code gear} (equipment name, e.g. {@code Hacker}) and
+ * {@code hold_seconds}: the player has to stay at the point that long after pressing F.
+ * <ul>
  * </ul>
  */
 public class TriggerStep
@@ -33,7 +38,8 @@ public class TriggerStep
 		RIDE_TRANSPORT("Ride transport"),
 		POWER_ON("Power on"),
 		ROUND_REACHED("Round reached"),
-		TRIGGER_DONE("Trigger done");
+		TRIGGER_DONE("Trigger done"),
+		ROUND_CHANCE("Round chance");
 
 		private final String label;
 
@@ -76,6 +82,8 @@ public class TriggerStep
 	private int cost;
 	private String visual = NO_VISUAL;
 	private String description = "";
+	private String gear = "";
+	private int holdSeconds;
 
 	private boolean done;
 	private int progress;
@@ -97,6 +105,8 @@ public class TriggerStep
 				return 5;
 			case STAND_ON:
 				return 1;
+			case ROUND_CHANCE:
+				return 33;
 			default:
 				return 0;
 		}
@@ -288,6 +298,28 @@ public class TriggerStep
 		return point == null ? "?" : point.getBlockX() + "," + point.getBlockY() + "," + point.getBlockZ();
 	}
 
+	/** Equipment the player must own to use this interact step; empty = none. */
+	public String getGear()
+	{
+		return gear;
+	}
+
+	public void setGear(String gear)
+	{
+		this.gear = gear == null ? "" : gear.trim();
+	}
+
+	/** Seconds the player must stay at an interact point after pressing F; 0 = instant. */
+	public int getHoldSeconds()
+	{
+		return holdSeconds;
+	}
+
+	public void setHoldSeconds(int holdSeconds)
+	{
+		this.holdSeconds = Math.max(0, holdSeconds);
+	}
+
 	public static TriggerStep load(JsonObject json)
 	{
 		Kind kind = Kind.fromKey(CustomConfig.getString(json, "kind", ""));
@@ -304,6 +336,8 @@ public class TriggerStep
 		step.setCost(CustomConfig.getInt(json, "cost", 0));
 		step.setVisual(CustomConfig.getString(json, "visual", NO_VISUAL));
 		step.setDescription(CustomConfig.getString(json, "description", ""));
+		step.setGear(CustomConfig.getString(json, "gear", ""));
+		step.setHoldSeconds(CustomConfig.getInt(json, "hold_seconds", 0));
 		return step;
 	}
 
@@ -328,6 +362,10 @@ public class TriggerStep
 		json.addProperty("amount", amount);
 		if(cost > 0)
 			json.addProperty("cost", cost);
+		if(!gear.isEmpty())
+			json.addProperty("gear", gear);
+		if(holdSeconds > 0)
+			json.addProperty("hold_seconds", holdSeconds);
 		if(hasVisual())
 			json.addProperty("visual", visual);
 		if(!description.isEmpty())

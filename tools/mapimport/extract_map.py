@@ -353,6 +353,81 @@ def block_writes(text, world=None):
     return out
 
 
+CLONE_TAIL = re.compile(r"\s+(?:(replace|masked)|filtered\s+(#?[a-z0-9_:/]+))(?:\s+(move|force|normal))?")
+PLAYSOUND_AT = re.compile(r"playsound (?:minecraft:)?([a-z0-9_.]+) \w+ \S+(?:\s+(-?[\d.]+) (-?[\d.]+) (-?[\d.]+))?(?:\s+([\d.]+))?")
+
+
+def box_json(x0, y0, z0, x1, y1, z1):
+    return {'x1': x0, 'y1': y0, 'z1': z0, 'x2': x1, 'y2': y1, 'z2': z1}
+
+
+def block_targets(line):
+    """The trigger targets one function line stands for: clone, fill, setblock and playsound, or []."""
+    if line.lstrip().startswith('#'):
+        return []
+    m = CLONE.search(line)
+    if m:
+        x0, y0, z0, x1, y1, z1, dx, dy, dz = map(int, m.groups())
+        tail = CLONE_TAIL.match(line[m.end():])
+        mode, filt, how = (tail.group(1) or 'filtered', tail.group(2) or '', tail.group(3) or '') if tail else ('replace', '', '')
+        value = ' '.join(w for w in ('masked' if mode == 'masked' else '', 'move' if how == 'move' else '') if w) or 'replace'
+        target = {'kind': 'clone_blocks', 'value': value,
+                  'box': box_json(x0, y0, z0, x1, y1, z1), 'x': dx, 'y': dy, 'z': dz}
+        if mode == 'filtered' and filt:
+            target['filter'] = filt if ':' in filt else ('#minecraft:' + filt[1:] if filt.startswith('#') else 'minecraft:' + filt)
+        return [target]
+    m = FILL_ANY.search(line)
+    if m:
+        mode = FILL_MODE.match(line[m.end():])
+        if mode and mode.group(1) in ('hollow', 'outline'):
+            return []
+        target = {'kind': 'fill_blocks', 'value': 'minecraft:' + m.group(7), 'box': box_json(*map(int, m.groups()[:6]))}
+        if mode and mode.group(1) == 'keep':
+            target['filter'] = 'minecraft:air'
+        elif mode and mode.group(2):
+            filt = mode.group(2)
+            target['filter'] = filt if ':' in filt else ('#minecraft:' + filt[1:] if filt.startswith('#') else 'minecraft:' + filt)
+        return [target]
+    if re.search(r'summon minecraft:marker [^{]*\{Tags:\["PaP"', line):
+        return [{'kind': 'enable_pack_a_punch'}]
+    if re.search(r'kill @e\[tag=PaP\]', line):
+        return [{'kind': 'disable_pack_a_punch'}]
+    m = SETBLOCK_ANY.search(line)
+    if m:
+        return [{'kind': 'place_blocks', 'blocks': [{'x': int(m.group(1)), 'y': int(m.group(2)), 'z': int(m.group(3)),
+                                                      'blockdata': 'minecraft:' + m.group(4)}]}]
+    m = PLAYSOUND_AT.search(line)
+    if m and m.group(2) and '~' not in line[m.start():]:
+        return [{'kind': 'play_sound', 'value': 'minecraft:' + m.group(1) if ':' not in m.group(1) else m.group(1),
+                 'x': int(math.floor(float(m.group(2)))), 'y': int(math.floor(float(m.group(3)))), 'z': int(math.floor(float(m.group(4)))),
+                 'volume': min(4.0, float(m.group(5))) if m.group(5) else 2.0}]
+    return []
+
+
+def timeline(text, timer, start=None, countdown=False, until=None):
+    """A function driven by a play-time timer ("scores={<timer>=N}" on each line) as trigger targets: one "after"
+    target per tick holding what the map does then. A countdown timer (excavators) starts at {@code start} and
+    goes down, so N becomes start - N ticks. Lines checking a range ("N..") count from N. Ticks past {@code until}
+    are dropped."""
+    pattern = re.compile(r"scores=\{[^}]*\b" + re.escape(timer) + r"=(-?\d+)(\.\.)?(-?\d+)?[,}]")
+    by_tick = {}
+    for line in text.splitlines():
+        m = pattern.search(line)
+        if not m or line.lstrip().startswith('#'):
+            continue
+        value = int(m.group(1))
+        if countdown and m.group(2):
+            # "lo..hi" first holds when a countdown reaches hi; an open "lo.." holds from the start.
+            value = int(m.group(3)) if m.group(3) else start
+        tick = (start - value) if countdown else value
+        if tick < 0 or (until is not None and tick > until):
+            continue
+        targets = block_targets(line[m.end():])
+        if targets:
+            by_tick.setdefault(max(1, tick), []).extend(targets)
+    return [{'kind': 'after', 'amount': tick, 'targets': targets} for tick, targets in sorted(by_tick.items())]
+
+
 def parse_boxes(fn_root):
     """Box locations (body block under the marker, facing) and the edits that strip the map's own plank box,
     using the blocks the map leaves behind once its box has moved away."""
@@ -1081,7 +1156,7 @@ def parse_environment(fn_root, lo, hi, anchors):
         text = read(path)
         if 'slow_falling' not in text or 'jump_boost' not in text:
             continue
-        pockets, air_tag = [], None
+        pockets, air_tag, lost_by = [], None, {}
         for m in TAG_BOX.finditer(text):
             if m.group(7) == 'add':
                 air_tag = air_tag or m.group(8)
@@ -1089,6 +1164,10 @@ def parse_environment(fn_root, lo, hi, anchors):
                     box = tag_box(m)
                     if box not in pockets:
                         pockets.append(box)
+                        line = text[text.rfind('\n', 0, m.start()) + 1:m.start()]
+                        breach = re.search(r'tag=!(\w+)', line)
+                        if breach:
+                            lost_by[len(pockets)] = breach.group(1)
         scoped = any('effect give' in line and re.search(r"scores=\{On_\w+=1", line) for line in text.splitlines())
         if not pockets:
             return {'settings': {'gravity': 0.4}, 'zones': []}
@@ -1098,10 +1177,14 @@ def parse_environment(fn_root, lo, hi, anchors):
         zlo[1], zhi[1] = lo[1], hi[1]
         zones = [{'id': 'zone_low_gravity', 'name': '', 'p1': loc(zlo), 'p2': loc(zhi), 'gravity': 0.4,
                   'no_air': True, 'damage_per_second': 0.0}]
+        breaches = {}
         for i, (a, b) in enumerate(pockets, 1):
             zones.append({'id': 'zone_air_%d' % i, 'name': '', 'p1': loc(a), 'p2': loc(b), 'gravity': 1.0,
                           'no_air': False, 'air_pocket': True, 'damage_per_second': 0.0})
-        return {'settings': {} if scoped else {'gravity': 0.4}, 'zones': zones, 'source': os.path.basename(path)}
+            if i in lost_by:
+                breaches.setdefault(lost_by[i], []).append('zone_air_%d' % i)
+        return {'settings': {} if scoped else {'gravity': 0.4}, 'zones': zones, 'source': os.path.basename(path),
+                'breaches': breaches}
     return None
 
 
@@ -1607,7 +1690,7 @@ def click_gates(fn_root, writes, reset_solid):
 
 def launch_gate(fn_root, folder, start_block):
     """A sign among the lander functions whose click starts a timer that a function with sliding doors counts
-    (Ascension's "Activate launch" opens the Pack-a-Punch room): (sign, that function, its door blocks)."""
+    (Ascension's "Activate launch" opens the Pack-a-Punch room): (sign, that function, its door blocks, the timer)."""
     files = glob.glob(os.path.join(folder, '**', '*.mcfunction'), recursive=True)
     for f in files:
         for m in merges(read(f)):
@@ -1627,8 +1710,122 @@ def launch_gate(fn_root, folder, start_block):
                             door |= set(box_points(x0, y0, z0, x1, y1, z1))
                 door = {p: start_block(*p) for p in door if start_block(*p) != AIR}
                 if door:
-                    return tuple(map(int, m.group(1, 2, 3))), g, door
+                    return tuple(map(int, m.group(1, 2, 3))), g, door, obj.group(1)
     return None
+
+
+def timed_pap(fn_root):
+    """unique/pap/*: a timer function that puts the Pack-a-Punch marker up for a while and takes it away again
+    (Five's panic room): (its text, the timer, its path)."""
+    for path in sorted(glob.glob(os.path.join(fn_root, 'unique', 'pap', '*.mcfunction'))):
+        text = read(path)
+        for line in text.splitlines():
+            m = re.search(r'scores=\{(\w+)=\d+\}', line)
+            if m and re.search(r'summon minecraft:marker [^{]*\{Tags:\["PaP"', line):
+                return text, m.group(1), path
+    return None
+
+
+HACK_SIGN = re.compile(r"data merge block (-?\d+) (-?\d+) (-?\d+) (\{.*Hold to Hack.*\})")
+
+
+def hack_success(text):
+    """What a hold-to-hack function does when the bar is full ("Hacking=300.."): the block and sound changes
+    (leaving out ones that depend on what happened before, like a breach), and the points it pays."""
+    targets, points = [], 0
+    for line in text.splitlines():
+        if 'Hacking=300..' not in line or 'Breach_' in line:
+            continue
+        paid = re.search(r'Points (\d+)', line)
+        if paid:
+            points = int(paid.group(1))
+        targets += block_targets(line[line.find(' run ') + 5:] if ' run ' in line else line)
+    return targets, points
+
+
+def parse_hacks(fn_root, breaches):
+    """Moon's Hacker: excavators that start at random during the game and breach a tunnel unless hacked in time
+    (unique/on_moon/excavators: activate_N, excav_N_loop counting E_N_Timer down, check_N for the hack), and
+    the Pack-a-Punch hack that shuts the gates around it for a while. Each becomes triggers built from the
+    map's own functions. Perk and box hacks are left out."""
+    out = {'excavators': [], 'pap': None, 'hacker_spots': []}
+    folder = os.path.join(fn_root, 'unique', 'on_moon', 'excavators')
+    for act in sorted(glob.glob(os.path.join(folder, 'activate_*.mcfunction'))):
+        n = re.search(r'activate_(\d+)', act).group(1)
+        a_text = read(act)
+        start = re.search(r'set @p\S* (\w+) (\d+)', a_text)
+        loop_path = os.path.join(folder, 'excav_%s_loop.mcfunction' % n)
+        check_path = os.path.join(folder, 'check_%s.mcfunction' % n)
+        if not start or not os.path.exists(loop_path) or not os.path.exists(check_path):
+            continue
+        timer, value = start.group(1), int(start.group(2))
+        loop = read(loop_path)
+        steps = timeline(loop, timer, start=value, countdown=True)
+        for line in loop.splitlines():
+            m = re.search(timer + r'=(-?\d+)\}.* add (Breach_\w+)', line)
+            if m and breaches.get(m.group(2)):
+                tick = max(1, value - int(m.group(1)))
+                steps.append({'kind': 'after', 'amount': tick, 'targets': [{'kind': 'set_zone', 'value': z, 'amount': 0} for z in breaches[m.group(2)]]})
+        check = read(check_path)
+        sign = HACK_SIGN.search(check) or re.search(r"data merge block (-?\d+) (-?\d+) (-?\d+) ", check)
+        rate = re.search(r'add @s Hacking ([1-9]\d*)', check)
+        if not sign:
+            continue
+        targets, points = hack_success(check)
+        out['excavators'].append({'n': n, 'start': [t for line in a_text.splitlines() for t in block_targets(line)],
+                                  'timeline': sorted(steps, key=lambda s: s['amount']), 'sign': tuple(map(int, sign.group(1, 2, 3))),
+                                  'hold': max(3, round(100 / int(rate.group(1)))) if rate else 10, 'hacked': targets, 'points': points})
+    pap = os.path.join(fn_root, 'unique', 'equipment', 'hack_pap.mcfunction')
+    if os.path.exists(pap):
+        text = read(pap)
+        sign = HACK_SIGN.search(text) or re.search(r"block (-?\d+) (-?\d+) (-?\d+) minecraft:\w*wall_sign", text)
+        timer = re.search(r'scores=\{(\w+_Timer)=\d+\}', text)
+        rate = re.search(r'add @s Hacking ([1-9]\d*)', text)
+        if sign and timer:
+            _, points = hack_success(text)
+            out['pap'] = {'sign': tuple(map(int, sign.group(1, 2, 3))), 'timeline': timeline(text, timer.group(1)), 'points': points,
+                          'hold': max(3, round(100 / int(rate.group(1)))) if rate else 12}
+    out['hacker_spots'] = [tuple(int(math.floor(v)) for v in p) for p in marker_positions(fn_root, 'Hacker_Spawn')]
+    return out
+
+
+def proximity_start(fn_root, path):
+    """Where a player has to come for the map to run {@code path} (Der Riese's courtyard spawners: a player within 8
+    of a spot tags themselves, and that tag runs the function): (centre, reach) or None."""
+    name = relative_name(fn_root, path)
+    for text in (read(f) for f in all_functions(fn_root).values()):
+        call = re.search(r'@p\[tag=(\w+)\][^\n]*function custom:' + re.escape(name) + r'\b', text)
+        if not call:
+            continue
+        for line in text.splitlines():
+            m = re.search(r'x=(-?[\d.]+),y=(-?[\d.]+),z=(-?[\d.]+),distance=\.\.([\d.]+)\][^\n]* add ' + call.group(1) + r'\b', line)
+            if m:
+                x, y, z, r = (float(v) for v in m.groups())
+                return (x, y, z), r
+    return None
+
+
+def door_timeline(steps, door_blocks, door_id):
+    """A timeline that slides a door open block by block: our door opens in one go at the moment the map starts
+    moving it, and the clones that would move its (by then empty) blocks are left out."""
+    first = None
+    out = []
+    for step in steps:
+        kept = []
+        for t in step['targets']:
+            box = t.get('box')
+            touches = t['kind'] == 'clone_blocks' and box and any(
+                min(box['x1'], box['x2']) <= x <= max(box['x1'], box['x2']) and min(box['y1'], box['y2']) <= y <= max(box['y1'], box['y2'])
+                and min(box['z1'], box['z2']) <= z <= max(box['z1'], box['z2']) for x, y, z in door_blocks)
+            if touches:
+                first = step['amount'] if first is None else min(first, step['amount'])
+            else:
+                kept.append(t)
+        if kept:
+            out.append(dict(step, targets=kept))
+    if first is not None:
+        out.append({'kind': 'after', 'amount': first, 'targets': [{'kind': 'open_door', 'value': door_id}]})
+    return sorted(out, key=lambda s: s['amount'])
 
 
 def spare_pap_signs(fn_root, world):
@@ -2179,11 +2376,13 @@ def build(world, datapacks, map_name, arena, world_name, index):
                 'steps': [{'kind': 'ride_transport', 'transport': t['id'], 'amount': 0} for t in landers], 'teleporters': []}
         launch = launch_gate(fn_root, os.path.join(fn_root, 'unique', 'landers'), exact_start)
         if launch:
-            sign, path, blocks = launch
-            gate['steps'].append(dict(kind='interact', x=sign[0], y=sign[1], z=sign[2], amount=0, description='Launch'))
+            sign, path, blocks, timer = launch
+            gate['steps'].append(dict(kind='interact', x=sign[0], y=sign[1], z=sign[2], amount=0, description=click_label(sign, 'Launch')))
             door = {'id': rid(), 'blocks': sorted(blocks.items()), 'path': path}
             extra_doors.append(door)
-            gate['doors'] = [door['id']]
+            gate['timeline'] = door_timeline(timeline(read(path), timer), set(blocks), door['id'])
+            if not any(t['kind'] == 'open_door' for step in gate['timeline'] for t in step['targets']):
+                gate['doors'] = [door['id']]
     elif has_power and power_pap_gate(fn_root):
         gate = {'id': 'pap_power', 'name': 'Pack-a-Punch after power', 'ordered': False,
                 'steps': [{'kind': 'power_on', 'amount': 0}], 'teleporters': []}
@@ -2204,16 +2403,87 @@ def build(world, datapacks, map_name, arena, world_name, index):
             if is_pap and not gate:
                 settings['pap_locked'] = True
                 report.append('pack-a-punch gate: link every pad (%d triggers), opens the wall at %d %d %d' % (len(link_triggers), *min(wall)))
+    pap_room = timed_pap(fn_root) if gate and gate['teleporters'] else None
+    room_spawns = set()
+    if pap_room:
+        # The gate only opens the teleporters; Pack-a-Punch comes up in the room they lead to, for a while, and
+        # after the room's cycle the teleporters lock and the gate has to be done again.
+        text, timer, room_path = pap_room
+        dest = next(t['waypoints'][-1] for t in transport_json if t['id'] == gate['teleporters'][0])
+        zone_id = 'zone_pap_room'
+        zones.append({'id': zone_id, 'name': '', 'p1': {'x': math.floor(dest['x']) - 3.0, 'y': math.floor(dest['y']) - 1.0, 'z': math.floor(dest['z']) - 3.0},
+                      'p2': {'x': math.floor(dest['x']) + 3.0, 'y': math.floor(dest['y']) + 2.0, 'z': math.floor(dest['z']) + 3.0},
+                      'gravity': 1.0, 'no_air': False, 'damage_per_second': 0.0})
+        steps = timeline(text, timer)
+        # The room's own spawners start partway through the cycle.
+        room_spawns = {p for p, f in late_spawns if f == room_path}
+        if room_spawns:
+            door = {'id': rid(), 'powerRequired': False, 'price': 0, 'blocks': [], 'signs': [], 'spawns': [spawns[p] for p in sorted(room_spawns)]}
+            door_json.append(door)
+            at = []
+            for line in text.splitlines():
+                m = re.search(timer + r'=(\d+)\}', line)
+                c = re.search(r'summon minecraft:marker ' + COORD + ' ' + COORD + ' ' + COORD, line)
+                if m and c and tuple(int(math.floor(float(v))) for v in c.groups()) in room_spawns:
+                    at.append(int(m.group(1)))
+            steps.append({'kind': 'after', 'amount': min(at) if at else 1, 'targets': [{'kind': 'open_door', 'value': door['id']}]})
+            steps.sort(key=lambda s: s['amount'])
+        end = steps[-1]['amount'] + 20 if steps else 20
+        steps.append({'kind': 'after', 'amount': end, 'targets': [{'kind': 'lock_teleporter', 'value': tid} for tid in gate['teleporters']] +
+                      [{'kind': 'reset_trigger', 'value': gate['id']}, {'kind': 'reset_trigger', 'value': 'pap_room'}]})
+        room = trigger('pap_room', 'Pack-a-Punch room', [{'kind': 'trigger_done', 'trigger': gate['id'], 'amount': 0},
+                                                          {'kind': 'stand_on', 'zone': zone_id, 'amount': 1}], steps, ordered=True)
+        room['options']['silent'] = True
+        triggers.append(room)
+        report.append('pack-a-punch room: %d timed step(s) over %ds after the first player arrives at %d %d %d'
+                      % (len(steps), end // 20, dest['x'], dest['y'], dest['z']))
     if gate:
         settings['pap_locked'] = True
-        targets = [{'kind': 'enable_pack_a_punch'}] + [{'kind': 'enable_teleporter', 'value': tid} for tid in gate['teleporters']] + \
-                  [{'kind': 'open_door', 'value': i} for i in gate.get('doors', [])]
+        targets = ([] if pap_room else [{'kind': 'enable_pack_a_punch'}]) + [{'kind': 'enable_teleporter', 'value': tid} for tid in gate['teleporters']] + \
+                  [{'kind': 'open_door', 'value': i} for i in gate.get('doors', [])] + gate.get('timeline', [])
         triggers.append(trigger(gate['id'], gate['name'], gate['steps'], targets, ordered=gate['ordered']))
+        if gate.get('timeline'):
+            report.append('%s: %d timed step(s) over %ds' % (gate['id'], len(gate['timeline']), gate['timeline'][-1]['amount'] // 20))
         report.append('pack-a-punch gate %s: %d step(s)%s%s' % (gate['name'], len(gate['steps']),
                                                               ', unlocks ' + ', '.join(gate['teleporters']) if gate['teleporters'] else '',
                                                               ', opens %d door(s)' % len(gate.get('doors', [])) if gate.get('doors') else ''))
     elif has_pap:
         report.append('pack-a-punch: map has unique/pap but no gate that can be modelled; left unlocked')
+
+    # Moon's Hacker: excavators start at random once the power is on and breach their tunnel unless hacked.
+    hacks = parse_hacks(fn_root, (env or {}).get('breaches', {}))
+    for ex in hacks['excavators']:
+        if not in_bounds(ex['sign']):
+            continue
+        run = trigger('excavator_%s' % ex['n'], 'Excavator %s' % ex['n'],
+                      [{'kind': 'power_on', 'amount': 0}, {'kind': 'round_chance', 'amount': 11}], ex['start'] + ex['timeline'])
+        run['options']['silent'] = True
+        hack_id = 'hack_excavator_%s' % ex['n']
+        targets = [{'kind': 'reset_trigger', 'value': run['id']}] + ex['hacked'] + \
+                  ([{'kind': 'give_points_to_player', 'amount': ex['points']}] if ex['points'] else []) + [{'kind': 'reset_trigger', 'value': hack_id}]
+        hack = trigger(hack_id, 'Hack excavator %s' % ex['n'],
+                       [{'kind': 'trigger_done', 'trigger': run['id'], 'amount': 0},
+                        dict(kind='interact', x=ex['sign'][0], y=ex['sign'][1], z=ex['sign'][2], amount=0, description='Hack the excavator',
+                             gear='Hacker', hold_seconds=ex['hold'])], targets, ordered=True)
+        triggers += [run, hack]
+        put_sign(ex['sign'], ['Excavator', '', '', ''])
+        report.append('excavator %s: starts at random after power, breaches after %ds, hack at %d %d %d (%ds) for %d points'
+                      % (ex['n'], max(s['amount'] for s in ex['timeline']) // 20, *ex['sign'], ex['hold'], ex['points']))
+    if hacks['pap'] and in_bounds(hacks['pap']['sign']):
+        h = hacks['pap']
+        step = dict(kind='interact', x=h['sign'][0], y=h['sign'][1], z=h['sign'][2], amount=0, description='Hack Pack-a-Punch',
+                    gear='Hacker', hold_seconds=h['hold'])
+        end = (h['timeline'][-1]['amount'] if h['timeline'] else 0) + 20
+        # The first hack pays; after that it only shuts the gates again, once the last cycle is over.
+        triggers.append(trigger('hack_pap', 'Hack Pack-a-Punch', [step], h['timeline'] +
+                                ([{'kind': 'give_points_to_player', 'amount': h['points']}] if h['points'] else [])))
+        triggers.append(trigger('hack_pap_again', 'Hack Pack-a-Punch', [{'kind': 'trigger_done', 'trigger': 'hack_pap', 'amount': 0}, dict(step)],
+                                h['timeline'] + [{'kind': 'after', 'amount': end, 'targets': [{'kind': 'reset_trigger', 'value': 'hack_pap_again'}]}], ordered=True))
+        report.append('pack-a-punch hack at %d %d %d: %d timed step(s), %d points the first time' % (*h['sign'], len(h['timeline']), h['points']))
+    spots = [p for p in hacks['hacker_spots'] if in_bounds(p) and is_sign(world.block(*p))]
+    if spots:
+        put_sign(spots[0], ['', '', 'Trade equipment', 'for Hacker'])
+        report.append('hacker: handed out at %d %d %d (the map picks one of %d spots at random)' % (*spots[0], len(spots)))
 
     # Gates a sign's own function lifts (Shi No Numa's zipline): opened by riding the transport that function
     # starts, else by pressing the sign.
@@ -2241,8 +2511,26 @@ def build(world, datapacks, map_name, arena, world_name, index):
     # when one is right by them; the others start with the game.
     priced = [d for d in door_json if d['price']]
     power_doors = [d for d in door_json if d['id'] in option_doors.get((True, frozenset()), [])]
+    near_doors = {}
     for pos, path in late_spawns:
-        if pos in attached:
+        if pos in attached or pos in room_spawns:
+            continue
+        reached = proximity_start(fn_root, path) if path not in power_texts else None
+        if reached:
+            if path not in near_doors:
+                (cx, cy, cz), r = reached
+                door = {'id': rid(), 'powerRequired': False, 'price': 0, 'blocks': [], 'signs': [], 'spawns': []}
+                zone_id = 'zone_near_%d' % (len(near_doors) + 1)
+                zones.append({'id': zone_id, 'name': '', 'p1': {'x': math.floor(cx - r), 'y': math.floor(cy - 3), 'z': math.floor(cz - r)},
+                              'p2': {'x': math.floor(cx + r), 'y': math.floor(cy + 4), 'z': math.floor(cz + r)},
+                              'gravity': 1.0, 'no_air': False, 'damage_per_second': 0.0})
+                door_json.append(door)
+                triggers.append(trigger('reach_%d' % (len(near_doors) + 1), 'Spawners near %d %d %d' % (cx, cy, cz),
+                                        [{'kind': 'stand_on', 'zone': zone_id, 'amount': 1}], [{'kind': 'open_door', 'value': door['id']}]))
+                triggers[-1]['options']['silent'] = True
+                near_doors[path] = door
+                report.append('spawners from %s start when a player comes within %d of %d %d %d' % (relative_name(fn_root, path), r, cx, cy, cz))
+            near_doors[path]['spawns'].append(spawns[pos])
             continue
         reach = lambda d: min((b['x'] - pos[0]) ** 2 + (b['y'] - pos[1]) ** 2 + (b['z'] - pos[2]) ** 2 for b in d['blocks'])
         powered = path in power_texts and power_doors

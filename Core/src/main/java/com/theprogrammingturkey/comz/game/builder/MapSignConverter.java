@@ -70,6 +70,7 @@ public final class MapSignConverter
 
 		// Moon's P.E.S. lockers are free and carry no price, unlike every other map buy.
 		EQUIPMENT_ALIASES.put("tradeequipmentforpes", "P.E.S.");
+		EQUIPMENT_ALIASES.put("tradeequipmentforhacker", "Hacker");
 		EQUIPMENT_ALIASES.put("bowie", "Bowie Knife");
 		EQUIPMENT_ALIASES.put("bowieknife", "Bowie Knife");
 		EQUIPMENT_ALIASES.put("claymores", "Claymore");

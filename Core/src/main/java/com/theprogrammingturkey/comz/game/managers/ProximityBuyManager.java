@@ -256,8 +256,11 @@ public class ProximityBuyManager
 		}
 
 		for(TriggerManager.InteractPoint point : game.triggerManager.interactPoints(player))
-			if(reachable(player, point.centre))
-				candidates.add(new Candidate(new BuyTarget(point, game.triggerManager.prompt(point, player)), point.distanceSq, aimBox(point.centre, 0.5, 0.6), false));
+		{
+			String prompt = reachable(player, point.centre) ? game.triggerManager.prompt(point, player) : null;
+			if(prompt != null)
+				candidates.add(new Candidate(new BuyTarget(point, prompt), point.distanceSq, aimBox(point.centre, 0.5, 0.6), false));
+		}
 
 		for(TransportManager.CallTarget call : game.transportManager.findCallTargets(player))
 			if(reachable(player, com.theprogrammingturkey.comz.game.features.Transport.toLocation(player.getWorld(), call.point).add(0, 0.5, 0)))

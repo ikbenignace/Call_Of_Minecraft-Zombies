@@ -118,7 +118,7 @@ Implementation (`game/equipment`, `equipment.json` in the plugin folder):
   (`chain`, `chain_delay_ticks`, `chain_spread`, `radius`, damage fields) or `monkey_bomb` (sells the existing
   Monkey Bomb throwable). Plus `per_buy`, `max_carry`, `refill_per_round`, `fuse_ticks`.
 - `gear`: `behaviour` = `breathing` (puts a breathing-gear tagged `helmet_material` on; right-click the hotbar item
-  toggles it) or `none`. The Hacker is such a stub: it can be bought and carried but does nothing yet.
+  toggles it) or `none`. The Hacker is such a gear: trigger steps with `gear: Hacker` need it (Moon's excavators and Pack-a-Punch hack).
 - Placed mines are removed when their owner goes down, bleeds out or leaves, and with everything else at game end.
 
 ## 6. Special enemies
@@ -143,14 +143,25 @@ A trigger is a set of steps that unlocks a target when finished. Covers PaP gate
 - step kinds: `interact` (press F on a point), `stand_on` (stand on a plate/zone),
   `kill_in_zone`, `ride_transport`, `power_on`, `round_reached`, `trigger_done` (`trigger`: id of a trigger that
   has to fire first);
-- options: `ordered`, `time_limit_seconds`, `reset_on_fail`, `all_players`;
+- `round_chance` (`amount` percent, rolled at every round start); an `interact` step may need `gear` (equipment name,
+  e.g. `Hacker`) and `hold_seconds` (the player stays at the point while a bar fills; walking away cancels);
+- options: `ordered`, `time_limit_seconds`, `reset_on_fail`, `all_players`, `silent` (no chimes or completion toast,
+  for machinery that runs on its own);
 - targets: `open_door`, `enable_pack_a_punch`, `enable_teleporter` (teleporter sign or transport), `play_song`, `give_powerup`,
   `spawn_perk`, `message`, `place_blocks` (`blocks`: `[{x,y,z,blockdata}]` set when it fires, put back at game end;
   Der Riese bridge).
+- machinery targets, all undone at game end: `after` (`amount` ticks, then its own `targets`: a timeline),
+  `clone_blocks` (`box` {x1..z2} to x/y/z, `value` `replace|masked|move`, optional `filter` block or `#tag`),
+  `fill_blocks` (`box`, `value` block state, optional `filter`), `play_sound` (`value`, x/y/z, `volume`),
+  `reset_trigger` (calls off a trigger's pending timeline and arms it again), `set_zone` (`value` zone id, `amount` 0
+  switches it off: an air pocket after a breach), `lock_teleporter`, `disable_pack_a_punch`,
+  `give_points_to_player` (only the player who finished the trigger);
 - doors with `price` 0 and no `signs` can only be opened by an `open_door` target and show no buy prompt (power
   walls, Der Riese PaP wall). Door `signs` entries may carry `blockdata`; a missing sign is re-created from it.
 
-Examples: Five DEFCON (4 ordered interacts → PaP teleporter), Shangri-La stepping stones (stand_on, all at once,
+Examples: Ascension's rocket (landers, then launch: the rocket timeline opens the PaP door at 21 s), Five's panic room
+(30 s of Pack-a-Punch, then the teleporters lock and DEFCON starts over), Moon's excavators (a random start each round,
+a breach after 4 minutes unless hacked with the Hacker), Five DEFCON (4 ordered interacts → PaP teleporter), Shangri-La stepping stones (stand_on, all at once,
 time limit → PaP), Ascension landers (ride all transports → PaP), Easter-egg songs (interact with 3 items →
 play song).
 

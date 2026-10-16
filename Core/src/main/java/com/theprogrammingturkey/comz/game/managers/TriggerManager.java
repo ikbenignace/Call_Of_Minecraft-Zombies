@@ -27,6 +27,8 @@ import org.bukkit.ChatColor;
 import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
+import org.bukkit.Tag;
 import org.bukkit.SoundCategory;
 import org.bukkit.World;
 import org.bukkit.block.Block;
@@ -36,9 +38,11 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.util.Vector;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
@@ -60,6 +64,8 @@ public class TriggerManager
 	private static final double INTERACT_REACH_Y = 2.5D;
 	/** Songs are long; a big volume keeps them audible while players keep moving around the map. */
 	private static final float SONG_VOLUME = 10f;
+	/** Largest clone or fill a trigger may do in one go; Ascension's rocket moves about 30000 blocks a step. */
+	private static final long MAX_EDIT_VOLUME = 65536L;
 
 	private final Game game;
 	private final List<Trigger> triggers = new ArrayList<>();
@@ -69,7 +75,14 @@ public class TriggerManager
 	/** Blocks changed by place_blocks targets, with the state they had before the first change. */
 	private final Map<Location, BlockData> replacedBlocks = new LinkedHashMap<>();
 	private boolean packAPunchUnlocked;
+	private boolean packAPunchDisabled;
 	private int taskId = -1;
+	/** Scheduled {@code after} targets per trigger, so a reset or the game end can call them off. */
+	private final Map<Trigger, List<Integer>> pending = new IdentityHashMap<>();
+	/** The player who completed a trigger's last step, for targets that reward that player. */
+	private final Map<Trigger, Player> completedBy = new IdentityHashMap<>();
+	/** Players holding an interact point (hack), with the task that watches them. */
+	private final Map<UUID, Integer> holds = new HashMap<>();
 
 	public TriggerManager(Game game)
 	{
@@ -217,15 +230,25 @@ public class TriggerManager
 			trigger.resetAll();
 		unlockedTeleporters.clear();
 		firedTriggers.clear();
+		for(List<Integer> tasks : pending.values())
+			for(int task : tasks)
+				Bukkit.getScheduler().cancelTask(task);
+		pending.clear();
+		completedBy.clear();
+		for(int task : holds.values())
+			Bukkit.getScheduler().cancelTask(task);
+		holds.clear();
 		restorePlacedBlocks();
+		game.zoneManager.switchAllOn();
 		packAPunchUnlocked = false;
+		packAPunchDisabled = false;
 	}
 
 	// ---------------------------------------------------------------- gates
 
 	public boolean isPackAPunchLocked()
 	{
-		return game.isPackAPunchLockedByDefault() && !packAPunchUnlocked;
+		return packAPunchDisabled || (game.isPackAPunchLockedByDefault() && !packAPunchUnlocked);
 	}
 
 	/** A teleporter is locked while some trigger still has to enable it this game. */
@@ -255,9 +278,8 @@ public class TriggerManager
 			for(TriggerTarget target : trigger.getTargets())
 				if(target.getKind() == TriggerTarget.Kind.ENABLE_TELEPORTER && keys.contains(target.getValue().toLowerCase(Locale.ROOT)))
 				{
-					removeVisuals(trigger);
+					reset(trigger);
 					trigger.resetAll();
-					spawnVisuals(trigger);
 					break;
 				}
 	}
@@ -282,6 +304,9 @@ public class TriggerManager
 					continue;
 				if(trigger.isAllPlayers() && step.getContributors().contains(player.getUniqueId()))
 					continue;
+				TriggerStep next = trigger.isOrdered() ? trigger.nextStep() : null;
+				if(next != null && next != step && (next.isStateStep() || next.getKind() == TriggerStep.Kind.ROUND_CHANCE))
+					continue;
 				Location centre = interactCentre(step, world);
 				double dx = at.getX() - centre.getX();
 				double dz = at.getZ() - centre.getZ();
@@ -303,6 +328,12 @@ public class TriggerManager
 	public String prompt(InteractPoint point, Player player)
 	{
 		String label = point.step.getDescription().isEmpty() ? "Interact" : ChatColor.translateAlternateColorCodes('&', point.step.getDescription());
+		if(!point.step.getGear().isEmpty() && !ownsGear(player, point.step.getGear()))
+			return ChatColor.RED + "[F] " + ChatColor.GRAY + label + " - needs the " + point.step.getGear();
+		if(holds.containsKey(player.getUniqueId()))
+			return null;
+		if(point.step.getHoldSeconds() > 0)
+			label += ChatColor.GRAY + " (stay " + point.step.getHoldSeconds() + "s)";
 		int cost = point.step.getCost();
 		if(cost <= 0)
 			return ChatColor.GREEN + "[F] " + ChatColor.RESET + label;
@@ -369,6 +400,93 @@ public class TriggerManager
 			wrongOrder(player, trigger, where);
 			return;
 		}
+		if(!step.getGear().isEmpty() && !ownsGear(player, step.getGear()))
+		{
+			CommandUtil.actionBar(player, ChatColor.RED + "You need the " + step.getGear());
+			SoundUtil.play(player, where, SoundConfig.get("trigger.denied", "ENTITY_VILLAGER_NO"), SoundCategory.MASTER, 1, 1);
+			return;
+		}
+		if(step.getCost() > 0 && !PointManager.INSTANCE.canBuy(player, step.getCost()))
+		{
+			CommandUtil.sendMessageToPlayer(player, ChatColor.RED + "You don't have enough points!");
+			SoundUtil.play(player, where, SoundConfig.get("trigger.denied", "ENTITY_VILLAGER_NO"), SoundCategory.MASTER, 1, 1);
+			return;
+		}
+		if(step.getHoldSeconds() > 0)
+		{
+			startHold(player, trigger, step, where);
+			return;
+		}
+		finishInteract(player, trigger, step, where);
+	}
+
+	/**
+	 * A step that takes time (hacking): the player has to stay within reach while a bar fills up; walking away,
+	 * going down or the step being taken by someone else cancels it.
+	 */
+	private void startHold(Player player, Trigger trigger, TriggerStep step, Location where)
+	{
+		if(holds.containsKey(player.getUniqueId()))
+			return;
+		final int totalTicks = step.getHoldSeconds() * 20;
+		final int[] ticks = {0};
+		SoundUtil.play(player.getWorld(), where, SoundConfig.get("trigger.hold_start", "BLOCK_BEACON_ACTIVATE"), SoundCategory.MASTER, 1, 1.6f);
+		int task = COMZombies.scheduleTask(0L, 5L, () ->
+		{
+			ticks[0] += 5;
+			boolean inReach = player.isOnline() && player.getWorld().equals(where.getWorld())
+					&& player.getLocation().distanceSquared(where) <= (INTERACT_REACH + 1.5) * (INTERACT_REACH + 1.5);
+			boolean stillOpen = game.getStatus() == Game.GameStatus.INGAME && trigger.isActive() && !step.isDone() && trigger.accepts(step)
+					&& game.getLivingPlayers().contains(player)
+					&& (trigger.getDeadlineMs() == 0 || System.currentTimeMillis() <= trigger.getDeadlineMs());
+			if(!inReach || !stillOpen || game.downedPlayerManager.isDownedPlayer(player))
+			{
+				endHold(player);
+				if(player.isOnline())
+					CommandUtil.actionBar(player, ChatColor.RED + "Interrupted");
+				return;
+			}
+			int filled = Math.min(20, ticks[0] * 20 / totalTicks);
+			StringBuilder bar = new StringBuilder(ChatColor.GREEN.toString());
+			for(int i = 0; i < 20; i++)
+			{
+				if(i == filled)
+					bar.append(ChatColor.DARK_GRAY);
+				bar.append('|');
+			}
+			CommandUtil.actionBar(player, bar.toString());
+			if(ticks[0] % 20 == 0)
+				SoundUtil.play(player.getWorld(), where, SoundConfig.get("trigger.hold_tick", "BLOCK_NOTE_BLOCK_HAT"), SoundCategory.MASTER, 0.6f, 1.4f);
+			if(ticks[0] >= totalTicks)
+			{
+				endHold(player);
+				if(step.getCost() > 0 && !PointManager.INSTANCE.canBuy(player, step.getCost()))
+				{
+					CommandUtil.sendMessageToPlayer(player, ChatColor.RED + "You don't have enough points!");
+					return;
+				}
+				finishInteract(player, trigger, step, where);
+			}
+		});
+		if(task != -1)
+			holds.put(player.getUniqueId(), task);
+	}
+
+	private void endHold(Player player)
+	{
+		Integer task = holds.remove(player.getUniqueId());
+		if(task != null)
+			Bukkit.getScheduler().cancelTask(task);
+	}
+
+	private boolean ownsGear(Player player, String gear)
+	{
+		com.theprogrammingturkey.comz.game.equipment.Equipment equipment = com.theprogrammingturkey.comz.game.equipment.EquipmentCatalogue.get(gear);
+		return equipment != null && game.equipmentManager.owns(player, equipment);
+	}
+
+	private void finishInteract(Player player, Trigger trigger, TriggerStep step, Location where)
+	{
 		if(step.getCost() > 0)
 		{
 			if(!PointManager.INSTANCE.canBuy(player, step.getCost()))
@@ -380,6 +498,7 @@ public class TriggerManager
 			PointManager.INSTANCE.takePoints(player, step.getCost());
 			PointManager.INSTANCE.notifyPlayer(player);
 		}
+		completedBy.put(trigger, player);
 		if(contributeAll(trigger, step, player.getUniqueId(), where))
 			complete(trigger, step, where);
 	}
@@ -470,6 +589,11 @@ public class TriggerManager
 
 	public void onRoundReached()
 	{
+		if(game.getStatus() == Game.GameStatus.INGAME)
+			for(Trigger trigger : triggers)
+				for(TriggerStep step : trigger.getSteps())
+					if(step.getKind() == TriggerStep.Kind.ROUND_CHANCE && trigger.accepts(step) && COMZombies.rand.nextInt(100) < step.getAmount())
+						complete(trigger, step, null);
 		checkStateSteps();
 	}
 
@@ -578,6 +702,8 @@ public class TriggerManager
 			fire(trigger);
 			return;
 		}
+		if(trigger.isSilent())
+			return;
 
 		if(where != null && where.getWorld() != null)
 		{
@@ -618,19 +744,13 @@ public class TriggerManager
 		trigger.setFired(true);
 		trigger.setDeadlineMs(0);
 		firedTriggers.add(trigger.getId().toLowerCase(Locale.ROOT));
-		for(Player player : game.getPlayersAndSpectators())
-			SoundUtil.play(player, player.getLocation(), SoundConfig.get("trigger.complete", "UI_TOAST_CHALLENGE_COMPLETE"), SoundCategory.MASTER, 1, 1);
-		actionBarAll(ChatColor.GOLD + "" + ChatColor.BOLD + trigger.displayName() + ChatColor.GOLD + " complete");
-		for(TriggerTarget target : trigger.getTargets())
+		if(!trigger.isSilent())
 		{
-			try
-			{
-				run(target);
-			} catch(RuntimeException e)
-			{
-				COMZombies.log.warning("Trigger " + trigger.getId() + " could not " + target.describe() + ": " + e);
-			}
+			for(Player player : game.getPlayersAndSpectators())
+				SoundUtil.play(player, player.getLocation(), SoundConfig.get("trigger.complete", "UI_TOAST_CHALLENGE_COMPLETE"), SoundCategory.MASTER, 1, 1);
+			actionBarAll(ChatColor.GOLD + "" + ChatColor.BOLD + trigger.displayName() + ChatColor.GOLD + " complete");
 		}
+		runAll(trigger, trigger.getTargets());
 		if(trigger.isRepeatable() && game.getStatus() == Game.GameStatus.INGAME)
 		{
 			trigger.rearm();
@@ -638,16 +758,89 @@ public class TriggerManager
 		}
 	}
 
-	private void run(TriggerTarget target)
+	private void runAll(Trigger trigger, List<TriggerTarget> targets)
+	{
+		for(TriggerTarget target : targets)
+		{
+			try
+			{
+				run(trigger, target);
+			} catch(RuntimeException e)
+			{
+				COMZombies.log.warning("Trigger " + trigger.getId() + " could not " + target.describe() + ": " + e);
+			}
+		}
+	}
+
+	private void run(Trigger trigger, TriggerTarget target)
 	{
 		World world = game.getWorld();
 		switch(target.getKind())
 		{
+			case AFTER:
+			{
+				List<Integer> tasks = pending.computeIfAbsent(trigger, t -> new ArrayList<>());
+				int[] id = {-1};
+				id[0] = Bukkit.getScheduler().scheduleSyncDelayedTask(COMZombies.getPlugin(), () ->
+				{
+					tasks.remove(Integer.valueOf(id[0]));
+					if(game.getStatus() == Game.GameStatus.INGAME)
+						runAll(trigger, target.getTargets());
+				}, Math.max(1, target.getAmount()));
+				if(id[0] != -1)
+					tasks.add(id[0]);
+				break;
+			}
+			case CLONE_BLOCKS:
+				cloneBlocks(world, target);
+				break;
+			case FILL_BLOCKS:
+				fillBlocks(world, target);
+				break;
+			case PLAY_SOUND:
+			{
+				Location at = target.getPoint() != null ? target.pointLocation(world) : randomPlayerLocation();
+				if(at != null)
+					SoundUtil.play(world, at, SoundConfig.get(target.getValue(), target.getValue()), SoundCategory.MASTER, target.getVolume(), 1);
+				break;
+			}
+			case RESET_TRIGGER:
+			{
+				// A tick later, so a trigger resetting itself is never reset while its own fire() is still running.
+				Trigger other = getTrigger(target.getValue());
+				if(other != null)
+					COMZombies.scheduleTask(1L, () ->
+					{
+						if(game.getStatus() == Game.GameStatus.INGAME)
+							reset(other);
+					});
+				break;
+			}
+			case SET_ZONE:
+				game.zoneManager.setSwitchedOff(target.getValue(), target.getAmount() <= 0);
+				break;
+			case LOCK_TELEPORTER:
+				unlockedTeleporters.remove(target.getValue().toLowerCase(Locale.ROOT));
+				break;
+			case DISABLE_PACK_A_PUNCH:
+				packAPunchDisabled = true;
+				break;
+			case GIVE_POINTS_TO_PLAYER:
+			{
+				Player player = completedBy.get(trigger);
+				if(player != null && player.isOnline() && game.getPlayersInGame().contains(player))
+				{
+					PointManager.INSTANCE.addPoints(player, target.getAmount());
+					PointManager.INSTANCE.notifyPlayer(player);
+				}
+				break;
+			}
 			case OPEN_DOOR:
 				openDoor(target.getValue());
 				break;
 			case ENABLE_PACK_A_PUNCH:
 				packAPunchUnlocked = true;
+				packAPunchDisabled = false;
 				break;
 			case ENABLE_TELEPORTER:
 				unlockedTeleporters.add(target.getValue().toLowerCase(Locale.ROOT));
@@ -729,6 +922,135 @@ public class TriggerManager
 			replacedBlocks.putIfAbsent(block.getLocation(), block.getBlockData());
 			block.setBlockData(data, false);
 		}
+	}
+
+	/** Calls off a trigger's pending timeline and arms it again from scratch, as if it never ran this game. */
+	private void reset(Trigger trigger)
+	{
+		List<Integer> tasks = pending.remove(trigger);
+		if(tasks != null)
+			for(int task : tasks)
+				Bukkit.getScheduler().cancelTask(task);
+		firedTriggers.remove(trigger.getId().toLowerCase(Locale.ROOT));
+		completedBy.remove(trigger);
+		removeVisuals(trigger);
+		trigger.rearm();
+		for(TriggerStep step : trigger.getSteps())
+			if(step.getKind() == TriggerStep.Kind.TRIGGER_DONE)
+				step.resetProgress();
+		trigger.setFailed(false);
+		spawnVisuals(trigger);
+	}
+
+	/** Like /clone: {@code replace} copies every block, {@code masked} skips air, {@code move} also clears the source. */
+	private void cloneBlocks(World world, TriggerTarget target)
+	{
+		Vector min = target.getBoxMin();
+		Vector max = target.getBoxMax();
+		Vector to = target.getPoint();
+		if(world == null || min == null || to == null)
+			return;
+		String mode = target.getValue().toLowerCase(Locale.ROOT);
+		boolean masked = mode.contains("masked");
+		boolean move = mode.contains("move");
+		Tag<Material> tag = blockTag(target.getFilter());
+		Material only = tag == null && !target.getFilter().isEmpty() ? Material.matchMaterial(target.getFilter()) : null;
+		if(!target.getFilter().isEmpty() && tag == null && only == null)
+		{
+			COMZombies.log.warning("Trigger clone filter " + target.getFilter() + " is not known on this server; skipped");
+			return;
+		}
+		int sx = max.getBlockX() - min.getBlockX() + 1, sy = max.getBlockY() - min.getBlockY() + 1, sz = max.getBlockZ() - min.getBlockZ() + 1;
+		if(tooBig(sx, sy, sz))
+			return;
+		BlockData[] copied = new BlockData[sx * sy * sz];
+		for(int x = 0; x < sx; x++)
+			for(int y = 0; y < sy; y++)
+				for(int z = 0; z < sz; z++)
+				{
+					Block source = world.getBlockAt(min.getBlockX() + x, min.getBlockY() + y, min.getBlockZ() + z);
+					Material type = source.getType();
+					boolean wanted = (tag != null ? tag.isTagged(type) : only == null || type == only) && !(masked && type.isAir());
+					if(wanted)
+						copied[(x * sy + y) * sz + z] = source.getBlockData();
+				}
+		if(move)
+			for(int x = 0; x < sx; x++)
+				for(int y = 0; y < sy; y++)
+					for(int z = 0; z < sz; z++)
+						if(copied[(x * sy + y) * sz + z] != null)
+							setJournaled(world.getBlockAt(min.getBlockX() + x, min.getBlockY() + y, min.getBlockZ() + z), Material.AIR.createBlockData());
+		for(int x = 0; x < sx; x++)
+			for(int y = 0; y < sy; y++)
+				for(int z = 0; z < sz; z++)
+				{
+					BlockData data = copied[(x * sy + y) * sz + z];
+					if(data != null)
+						setJournaled(world.getBlockAt(to.getBlockX() + x, to.getBlockY() + y, to.getBlockZ() + z), data);
+				}
+	}
+
+	/** Like /fill, optionally only replacing the {@code filter} block or tag. */
+	private void fillBlocks(World world, TriggerTarget target)
+	{
+		Vector min = target.getBoxMin();
+		Vector max = target.getBoxMax();
+		if(world == null || min == null)
+			return;
+		BlockData data;
+		try
+		{
+			data = Bukkit.createBlockData(target.getValue());
+		} catch(IllegalArgumentException e)
+		{
+			COMZombies.log.warning("Trigger fill block " + target.getValue() + " is not valid on this server");
+			return;
+		}
+		Tag<Material> tag = blockTag(target.getFilter());
+		Material only = tag == null && !target.getFilter().isEmpty() ? Material.matchMaterial(target.getFilter()) : null;
+		if(!target.getFilter().isEmpty() && tag == null && only == null)
+		{
+			COMZombies.log.warning("Trigger fill filter " + target.getFilter() + " is not known on this server; skipped");
+			return;
+		}
+		if(tooBig(max.getBlockX() - min.getBlockX() + 1, max.getBlockY() - min.getBlockY() + 1, max.getBlockZ() - min.getBlockZ() + 1))
+			return;
+		for(int x = min.getBlockX(); x <= max.getBlockX(); x++)
+			for(int y = min.getBlockY(); y <= max.getBlockY(); y++)
+				for(int z = min.getBlockZ(); z <= max.getBlockZ(); z++)
+				{
+					Block block = world.getBlockAt(x, y, z);
+					Material type = block.getType();
+					if(tag != null ? tag.isTagged(type) : only == null || type == only)
+						setJournaled(block, data);
+				}
+	}
+
+	/** A box this big is almost certainly a typo'd coordinate; changing it would stall the server. */
+	private static boolean tooBig(int sx, int sy, int sz)
+	{
+		long volume = (long) sx * sy * sz;
+		if(volume <= MAX_EDIT_VOLUME)
+			return false;
+		COMZombies.log.warning("Trigger block edit of " + volume + " blocks is over the limit of " + MAX_EDIT_VOLUME + "; skipped");
+		return true;
+	}
+
+	private void setJournaled(Block block, BlockData data)
+	{
+		replacedBlocks.putIfAbsent(block.getLocation(), block.getBlockData());
+		block.setBlockData(data, false);
+	}
+
+	/** {@code #namespace:path} block tag, or null for a plain block id, no filter or a tag this server lacks. */
+	@SuppressWarnings("deprecation")
+	private static Tag<Material> blockTag(String filter)
+	{
+		if(filter == null || !filter.startsWith("#"))
+			return null;
+		String[] parts = filter.substring(1).split(":", 2);
+		NamespacedKey key = parts.length == 2 ? new NamespacedKey(parts[0], parts[1]) : NamespacedKey.minecraft(parts[0]);
+		return Bukkit.getTag(Tag.REGISTRY_BLOCKS, key, Material.class);
 	}
 
 	private void restorePlacedBlocks()
