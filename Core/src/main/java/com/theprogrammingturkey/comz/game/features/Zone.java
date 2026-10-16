@@ -5,6 +5,8 @@ import com.theprogrammingturkey.comz.config.CustomConfig;
 import org.bukkit.Location;
 import org.bukkit.World;
 
+import java.util.Locale;
+
 /**
  * A named box region of an arena (two block corners, inclusive) with optional environment flags. Zones
  * are generic: the environment uses the flags, other features (traps, triggers) can use them as plain
@@ -15,6 +17,30 @@ public class Zone
 	/** Gravity value meaning "no override, use the arena's gravity". */
 	public static final double NO_GRAVITY_OVERRIDE = -1;
 
+	/** Who a zone with a push-out spot sends there while it is switched on. */
+	public enum PushOut
+	{
+		PLAYERS, MOBS, ALL;
+
+		public boolean players()
+		{
+			return this != MOBS;
+		}
+
+		public boolean mobs()
+		{
+			return this != PLAYERS;
+		}
+
+		public static PushOut fromKey(String key)
+		{
+			for(PushOut value : values())
+				if(value.name().equalsIgnoreCase(key))
+					return value;
+			return PLAYERS;
+		}
+	}
+
 	private final String id;
 	private String name;
 	private World world;
@@ -24,6 +50,11 @@ public class Zone
 	/** Breathable pocket inside a no-air zone (a pressurised room on the moon); wins over any no-air zone. */
 	private boolean airPocket;
 	private double damagePerSecond;
+	/** Above 0 the zone is the ball of this radius around the box centre, clipped to the box. */
+	private double radius;
+	/** Players and/or mobs inside are sent here (Shangri-La keeps everyone off the Pack-a-Punch stairs); null = none. */
+	private Location pushOutTo;
+	private PushOut pushOut = PushOut.PLAYERS;
 
 	public Zone(String id, Location corner1, Location corner2)
 	{
@@ -85,7 +116,52 @@ public class Zone
 		if(location == null || location.getWorld() != world)
 			return false;
 		double x = location.getX(), y = location.getY(), z = location.getZ();
-		return x >= minX && x < maxX + 1 && y >= minY && y < maxY + 1 && z >= minZ && z < maxZ + 1;
+		if(!(x >= minX && x < maxX + 1 && y >= minY && y < maxY + 1 && z >= minZ && z < maxZ + 1))
+			return false;
+		if(radius <= 0)
+			return true;
+		double dx = x - (minX + maxX + 1) / 2.0, dy = y - (minY + maxY + 1) / 2.0, dz = z - (minZ + maxZ + 1) / 2.0;
+		return dx * dx + dy * dy + dz * dz <= radius * radius;
+	}
+
+	public double getRadius()
+	{
+		return radius;
+	}
+
+	public void setRadius(double radius)
+	{
+		this.radius = radius > 0 && !Double.isInfinite(radius) ? radius : 0;
+	}
+
+	public Location getPushOutTo()
+	{
+		return pushOutTo == null ? null : pushOutTo.clone();
+	}
+
+	public void setPushOutTo(Location pushOutTo)
+	{
+		this.pushOutTo = pushOutTo == null ? null : pushOutTo.clone();
+	}
+
+	public PushOut getPushOut()
+	{
+		return pushOut;
+	}
+
+	public void setPushOut(PushOut pushOut)
+	{
+		this.pushOut = pushOut == null ? PushOut.PLAYERS : pushOut;
+	}
+
+	public boolean pushesPlayers()
+	{
+		return pushOutTo != null && pushOut.players();
+	}
+
+	public boolean pushesMobs()
+	{
+		return pushOutTo != null && pushOut.mobs();
 	}
 
 	public long volume()
@@ -151,6 +227,10 @@ public class Zone
 			sb.append(sb.length() > 0 ? ", " : "").append("air pocket");
 		if(damagePerSecond > 0)
 			sb.append(sb.length() > 0 ? ", " : "").append(damagePerSecond).append(" dmg/s");
+		if(radius > 0)
+			sb.append(sb.length() > 0 ? ", " : "").append("radius ").append(radius);
+		if(pushOutTo != null)
+			sb.append(sb.length() > 0 ? ", " : "").append("pushes ").append(pushOut.name().toLowerCase(Locale.ROOT)).append(" out");
 		return sb.length() == 0 ? "no flags" : sb.toString();
 	}
 
@@ -166,6 +246,13 @@ public class Zone
 		zone.setNoAir(CustomConfig.getBoolean(json, "no_air", false));
 		zone.setAirPocket(CustomConfig.getBoolean(json, "air_pocket", false));
 		zone.setDamagePerSecond(CustomConfig.getDouble(json, "damage_per_second", 0));
+		zone.setRadius(CustomConfig.getDouble(json, "radius", 0));
+		if(json.has("push_out_to") && json.get("push_out_to").isJsonObject())
+		{
+			JsonObject to = json.getAsJsonObject("push_out_to");
+			zone.setPushOutTo(new Location(world, CustomConfig.getDouble(to, "x", 0), CustomConfig.getDouble(to, "y", 0), CustomConfig.getDouble(to, "z", 0)));
+			zone.setPushOut(PushOut.fromKey(CustomConfig.getString(json, "push_out", "players")));
+		}
 		return zone;
 	}
 
@@ -181,6 +268,13 @@ public class Zone
 		if(airPocket)
 			json.addProperty("air_pocket", true);
 		json.addProperty("damage_per_second", damagePerSecond);
+		if(radius > 0)
+			json.addProperty("radius", radius);
+		if(pushOutTo != null)
+		{
+			json.add("push_out_to", CustomConfig.locationToJsonNoWorld(pushOutTo));
+			json.addProperty("push_out", pushOut.name().toLowerCase(Locale.ROOT));
+		}
 		return json;
 	}
 }

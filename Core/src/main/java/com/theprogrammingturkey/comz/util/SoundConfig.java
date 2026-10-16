@@ -97,17 +97,32 @@ public final class SoundConfig
 	 */
 	public static String get(String dottedPath, String def)
 	{
-		String v = raw(dottedPath);
-		if(v == null)
+		JsonElement value = rawElement(dottedPath);
+		if(value == null)
 			return def;
-		// A pack-only event (the pack's custom.* events, or any non-minecraft namespace) is silent
-		// without the pack installed — fall back to the vanilla default so audio is never lost.
-		if(isPackOnly(v) && !PackModels.isPackEnabled())
+		// A list holds candidates in order, e.g. ["custom.coast.george.george_start", "ENTITY_WITHER_SPAWN"],
+		// so a pack event can name its own vanilla stand-in instead of the generic call-site default.
+		if(value.isJsonArray())
+		{
+			for(JsonElement candidate : value.getAsJsonArray())
+			{
+				String v = candidate.isJsonPrimitive() ? candidate.getAsString() : "";
+				if(playable(v))
+					return v;
+			}
 			return def;
-		return v;
+		}
+		String v = value.isJsonPrimitive() ? value.getAsString() : "";
+		return playable(v) ? v : def;
 	}
 
-	private static boolean isPackOnly(String v)
+	/** Blank values and pack-only events without the pack are silent, so callers use their vanilla default instead. */
+	private static boolean playable(String v)
+	{
+		return !v.isEmpty() && !(isPackOnly(v) && !PackModels.isPackEnabled());
+	}
+
+	static boolean isPackOnly(String v)
 	{
 		if(v.startsWith("custom."))
 			return true;
@@ -149,7 +164,7 @@ public final class SoundConfig
 
 	// --- internals -----------------------------------------------------------
 
-	private static String raw(String dottedPath)
+	private static JsonElement rawElement(String dottedPath)
 	{
 		String[] parts = dottedPath.split("\\.");
 		JsonObject o = root;
@@ -159,7 +174,8 @@ public final class SoundConfig
 			if(o == null)
 				return null;
 		}
-		return primitive(o, parts[parts.length - 1]);
+		String last = parts[parts.length - 1];
+		return o.has(last) ? o.get(last) : null;
 	}
 
 	private static JsonObject childObject(JsonObject o, String key)

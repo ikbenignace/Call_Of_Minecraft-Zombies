@@ -156,7 +156,7 @@ public class EntityListener implements Listener
 					}
 					damager.setMetadata(LAST_ATTACK_META, new FixedMetadataValue(COMZombies.getPlugin(), now));
 					if(damager instanceof org.bukkit.entity.Zombie)
-						com.theprogrammingturkey.comz.util.SoundUtil.playKey(damager.getWorld(), damager.getLocation(), "zombie.attack", "", org.bukkit.SoundCategory.HOSTILE, 1.0F, 1.0F);
+						com.theprogrammingturkey.comz.util.SoundUtil.playKey(damager.getWorld(), damager.getLocation(), "zombie.attack", "ENTITY_ZOMBIE_AMBIENT", org.bukkit.SoundCategory.HOSTILE, 1.0F, 1.0F);
 
 					float damage = zombieHitDamage(game.perkManager.hasPerk(player, PerkType.JUGGERNOG));
 

@@ -104,6 +104,10 @@ config:
     respawnKeepsPoints: true
     #Walk-speed multiplier while aiming (sneaking) with a non-sniper gun, on top of the sneak slowdown.
     aimWalkSpeedMultiplier: 0.75
+    #Walk-speed multiplier while wading with the feet in water (BO slows you in water). 1 = off.
+    waterWalkMultiplier: 0.7
+    #Walk-speed multiplier in water up to the waist or deeper. Arenas can override both (water_walk_multiplier / water_deep_walk_multiplier).
+    waterDeepWalkMultiplier: 0.5
     #The amount of seconds after being hit to be healed. BO2: ~2.5s short delay then fast regen.
     healTime: 2.5
     #Quick Revive multiplies the heal delay by this (faster regen start).

@@ -62,6 +62,13 @@ public class ProximityBuyManager
 	private static final double REACH_ABOVE = 3.0D;
 	/** How far a crosshair ray counts as looking at something. */
 	private static final double LOOK_RANGE = 6.0D;
+	/**
+	 * A door is only bought by the part of it above the player's feet, so a debris pile or floor hatch the
+	 * player stands on can't be bought by looking down.
+	 */
+	private static final double DOOR_MIN_ABOVE_FEET = 0.25D;
+	/** A buyable below the feet and this close horizontally is one the player is standing on. */
+	private static final double UNDERFOOT_XZ = 0.85D;
 
 	private final Game game;
 	private int taskId = -1;
@@ -206,6 +213,9 @@ public class ProximityBuyManager
 			BoundingBox region = doorRegionBox(door, 0.0D);
 			if(zone == null || region == null || !zone.overlaps(player.getBoundingBox()))
 				continue;
+			region = bodyLevelPart(region, player);
+			if(region == null)
+				continue;
 			Vector centre = zone.getCenter();
 			candidates.add(new Candidate(new BuyTarget(TargetType.DOOR, null, doorPrompt(door, player), null, door, null),
 					distanceSqXZ(player.getLocation(), centre.getX(), centre.getZ()), region, true));
@@ -216,7 +226,7 @@ public class ProximityBuyManager
 			if(m.centre == null || m.centre.getWorld() == null || !m.centre.getWorld().equals(player.getWorld()))
 				continue;
 			double dSq = distanceSqXZ(player.getLocation(), m.centre.getX(), m.centre.getZ());
-			if(dSq <= MACHINE_REACH * MACHINE_REACH && reachable(player, m.centre))
+			if(dSq <= MACHINE_REACH * MACHINE_REACH && reachableInFront(player, m.centre, dSq))
 				candidates.add(new Candidate(new BuyTarget(TargetType.MACHINE, m.centre.clone(), machinePrompt(m, player), m.label), dSq, aimBox(m.centre, 0.7, 1.0), false));
 		}
 
@@ -225,7 +235,7 @@ public class ProximityBuyManager
 			if(wallGun.centre.getWorld() == null || !wallGun.centre.getWorld().equals(player.getWorld()))
 				continue;
 			double dSq = distanceSqXZ(player.getLocation(), wallGun.centre.getX(), wallGun.centre.getZ());
-			if(dSq <= MACHINE_REACH * MACHINE_REACH && reachable(player, wallGun.centre))
+			if(dSq <= MACHINE_REACH * MACHINE_REACH && reachableInFront(player, wallGun.centre, dSq))
 				candidates.add(new Candidate(new BuyTarget(TargetType.WALL_GUN, wallGun.centre.clone(), game.wallGunManager.prompt(player, wallGun.signLines), wallGun.label), dSq, aimBox(wallGun.centre, 0.7, 0.6), false));
 		}
 
@@ -236,7 +246,7 @@ public class ProximityBuyManager
 			if(loc == null || loc.getWorld() == null || !loc.getWorld().equals(player.getWorld()))
 				continue;
 			double dSq = distanceSqXZ(player.getLocation(), loc.getX() + 0.5, loc.getZ() + 0.5);
-			if(dSq <= BOX_REACH * BOX_REACH && reachable(player, loc.clone().add(0.5, 0.5, 0.5)))
+			if(dSq <= BOX_REACH * BOX_REACH && reachableInFront(player, loc.clone().add(0.5, 0.5, 0.5), dSq))
 				candidates.add(new Candidate(new BuyTarget(TargetType.BOX, loc.clone(), boxPrompt(box, player), null), dSq, aimBox(loc.clone().add(0.5, 0.5, 0.5), 1.0, 0.6), false));
 		}
 
@@ -248,7 +258,7 @@ public class ProximityBuyManager
 			if(centre.getWorld() == null || !centre.getWorld().equals(player.getWorld()))
 				continue;
 			double dSq = distanceSqXZ(player.getLocation(), centre.getX(), centre.getZ());
-			if(dSq > MACHINE_REACH * MACHINE_REACH || Math.abs(player.getLocation().getY() - centre.getY()) > PROP_REACH_Y || !reachable(player, centre))
+			if(dSq > MACHINE_REACH * MACHINE_REACH || Math.abs(player.getLocation().getY() - centre.getY()) > PROP_REACH_Y || !reachableInFront(player, centre, dSq))
 				continue;
 			String prompt = game.signPropManager.promptFor(prop, player);
 			if(prompt != null)
@@ -435,6 +445,29 @@ public class ProximityBuyManager
 			maxZ = Math.max(maxZ, b.getZ() + 1);
 		}
 		return new BoundingBox(minX - reach, minY - reach, minZ - reach, maxX + reach, maxY + reach, maxZ + reach);
+	}
+
+	/** The part of a door's block region above the player's feet, or null when the whole door is underfoot. */
+	static BoundingBox bodyLevelPart(BoundingBox region, Player player)
+	{
+		double low = Math.max(region.getMinY(), player.getLocation().getY() + DOOR_MIN_ABOVE_FEET);
+		if(region.getMaxY() <= low)
+			return null;
+		return new BoundingBox(region.getMinX(), low, region.getMinZ(), region.getMaxX(), region.getMaxY(), region.getMaxZ());
+	}
+
+	/** Gate for the click paths (door blocks, door hitbox), the same rule the look-at prompt uses. */
+	public static boolean isDoorAtBodyLevel(Player player, Door door)
+	{
+		BoundingBox region = doorRegionBox(door, 0.0D);
+		return region != null && bodyLevelPart(region, player) != null;
+	}
+
+	private static boolean reachableInFront(Player player, Location target, double distSqXZ)
+	{
+		if(target.getY() < player.getLocation().getY() && distSqXZ < UNDERFOOT_XZ * UNDERFOOT_XZ)
+			return false;
+		return reachable(player, target);
 	}
 
 	/**

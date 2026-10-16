@@ -47,6 +47,8 @@ public class SpecialEnemyType
 	public final boolean nukeImmune;
 	public final JsonObject options;
 	public final SpecialEnemyRule defaultRule;
+	/** No rule spawns this type before this round unless the arena rule sets its own {@code min_round}. */
+	public final int minRound;
 
 	public SpecialEnemyType(JsonObject json)
 	{
@@ -79,6 +81,7 @@ public class SpecialEnemyType
 		lifetimeSeconds = CustomConfig.getInt(json, "lifetime_seconds", 0);
 		instaKillImmune = CustomConfig.getBoolean(json, "insta_kill_immune", behaviour == SpecialBehaviour.BOSS);
 		nukeImmune = CustomConfig.getBoolean(json, "nuke_immune", behaviour == SpecialBehaviour.BOSS);
+		minRound = Math.max(1, CustomConfig.getInt(json, "min_round", behaviour == SpecialBehaviour.BOSS ? SpecialEnemyCatalogue.bossRules().minRound : 1));
 		options = json.has("options") && json.get("options").isJsonObject() ? json.getAsJsonObject("options") : new JsonObject();
 
 		JsonObject rule = json.has("default_rule") && json.get("default_rule").isJsonObject() ? json.getAsJsonObject("default_rule") : new JsonObject();

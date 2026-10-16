@@ -3,11 +3,14 @@ package com.theprogrammingturkey.comz.spawning;
 import com.theprogrammingturkey.comz.COMZombies;
 import com.theprogrammingturkey.comz.config.ConfigManager;
 import com.theprogrammingturkey.comz.game.Game;
+import com.theprogrammingturkey.comz.game.features.Barrier;
 import com.theprogrammingturkey.comz.game.features.PowerUp;
+import com.theprogrammingturkey.comz.spawning.special.SpecialEnemyCatalogue;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.SoundCategory;
 import org.bukkit.World;
+import org.bukkit.block.Block;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.boss.BarColor;
@@ -21,6 +24,10 @@ import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.metadata.MetadataValue;
 import com.theprogrammingturkey.comz.util.Compat;
 import com.theprogrammingturkey.comz.util.SoundUtil;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * Tier 4 — boss-round spawner for the two signature heavy zombies:
@@ -50,6 +57,8 @@ public class BossSpawner extends RoundSpawner
 	/** Marks a spawned Brutus so the damage listener can fire its perk-disable ability. */
 	public static final String BRUTUS_META = "comz_brutus";
 	public static final String BOSS_META = "comz_boss";
+	private static final double MIN_BARRIER_DISTANCE = 2.5;
+	private static final int[][] NEIGHBOURS = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}, {1, 1}, {1, -1}, {-1, 1}, {-1, -1}};
 
 	public enum BossType
 	{
@@ -97,8 +106,7 @@ public class BossSpawner extends RoundSpawner
 		if(world == null)
 			return null;
 
-		Location location = new Location(world, loc.getLocation().getBlockX(), loc.getLocation().getBlockY(), loc.getLocation().getBlockZ());
-		location.add(0.5, 0, 0.5);
+		Location location = spawnLocation(game, loc.getLocation());
 
 		BossType type = bossForRound(wave, Math.max(1, ConfigManager.getMainConfig().bossRoundEveryX));
 		double mult = ConfigManager.getMainConfig().bossHealthMultiplier;
@@ -108,6 +116,7 @@ public class BossSpawner extends RoundSpawner
 		if(boss == null)
 			return null;
 		markBoss(boss);
+		fitThroughDoorways(boss, 1.0);
 
 		setFollowDistance(boss, 512);
 		ZombieHealth.applyHealth(boss, strength);
@@ -154,9 +163,9 @@ public class BossSpawner extends RoundSpawner
 		World world = boss.getWorld();
 		Location loc = boss.getLocation();
 
-		// (a) Boss stinger to everyone in the game — vanilla enum name for guaranteed audio.
+		// (a) Boss stinger to everyone in the game; without the pack it falls back to the vanilla wither spawn.
 		for(Player p : game.getPlayersInGame())
-			SoundUtil.play(p, loc, "ENTITY_WITHER_SPAWN", SoundCategory.HOSTILE, 1.0f, 0.8f);
+			SoundUtil.playKey(p, loc, type == BossType.GEORGE ? "boss.george.spawn" : "boss.brutus.spawn", "ENTITY_WITHER_SPAWN", SoundCategory.HOSTILE, 1.0f, 0.8f);
 
 		// (b) Health BossBar; max health may have been clamped by the attribute, so re-read it.
 		AttributeInstance maxAttr = boss.getAttribute(Compat.MAX_HEALTH);
@@ -239,6 +248,112 @@ public class BossSpawner extends RoundSpawner
 	public static void markBoss(Entity entity)
 	{
 		entity.setMetadata(BOSS_META, new FixedMetadataValue(COMZombies.getPlugin(), true));
+	}
+
+	/**
+	 * Scales the boss to {@code wantedScale}, capped so its collision box fits a 1x2 doorway (catalogue
+	 * {@code boss.max_height} / {@code max_width}). Without the scale attribute (before 1.20.5) nothing can be
+	 * resized, so it returns whether the mob's own box already fits.
+	 */
+	public static boolean fitThroughDoorways(Mob mob, double wantedScale)
+	{
+		SpecialEnemyCatalogue.BossRules rules = SpecialEnemyCatalogue.bossRules();
+		AttributeInstance attr = Compat.SCALE == null ? null : mob.getAttribute(Compat.SCALE);
+		double current = attr == null || attr.getValue() <= 0 ? 1.0 : attr.getValue();
+		double height = mob.getHeight() / current;
+		double width = mob.getWidth() / current;
+		double cap = Math.min(height > 0 ? rules.maxHeight / height : wantedScale, width > 0 ? rules.maxWidth / width : wantedScale);
+		if(attr == null)
+			return height <= rules.maxHeight + 1.0E-3 && width <= rules.maxWidth + 1.0E-3;
+		attr.setBaseValue(Math.max(0.1, Math.min(wantedScale, cap)));
+		return true;
+	}
+
+	/** {@link #safeSpawnLocation} or, when the map offers nothing better, the centre of {@code preferred}'s block. */
+	public static Location spawnLocation(Game game, Location preferred)
+	{
+		Location safe = safeSpawnLocation(game, preferred);
+		return safe != null ? safe : preferred.getBlock().getLocation().add(0.5, 0, 0.5);
+	}
+
+	/**
+	 * Where a boss may enter: a ground spawn not linked to a window, clear of barriers, with headroom and space
+	 * around it, a few blocks from the players, preferring the active zones and the spawns nearest a random
+	 * player. Falls back to an open spot near a player; null when there is none.
+	 */
+	public static Location safeSpawnLocation(Game game, Location preferred)
+	{
+		SpecialEnemyCatalogue.BossRules rules = SpecialEnemyCatalogue.bossRules();
+		List<Player> players = livingPlayers(game);
+		List<SpawnPoint> open = new ArrayList<>();
+		for(SpawnPoint point : game.spawnManager.getPoints())
+			if(isBossSpawn(game, point, players, rules))
+				open.add(point);
+		List<SpawnPoint> active = game.spawnManager.activeSpawnPoints(open);
+		List<SpawnPoint> pool = active.isEmpty() ? open : active;
+		if(!pool.isEmpty())
+		{
+			Location anchor = !players.isEmpty() ? players.get(COMZombies.rand.nextInt(players.size())).getLocation()
+					: preferred != null ? preferred : pool.get(0).getLocation();
+			List<SpawnPoint> nearest = SpawnManager.nearestPoints(pool, anchor, 3);
+			return nearest.get(COMZombies.rand.nextInt(nearest.size())).getLocation().getBlock().getLocation().add(0.5, 0, 0.5);
+		}
+		Collections.shuffle(players, COMZombies.rand);
+		for(Player player : players)
+		{
+			Location spot = HellHoundSpawner.findSpotNear(game, player);
+			if(spot != null && isOpenSpot(spot.getBlock(), rules.minOpenNeighbours) && !game.zoneManager.pushesMobsAt(spot))
+				return spot;
+		}
+		return null;
+	}
+
+	private static boolean isBossSpawn(Game game, SpawnPoint point, List<Player> players, SpecialEnemyCatalogue.BossRules rules)
+	{
+		Location loc = point.getLocation();
+		if(loc.getWorld() == null || !game.spawnManager.canSpawnPoint(point) || game.barrierManager.getBarrier(point) != null)
+			return false;
+		Block feet = loc.getBlock();
+		if(!isOpenSpot(feet, rules.minOpenNeighbours))
+			return false;
+		Location centre = feet.getLocation().add(0.5, 0, 0.5);
+		if(game.zoneManager.pushesMobsAt(centre))
+			return false;
+		double minSq = rules.minPlayerDistance * rules.minPlayerDistance;
+		for(Player player : players)
+			if(player.getWorld() == loc.getWorld() && player.getLocation().distanceSquared(centre) < minSq)
+				return false;
+		double barrierSq = MIN_BARRIER_DISTANCE * MIN_BARRIER_DISTANCE;
+		for(Barrier barrier : game.barrierManager.getBarriers())
+			for(Block b : barrier.getBlocks())
+				if(b.getWorld() == loc.getWorld() && b.getLocation().add(0.5, 0, 0.5).distanceSquared(centre) < barrierSq)
+					return false;
+		return true;
+	}
+
+	/** Standable with two blocks of headroom and at least {@code minOpen} walkable blocks around it, so not boxed in. */
+	public static boolean isOpenSpot(Block feet, int minOpen)
+	{
+		if(!HellHoundSpawner.isStandableSpot(feet))
+			return false;
+		int open = 0;
+		for(int[] d : NEIGHBOURS)
+		{
+			Block side = feet.getRelative(d[0], 0, d[1]);
+			Block sideHead = side.getRelative(0, 1, 0);
+			if(side.isPassable() && !side.isLiquid() && sideHead.isPassable() && !sideHead.isLiquid() && ++open >= minOpen)
+				return true;
+		}
+		return open >= minOpen;
+	}
+
+	private static List<Player> livingPlayers(Game game)
+	{
+		List<Player> out = new ArrayList<>();
+		for(Player pl : game.getPlayersInGame())
+			if(!game.downedPlayerManager.isDownedPlayer(pl))
+				out.add(pl);
+		return out;
 	}
 
 	/** Mob of the Dead: Brutus shuts down the perk machines and mystery boxes he walks past. */

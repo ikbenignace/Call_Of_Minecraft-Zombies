@@ -32,19 +32,10 @@ public final class SoundUtil
 		return value.indexOf(':') >= 0 || value.indexOf('.') >= 0;
 	}
 
-	/**
-	 * A custom-pack event is one with an explicit non-{@code minecraft} namespace (e.g. {@code comz:...}).
-	 * These only resolve client-side when the pack is installed, so when the pack is disabled we skip
-	 * them rather than fire a sound nothing can hear. Bukkit enum names and {@code minecraft:}/vanilla
-	 * dotted events always play.
-	 */
+	/** Pack-only events (bare {@code custom.*} or a non-minecraft namespace) are skipped without the pack: nothing could hear them. */
 	private static boolean blockedCustomEvent(String value)
 	{
-		int colon = value.indexOf(':');
-		if(colon < 0)
-			return false; // enum name or bare vanilla event key
-		String ns = value.substring(0, colon);
-		return !ns.equalsIgnoreCase("minecraft") && !PackModels.isPackEnabled();
+		return SoundConfig.isPackOnly(value) && !PackModels.isPackEnabled();
 	}
 
 	/**

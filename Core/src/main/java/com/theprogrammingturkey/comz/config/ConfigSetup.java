@@ -92,6 +92,9 @@ public class ConfigSetup
 	public boolean reviveDownedOnRoundEnd;
 	/** Walk-speed multiplier while aiming down sights with a non-sniper gun. */
 	public double aimWalkSpeedMultiplier;
+	/** Walk-speed multipliers while wading: feet in water, and water up to the waist or deeper. */
+	public double waterWalkMultiplier;
+	public double waterDeepWalkMultiplier;
 
 	public double healTime;
 
@@ -622,6 +625,8 @@ public class ConfigSetup
 		respawnKeepsPoints = plugin.getConfig().getBoolean("config.gameSettings.respawnKeepsPoints", true);
 		reviveDownedOnRoundEnd = plugin.getConfig().getBoolean("config.ReviveSettings.ReviveOnRoundEnd", false);
 		aimWalkSpeedMultiplier = plugin.getConfig().getDouble("config.gameSettings.aimWalkSpeedMultiplier", 0.75);
+		waterWalkMultiplier = plugin.getConfig().getDouble("config.gameSettings.waterWalkMultiplier", 0.7);
+		waterDeepWalkMultiplier = plugin.getConfig().getDouble("config.gameSettings.waterDeepWalkMultiplier", 0.5);
 
 		// ---- BO2 fidelity (Tier 0) defaults ----
 		zombieBoardBase = plugin.getConfig().getInt("config.gameSettings.zombieBoardBase", 24);

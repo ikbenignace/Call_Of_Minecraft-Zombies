@@ -25,7 +25,7 @@ public class Transport
 	{
 		ZIPLINE("Zipline", 500, 10, 8.0D),
 		PLATFORM("Platform", 750, 20, 4.0D),
-		CART("Cart", 500, 10, 6.0D),
+		CART("Cart", 500, 10, 12.0D),
 		TELEPORT("Elevator", 250, 5, 0.0D);
 
 		private final String label;

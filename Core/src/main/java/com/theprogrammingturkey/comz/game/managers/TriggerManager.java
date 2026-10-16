@@ -32,6 +32,7 @@ import org.bukkit.Tag;
 import org.bukkit.SoundCategory;
 import org.bukkit.World;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Entity;
@@ -45,7 +46,9 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -66,6 +69,9 @@ public class TriggerManager
 	private static final float SONG_VOLUME = 10f;
 	/** Largest clone or fill a trigger may do in one go; Ascension's rocket moves about 30000 blocks a step. */
 	private static final long MAX_EDIT_VOLUME = 65536L;
+	/** Fluid blocks woken per tick after a block edit; waking a whole flooded room at once stalls the server. */
+	private static final int FLUID_UPDATES_PER_TICK = 512;
+	private static final BlockFace[] FLUID_NEIGHBOURS = {BlockFace.UP, BlockFace.DOWN, BlockFace.NORTH, BlockFace.SOUTH, BlockFace.EAST, BlockFace.WEST};
 
 	private final Game game;
 	private final List<Trigger> triggers = new ArrayList<>();
@@ -74,6 +80,9 @@ public class TriggerManager
 	private final Set<String> firedTriggers = new HashSet<>();
 	/** Blocks changed by place_blocks targets, with the state they had before the first change. */
 	private final Map<Location, BlockData> replacedBlocks = new LinkedHashMap<>();
+	/** Edited blocks that were or became water/lava, waiting for their fluid physics. */
+	private final Set<Location> pendingFluidUpdates = new LinkedHashSet<>();
+	private int fluidTaskId = -1;
 	private boolean packAPunchUnlocked;
 	private boolean packAPunchDisabled;
 	private int taskId = -1;
@@ -1039,7 +1048,83 @@ public class TriggerManager
 	private void setJournaled(Block block, BlockData data)
 	{
 		replacedBlocks.putIfAbsent(block.getLocation(), block.getBlockData());
+		setWithoutPhysics(block, data);
+	}
+
+	private void setWithoutPhysics(Block block, BlockData data)
+	{
+		boolean fluidChange = flows(data) || flows(block.getBlockData());
 		block.setBlockData(data, false);
+		if(fluidChange)
+			queueFluidUpdate(block.getLocation());
+	}
+
+	private void queueFluidUpdate(Location location)
+	{
+		pendingFluidUpdates.add(location);
+		if(fluidTaskId == -1)
+			fluidTaskId = COMZombies.scheduleTask(1L, 1L, this::runFluidUpdates);
+	}
+
+	/**
+	 * Wakes the queued fluids so they flow or drain, but only where they border an open block: the inside
+	 * of a flooded room needs no update. A drained block wakes the fluid around it instead.
+	 */
+	private void runFluidUpdates()
+	{
+		Iterator<Location> it = pendingFluidUpdates.iterator();
+		for(int done = 0; done < FLUID_UPDATES_PER_TICK && it.hasNext(); done++)
+		{
+			Location location = it.next();
+			it.remove();
+			if(location.getWorld() == null)
+				continue;
+			Block block = location.getBlock();
+			if(flows(block.getBlockData()))
+			{
+				if(bordersOpenBlock(block))
+					wakeFluid(block);
+			}
+			else if(!block.getType().isSolid())
+			{
+				for(BlockFace face : FLUID_NEIGHBOURS)
+				{
+					Block neighbour = block.getRelative(face);
+					if(flows(neighbour.getBlockData()))
+						wakeFluid(neighbour);
+				}
+			}
+		}
+		if(pendingFluidUpdates.isEmpty())
+		{
+			Bukkit.getScheduler().cancelTask(fluidTaskId);
+			fluidTaskId = -1;
+		}
+	}
+
+	private static boolean bordersOpenBlock(Block block)
+	{
+		for(BlockFace face : FLUID_NEIGHBOURS)
+		{
+			Block neighbour = block.getRelative(face);
+			if(!neighbour.getType().isSolid() && !flows(neighbour.getBlockData()))
+				return true;
+		}
+		return false;
+	}
+
+	/** Setting a block to its own data is a no-op on the server, so it is cleared first to make the fluid tick. */
+	private static void wakeFluid(Block block)
+	{
+		BlockData data = block.getBlockData();
+		block.setType(Material.AIR, false);
+		block.setBlockData(data, true);
+	}
+
+	/** Water and lava a timeline puts in run like the map's flush (Shangri-La's stairs), and drain when taken away. */
+	private static boolean flows(BlockData data)
+	{
+		return data.getMaterial() == Material.WATER || data.getMaterial() == Material.LAVA;
 	}
 
 	/** {@code #namespace:path} block tag, or null for a plain block id, no filter or a tag this server lacks. */
@@ -1057,7 +1142,7 @@ public class TriggerManager
 	{
 		for(Map.Entry<Location, BlockData> entry : replacedBlocks.entrySet())
 			if(entry.getKey().getWorld() != null)
-				entry.getKey().getBlock().setBlockData(entry.getValue(), false);
+				setWithoutPhysics(entry.getKey().getBlock(), entry.getValue());
 		replacedBlocks.clear();
 	}
 

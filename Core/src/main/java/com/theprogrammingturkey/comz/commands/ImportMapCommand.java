@@ -44,7 +44,8 @@ public class ImportMapCommand extends SubCommand
 {
 	private static final String[] REPLACED = {"zombie_spawns", "mystery_boxes", "barriers", "doors", "traps", "transports", "power_setup",
 			"zones", "triggers", "perk_pool_spots"};
-	private static final String[] IMPORTED_SETTINGS = {"gravity", "jump_boost", "fog", "pap_locked", "perk_pool_mode", "perk_pool_reveal", "perk_pool_perks", "special_enemies", "power_switches"};
+	private static final String[] IMPORTED_SETTINGS = {"gravity", "jump_boost", "fog", "pap_locked", "perk_pool_mode", "perk_pool_reveal", "perk_pool_perks", "special_enemies", "power_switches",
+			"time_of_day", "weather"};
 	private static final String[] KEPT_WHEN_PRESENT = {"player_spawn", "spectator_spawn", "lobby_spawn"};
 
 	public ImportMapCommand(COMZPermission permission)

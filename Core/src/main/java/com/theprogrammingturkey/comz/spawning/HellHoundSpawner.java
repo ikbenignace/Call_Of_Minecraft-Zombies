@@ -58,6 +58,7 @@ public class HellHoundSpawner extends RoundSpawner
 			return null;
 
 		world.strikeLightningEffect(location);
+		SoundUtil.playKey(world, location, "round.dogSpawn", "", SoundCategory.HOSTILE, 1.0f, 1.0f);
 
 		Wolf wolf = (Wolf) world.spawnEntity(location, EntityType.WOLF);
 		wolf.setMetadata(DOG_META, new FixedMetadataValue(COMZombies.getPlugin(), true));

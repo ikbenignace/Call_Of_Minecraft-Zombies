@@ -2447,5 +2447,310 @@
     "sounds": [
       "custom/egg/phone_loop"
     ]
+  },
+  "custom.cosmodrome.rocket_computer": {
+    "category": "master",
+    "sounds": [
+      "custom/maps/cosmodrome/rocket_computer"
+    ]
+  },
+  "custom.cosmodrome.rocket_disengage": {
+    "category": "master",
+    "sounds": [
+      {
+        "name": "custom/maps/cosmodrome/rocket_disengage",
+        "stream": true
+      }
+    ]
+  },
+  "custom.cosmodrome.rocket_door_open": {
+    "category": "master",
+    "sounds": [
+      "custom/maps/cosmodrome/rocket_door_open"
+    ]
+  },
+  "custom.cosmodrome.monkey_round_start": {
+    "category": "master",
+    "sounds": [
+      {
+        "name": "custom/maps/cosmodrome/monkey_round_start",
+        "stream": true,
+        "preload": true
+      }
+    ]
+  },
+  "custom.cosmodrome.monkey_incoming": {
+    "category": "master",
+    "sounds": [
+      {
+        "name": "custom/maps/cosmodrome/monkey_incoming"
+      }
+    ]
+  },
+  "custom.moon.air_release": {
+    "category": "master",
+    "sounds": [
+      "custom/maps/moon/misc/air_release"
+    ]
+  },
+  "custom.moon.excavator_bio": {
+    "category": "master",
+    "sounds": [
+      "custom/maps/moon/misc/diggers/digger_breach_bio"
+    ]
+  },
+  "custom.moon.excavator_breach": {
+    "category": "master",
+    "sounds": [
+      "custom/maps/moon/misc/diggers/digger_breach"
+    ]
+  },
+  "custom.moon.excavator_pre": {
+    "category": "master",
+    "sounds": [
+      "custom/maps/moon/misc/diggers/digger_pre"
+    ]
+  },
+  "custom.moon.excavator_retract": {
+    "category": "master",
+    "sounds": [
+      "custom/maps/moon/misc/diggers/digger_retract"
+    ]
+  },
+  "custom.moon.noman.teleporter": {
+    "category": "master",
+    "sounds": [
+      "custom/maps/moon/alarms/noman_tp"
+    ]
+  },
+  "custom.pentagon.thief_start": {
+    "category": "master",
+    "sounds": [
+      {
+        "name": "custom/maps/pentagon/thief_start",
+        "stream": true,
+        "preload": true
+      }
+    ]
+  },
+  "custom.pentagon.thief_alarm": {
+    "category": "master",
+    "sounds": [
+      "custom/maps/pentagon/thief_alarm"
+    ]
+  },
+  "custom.coast.george.george_start": {
+    "category": "master",
+    "sounds": [
+      "custom/maps/coast/george/george_start"
+    ]
+  },
+  "custom.temple.sonic_spawn": {
+    "category": "master",
+    "sounds": [
+      "custom/maps/temple/sonic/sonic_spawn"
+    ]
+  },
+  "custom.temple.sonic_scream": {
+    "category": "master",
+    "sounds": [
+      "custom/maps/temple/sonic/sonic_scream"
+    ]
+  },
+  "custom.temple.napalm_spawn": {
+    "category": "master",
+    "sounds": [
+      "custom/maps/temple/napalm/napalm_spawn"
+    ]
+  },
+  "custom.moon.excavator_1_30": {
+    "category": "master",
+    "sounds": [
+      "custom/maps/moon/misc/diggers/1/digger_01_30"
+    ]
+  },
+  "custom.moon.excavator_1_60": {
+    "category": "master",
+    "sounds": [
+      "custom/maps/moon/misc/diggers/1/digger_01_60"
+    ]
+  },
+  "custom.moon.excavator_1_active": {
+    "category": "master",
+    "sounds": [
+      "custom/maps/moon/misc/diggers/1/digger_01_active"
+    ]
+  },
+  "custom.moon.excavator_1_breach": {
+    "category": "master",
+    "sounds": [
+      "custom/maps/moon/misc/diggers/1/digger_01_breach"
+    ]
+  },
+  "custom.moon.excavator_1_hacked": {
+    "category": "master",
+    "sounds": [
+      "custom/maps/moon/misc/diggers/1/digger_01_hacked"
+    ]
+  },
+  "custom.moon.excavator_2_30": {
+    "category": "master",
+    "sounds": [
+      "custom/maps/moon/misc/diggers/2/digger_02_30"
+    ]
+  },
+  "custom.moon.excavator_2_60": {
+    "category": "master",
+    "sounds": [
+      "custom/maps/moon/misc/diggers/2/digger_02_60"
+    ]
+  },
+  "custom.moon.excavator_2_active": {
+    "category": "master",
+    "sounds": [
+      "custom/maps/moon/misc/diggers/2/digger_02_active"
+    ]
+  },
+  "custom.moon.excavator_2_breach": {
+    "category": "master",
+    "sounds": [
+      "custom/maps/moon/misc/diggers/2/digger_02_breach"
+    ]
+  },
+  "custom.moon.excavator_2_hacked": {
+    "category": "master",
+    "sounds": [
+      "custom/maps/moon/misc/diggers/2/digger_02_hacked"
+    ]
+  },
+  "custom.moon.excavator_3_30": {
+    "category": "master",
+    "sounds": [
+      "custom/maps/moon/misc/diggers/3/digger_03_30"
+    ]
+  },
+  "custom.moon.excavator_3_60": {
+    "category": "master",
+    "sounds": [
+      "custom/maps/moon/misc/diggers/3/digger_03_60"
+    ]
+  },
+  "custom.moon.excavator_3_active": {
+    "category": "master",
+    "sounds": [
+      "custom/maps/moon/misc/diggers/3/digger_03_active"
+    ]
+  },
+  "custom.moon.excavator_3_breach": {
+    "category": "master",
+    "sounds": [
+      "custom/maps/moon/misc/diggers/3/digger_03_breach"
+    ]
+  },
+  "custom.moon.excavator_3_hacked": {
+    "category": "master",
+    "sounds": [
+      "custom/maps/moon/misc/diggers/3/digger_03_hacked"
+    ]
+  },
+  "custom.george.taunt": {
+    "category": "hostile",
+    "sounds": [
+      "mob/wither_skeleton/say1",
+      "mob/wither_skeleton/say10",
+      "mob/wither_skeleton/say11",
+      "mob/wither_skeleton/say12",
+      "mob/wither_skeleton/say13",
+      "mob/wither_skeleton/say2",
+      "mob/wither_skeleton/say3",
+      "mob/wither_skeleton/say4",
+      "mob/wither_skeleton/say5",
+      "mob/wither_skeleton/say6",
+      "mob/wither_skeleton/say7",
+      "mob/wither_skeleton/say8",
+      "mob/wither_skeleton/say9"
+    ]
+  },
+  "custom.george.exert": {
+    "category": "hostile",
+    "sounds": [
+      "mob/wither_skeleton/exert_00",
+      "mob/wither_skeleton/exert_01",
+      "mob/wither_skeleton/exert_02",
+      "mob/wither_skeleton/exert_03",
+      "mob/wither_skeleton/exert_04",
+      "mob/wither_skeleton/exert_05",
+      "mob/wither_skeleton/exert_06"
+    ]
+  },
+  "custom.george.death": {
+    "category": "hostile",
+    "sounds": [
+      "mob/wither_skeleton/death_00",
+      "mob/wither_skeleton/death_01"
+    ]
+  },
+  "custom.napalm.ambient": {
+    "category": "hostile",
+    "sounds": [
+      "mob/husk/say-01",
+      "mob/husk/say-02",
+      "mob/husk/say-03",
+      "mob/husk/say-04"
+    ]
+  },
+  "custom.napalm.attack": {
+    "category": "hostile",
+    "sounds": [
+      "mob/husk/attack-01",
+      "mob/husk/attack-02",
+      "mob/husk/attack-03"
+    ]
+  },
+  "custom.napalm.death": {
+    "category": "hostile",
+    "sounds": [
+      "mob/husk/death"
+    ]
+  },
+  "custom.sonic.ambient": {
+    "category": "hostile",
+    "sounds": [
+      "mob/zombie/say-01",
+      "mob/zombie/say-02",
+      "mob/zombie/say-03",
+      "mob/zombie/say-04",
+      "mob/zombie/say-05"
+    ]
+  },
+  "custom.coast.george.george_spawn_beam": {
+    "category": "master",
+    "sounds": [
+      "custom/maps/coast/george/george_spawn_beam"
+    ]
+  },
+  "custom.temple.pap.countdown": {
+    "category": "master",
+    "sounds": [
+      "custom/maps/temple/pap/pap_countdown"
+    ]
+  },
+  "custom.temple.pap.stairs": {
+    "category": "master",
+    "sounds": [
+      "custom/maps/temple/pap/pap_stairs"
+    ]
+  },
+  "custom.temple.pap.timer_start": {
+    "category": "master",
+    "sounds": [
+      "custom/maps/temple/pap/pap_timer_start"
+    ]
+  },
+  "custom.temple.pap.timer_stop": {
+    "category": "master",
+    "sounds": [
+      "custom/maps/temple/pap/pap_timer_stop"
+    ]
   }
 }

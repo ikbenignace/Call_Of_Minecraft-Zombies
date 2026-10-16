@@ -13,7 +13,7 @@ import java.util.UUID;
 
 /**
  * The single place that decides a player's walk speed, so downed state, Stamin-Up and aiming can
- * never overwrite each other.
+ * never overwrite each other (wading slows on top of them).
  */
 public final class PlayerSpeed
 {
@@ -28,6 +28,8 @@ public final class PlayerSpeed
 	}
 
 	private static final Map<UUID, Aim> AIMING = new HashMap<>();
+	/** Walk-speed multiplier of the water the player wades through; absent when on dry ground. */
+	private static final Map<UUID, Float> WADING = new HashMap<>();
 
 	private PlayerSpeed()
 	{
@@ -40,6 +42,14 @@ public final class PlayerSpeed
 		else
 			AIMING.put(player.getUniqueId(), aim);
 		apply(player);
+	}
+
+	public static void setWading(Player player, float multiplier)
+	{
+		Float before = multiplier >= 1f ? WADING.remove(player.getUniqueId()) : WADING.put(player.getUniqueId(), multiplier);
+		boolean changed = before == null ? multiplier < 1f : before != multiplier;
+		if(changed)
+			apply(player);
 	}
 
 	public static boolean isAiming(Player player)
@@ -56,6 +66,7 @@ public final class PlayerSpeed
 	public static void reset(Player player)
 	{
 		AIMING.remove(player.getUniqueId());
+		WADING.remove(player.getUniqueId());
 		player.setWalkSpeed(DEFAULT_WALK_SPEED);
 	}
 
@@ -70,6 +81,7 @@ public final class PlayerSpeed
 			return DOWNED_WALK_SPEED;
 
 		float base = game.perkManager.hasPerk(player, PerkType.STAMIN_UP) ? (float) ConfigManager.getMainConfig().staminUpWalkSpeed : DEFAULT_WALK_SPEED;
+		base *= WADING.getOrDefault(player.getUniqueId(), 1f);
 		Aim aim = AIMING.get(player.getUniqueId());
 		if(aim == Aim.SCOPE)
 			return SCOPE_WALK_SPEED;

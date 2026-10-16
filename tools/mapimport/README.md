@@ -42,7 +42,9 @@ works on the datapack's structure (folder and function names, selectors, scores)
 | placeholder signs | signs only written with "You must turn on the power first!", "Cooling down...", "Destination not open", ... | blanked, or labelled with the trigger step they are |
 | Pack-a-Punch gates | numbered switch command blocks whose score unlocks a `*pap*` function (DEFCON); pressure plates a `unique/pap` function places on markers (stepping stones); a chain of "link" signs started by the power function in a folder that mentions PaP (Kino); lander functions that mention PaP (ride every lander, then the sign whose click starts the timer of the function that slides the PaP room doors open); a loop that only runs `unique/pap` functions with `Power_On` | `pap_locked=true` + trigger with `enable_pack_a_punch` (and `enable_teleporter` for the PaP teleporters it opens, `open_door` for the PaP room) |
 | spare Pack-a-Punch machines | PaP signs inside the source box of a `unique/pap` clone | removed (block edit to air) |
-| Pack-a-Punch sign written mid-game | `data merge block ~ ~ ~` on a PaP marker, block state from the clone that puts it there | sign with `blockdata` |
+| Pack-a-Punch sign on its marker | `data merge block ~ ~ ~` on a PaP marker (game start or mid-game; the world sign may be blank), block state from the world's sign, else the clone that puts it there; skipped when the map writes a PaP sign right by it | sign with `blockdata` |
+| Pack-a-Punch opening sequence | the `unique/pap` lines checking the gate's own counter at its open value (`scores={Plate_Timer=100}`), followed through every play-time timer they start (`PaP_Warning` -> `PaP_Open`): block writes, fills and sounds at their tick, a call to the stone-placing function starts the gate over | the gate trigger's timeline (`after` + `place_blocks`/`fill_blocks`/`play_sound`, `reset_trigger`) |
+| keep-back | `as @e[tag=<Marker>] at @s run execute unless entity @p[tag=<Open>] run tp @p[distance=..R] x y z` (players, or zombies with `tag=Zombie`), when the opening sequence adds `<Open>` | a ball zone of radius R with `push_out_to`, switched off (`set_zone`) when the tag is added and on again when it is removed |
 | low gravity / no air | a function giving Slow Falling + Jump Boost and tagging air pockets with `tag @e[x,dx,y,dy,z,dz] add <Air>` | one no-air zone with gravity 0.4 around the pockets, an `air_pocket` zone (gravity 1.0) per pocket; arena-wide `gravity` when the effects are not tied to a score like `On_Moon` |
 | special enemies | `unique/boss/*astro*`, `*napalm*`, `*shriek*`, `thief`, `maps/enemies/*space_monkey*`, `unique/george` (chance from the `boss/1_to_N` loot, first round from the clock) | `special_enemies` rules |
 
@@ -64,7 +66,10 @@ works on the datapack's structure (folder and function names, selectors, scores)
 - **Call of the Dead**: song egg, George A. Romero from round 1, flinger (power + one of doors 2/10/11/16 opens
   its platform), lighthouse gate opens with door 7 or 9, PaP after power.
 - **Shangri-La**: automatic spike traps left/right, napalm and shrieker zombies, PaP after power + standing on
-  the four stepping stones (one after another); two power switches; six random perk spots dealt at game start;
+  the four stepping stones (one after another): the first step comes in and the barrier goes, 15 s later the
+  45 s timer runs (side markers climb to the machine, countdown), then the step goes, water runs down the stairs,
+  the keep-back zones (players within 19, zombies within 12 of the machine) switch back on and 20 s later the stones
+  can be done again; two power switches; six random perk spots dealt at game start;
   geysers; geyser debris opens with door 3 or 4 / door 6 or 7, the slide gate with power and door 3 or 4.
 - **Moon**: low gravity / no air outside 21 air pockets, three jump pads (two share a launch spot) that need
   power, one-way teleporters both ways, astronaut, song egg.
@@ -77,7 +82,9 @@ works on the datapack's structure (folder and function names, selectors, scores)
 - The song events (`custom.egg.*`) are in the ZombiesMC resource pack, not in comz-pack: the egg plays the raw
   event, so players need that pack (or the sounds added to comz-pack) to hear it.
 - Shangri-La stepping stones scale with the player count in BO; here all four have to be stood on (one after
-  another is enough). The PaP closing again after a while is not modelled.
+  another is enough). The flush is the water itself flowing down the stairs (the map pushes everyone in it), and
+  anyone left inside is teleported out when the keep-back zone comes back on. The temple PaP sounds
+  (`custom.temple.pap.*`) are played as the map names them: players hear them only with a pack that has them.
 - Call of the Dead: PaP lands at a random one of three spots after power; here PaP unlocks with the power.
 - Moon: PaP is always open (the hacker cage is not modelled); air pockets have air without power and the
   excavator breaches never remove it; P.E.S. is not placed.

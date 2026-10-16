@@ -75,9 +75,53 @@ def check_textures(pack, textures, where, problems, verbose):
             problems.append(f"TEXTURE MISSING: {ref} -> {tp}   (used by {where})")
 
 
+def sound_values(node):
+    if isinstance(node, dict):
+        for v in node.values():
+            yield from sound_values(v)
+    elif isinstance(node, list):
+        for v in node:
+            yield from sound_values(v)
+    elif isinstance(node, str):
+        yield node
+
+
+def check_sounds(pack, sound_config, problems):
+    """Every sound file the pack registers must exist, and every pack event the plugin's sounds.json names must be registered."""
+    events = set()
+    for sj in glob.glob(f"{pack}/assets/*/sounds.json"):
+        ns = os.path.basename(os.path.dirname(sj))
+        try:
+            defs = json.load(open(sj))
+        except Exception as e:
+            problems.append(f"SOUNDS BAD JSON: {sj} :: {e}")
+            continue
+        for event, d in defs.items():
+            events.add(f"{ns}:{event}")
+            for s in d.get("sounds", []):
+                entry = s if isinstance(s, dict) else {"name": s}
+                if entry.get("type") == "event":
+                    continue
+                sns, _, path = entry["name"].rpartition(":")
+                f = os.path.join(pack, "assets", sns or "minecraft", "sounds", path + ".ogg")
+                if not os.path.isfile(f):
+                    problems.append(f"SOUND FILE MISSING: {event} -> {f}")
+    if not sound_config or not os.path.isfile(sound_config):
+        return
+    cfg = json.load(open(sound_config))
+    cfg.pop("_comment", None)
+    for v in sorted(set(sound_values(cfg))):
+        if not (v.startswith("custom.") or ":" in v):
+            continue
+        key = v if ":" in v else "minecraft:" + v
+        if key not in events:
+            problems.append(f"SOUND EVENT NOT IN PACK: {v} (named in {sound_config})")
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--pack", default="resourcepack/comz-pack")
+    ap.add_argument("--sound-config", default="Core/src/main/resources/sounds.json")
     ap.add_argument("--verbose", action="store_true")
     a = ap.parse_args()
 
@@ -138,12 +182,14 @@ def main():
         if ooburst:
             problems.append(f"FACE uv {ooburst} out of texture_size {tw}x{th} (bake fails -> purple): {os.path.relpath(mf, pack)}")
 
+    check_sounds(pack, a.sound_config, problems)
+
     if problems:
-        print(f"\n{len(problems)} PROBLEM(S) — these render purple/black in-game:")
+        print(f"\n{len(problems)} PROBLEM(S) — missing models render purple/black, missing sounds play nothing:")
         for p in problems:
             print("  -", p)
         sys.exit(1)
-    print("OK — every item-definition resolves to an existing model + textures. No purple-black causes found.")
+    print("OK — every item-definition resolves to an existing model + textures, and every sound resolves to audio.")
 
 
 if __name__ == "__main__":

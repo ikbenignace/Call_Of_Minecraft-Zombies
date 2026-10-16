@@ -337,18 +337,18 @@ public class SignPropManager
 
 	public void buy(Player player, Prop prop)
 	{
-		if(prop.retired || !mayBuy(player))
+		if(prop.retired)
 			return;
 		if(prop.type == PropType.DOOR)
-			DoorSign.tryOpen(game, player, prop.door);
-		else
+			buyDoor(player, prop.door);
+		else if(mayBuy(player))
 			prop.handler.onInteract(game, player, prop.signLoc, prop.lines);
 	}
 
 	/** F on a door the player is looking at. */
 	public void buyDoor(Player player, Door door)
 	{
-		if(mayBuy(player))
+		if(ProximityBuyManager.isDoorAtBodyLevel(player, door) && mayBuy(player))
 			DoorSign.tryOpen(game, player, door);
 	}
 

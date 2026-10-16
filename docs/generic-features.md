@@ -17,7 +17,10 @@ Per-arena settings (with config.yml defaults):
 |---|---|
 | `gravity` | 1.0 = normal; 0.4 = moon. 1.20.5+ uses the GRAVITY attribute, older servers approximate with Slow Falling + Jump Boost. |
 | `jump_boost` | extra jump height multiplier. |
-| `force_night`, `fog` | existing night flag plus optional darkness/fog. |
+| `time_of_day` | `day`, `dusk`, `night`, `dawn`, a tick count, or `world`; held per player during a game (the world may be shared). Legacy `force_night: true` means `night`. Arenas named after a Black Ops map that set neither get that map's sky. |
+| `weather` | `clear`, `rain` or `storm` (rain plus thunder heard by the arena's players), per player. |
+| `water_walk_multiplier`, `water_deep_walk_multiplier` | walk speed wading with the feet in water / waist deep (defaults 0.7 / 0.5 from `config.gameSettings`). |
+| `fog` | optional darkness/fog. |
 | `special_enemies` | which special enemy types may appear and how (see 6). |
 | `dog_round_every_x`, `teddy_bear_chance`, `powerup_settings` | existing. |
 | `power_switches` | how many different Power switches must be pressed before the power turns on (default 1; Shangri-La uses 2). Each press shows "Power 1/2". |
@@ -31,6 +34,11 @@ Named box regions per arena (two corners, like doors), each with flags:
 - `air_pocket` — breathable inside any no-air zone (pressurised rooms on the moon), whatever the zone sizes;
 - `damage` per second (lava, electricity floor);
 - `name` shown on the HUD when entering ("Power Room").
+- `radius` — above 0 the zone is the ball of that radius around the box centre (clipped to the box);
+- `push_out_to` ({x, y, z}) + `push_out` (`players` | `mobs` | `all`, default `players`) — while the zone is switched
+  on, living players (not downed, not riding) and/or the game's mobs inside are teleported there. A trigger's
+  `set_zone` target switches it off and on again (Shangri-La keeps everyone off the Pack-a-Punch stairs until the
+  stepping stones are done). Push-out zones are not areas: zombie spawning by zone ignores them.
 
 Build mode: Zone tool (two clicks for corners, F cycles flag presets). Zones are also reused by traps and triggers.
 
@@ -152,9 +160,9 @@ A trigger is a set of steps that unlocks a target when finished. Covers PaP gate
   Der Riese bridge).
 - machinery targets, all undone at game end: `after` (`amount` ticks, then its own `targets`: a timeline),
   `clone_blocks` (`box` {x1..z2} to x/y/z, `value` `replace|masked|move`, optional `filter` block or `#tag`),
-  `fill_blocks` (`box`, `value` block state, optional `filter`), `play_sound` (`value`, x/y/z, `volume`),
+  `fill_blocks` (`box`, `value` block state, optional `filter`; water and lava put in or taken out flow), `play_sound` (`value`, x/y/z, `volume`),
   `reset_trigger` (calls off a trigger's pending timeline and arms it again), `set_zone` (`value` zone id, `amount` 0
-  switches it off: an air pocket after a breach), `lock_teleporter`, `disable_pack_a_punch`,
+  switches it off: an air pocket after a breach, 1 back on), `lock_teleporter`, `disable_pack_a_punch`,
   `give_points_to_player` (only the player who finished the trigger);
 - build mode (Feature tool, Trigger variant): F cycles every step and target kind, right-click adds it. Clone and
   fill targets take the box of the zone you click in (mark it with the Zone tool first); set zone, reset trigger,
@@ -169,8 +177,8 @@ A trigger is a set of steps that unlocks a target when finished. Covers PaP gate
 
 Examples: Ascension's rocket (landers, then launch: the rocket timeline opens the PaP door at 21 s), Five's panic room
 (30 s of Pack-a-Punch, then the teleporters lock and DEFCON starts over), Moon's excavators (a random start each round,
-a breach after 4 minutes unless hacked with the Hacker), Five DEFCON (4 ordered interacts → PaP teleporter), Shangri-La stepping stones (stand_on, all at once,
-time limit → PaP), Ascension landers (ride all transports → PaP), Easter-egg songs (interact with 3 items →
+a breach after 4 minutes unless hacked with the Hacker), Five DEFCON (4 ordered interacts → PaP teleporter), Shangri-La stepping stones (stand_on → PaP, the stairs come up
+for 45 s, keep-back zones off, then flush and start over), Ascension landers (ride all transports → PaP), Easter-egg songs (interact with 3 items →
 play song).
 
 ## 8. Perk placement pools

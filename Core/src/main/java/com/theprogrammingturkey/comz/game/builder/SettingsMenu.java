@@ -2,6 +2,7 @@ package com.theprogrammingturkey.comz.game.builder;
 
 import com.theprogrammingturkey.comz.game.Game;
 import com.theprogrammingturkey.comz.game.GameManager;
+import com.theprogrammingturkey.comz.game.managers.EnvironmentManager;
 import com.theprogrammingturkey.comz.game.managers.PerkPoolManager;
 import com.theprogrammingturkey.comz.game.managers.WeaponManager;
 import com.theprogrammingturkey.comz.game.weapons.BaseGun;
@@ -27,7 +28,7 @@ import java.util.Locale;
 public class SettingsMenu implements InventoryHolder
 {
 	private static final int SLOT_MIN = 10, SLOT_MAX = 11, SLOT_TEDDY = 12, SLOT_DOG = 13,
-			SLOT_GUN = 14, SLOT_AMMO = 15, SLOT_NIGHT = 16, SLOT_MULTIBOX = 22,
+			SLOT_GUN = 14, SLOT_AMMO = 15, SLOT_TIME = 16, SLOT_WEATHER = 18, SLOT_MULTIBOX = 22,
 			SLOT_GRAVITY = 19, SLOT_JUMP = 20, SLOT_FOG = 21, SLOT_PAP_LOCKED = 24, SLOT_PERK_POOL = 25, SLOT_POOL_REVEAL = 26, SLOT_POWER_SWITCHES = 17;
 
 	/** Opens {@link SpecialEnemiesMenu}; handled by the listener because it needs the clicking player. */
@@ -57,7 +58,10 @@ public class SettingsMenu implements InventoryHolder
 		inv.setItem(SLOT_DOG, item(Material.BONE, "Dog round every X", game.getDogRoundEveryX(), "0 = never"));
 		inv.setItem(SLOT_GUN, item(Material.IRON_HOE, "Starting gun", game.getStartingGun(), "left/right = cycle guns"));
 		inv.setItem(SLOT_AMMO, toggle(Material.ARROW, "Max-ammo refills clip", game.doesMaxAmmoReplenishClip()));
-		inv.setItem(SLOT_NIGHT, toggle(Material.CLOCK, "Force night", game.isForceNight()));
+		inv.setItem(SLOT_TIME, item(Material.CLOCK, "Time of day", EnvironmentManager.timeOfDayKey(game.environmentManager.getTimeOfDay()),
+				"world / day / dusk / night, held for the players during a game; click to cycle"));
+		EnvironmentManager.Weather weather = game.environmentManager.getWeather();
+		inv.setItem(SLOT_WEATHER, item(Material.WATER_BUCKET, "Weather", weather == null ? "world" : weather.key(), "world / clear / rain / storm; click to cycle"));
 		inv.setItem(SLOT_MULTIBOX, toggle(Material.CHEST, "Multiple mystery boxes", game.boxManager.isMultiBox()));
 		inv.setItem(SLOT_GRAVITY, item(Material.FEATHER, "Gravity", decimal(game.environmentManager.getGravity()), "1.0 = normal, 0.4 = moon; left +0.1 / right -0.1 (shift 0.5)"));
 		inv.setItem(SLOT_JUMP, item(Material.RABBIT_FOOT, "Jump boost", decimal(game.environmentManager.getJumpBoost()), "jump height multiplier; left +0.1 / right -0.1 (shift 0.5)"));
@@ -96,8 +100,11 @@ public class SettingsMenu implements InventoryHolder
 			case SLOT_AMMO:
 				game.setMaxAmmoReplenishClip(!game.doesMaxAmmoReplenishClip());
 				break;
-			case SLOT_NIGHT:
-				game.setForceNight(!game.isForceNight());
+			case SLOT_TIME:
+				game.environmentManager.setTimeOfDay(cycle(TIMES, game.environmentManager.getTimeOfDay(), up));
+				break;
+			case SLOT_WEATHER:
+				game.environmentManager.setWeather(cycle(WEATHERS, game.environmentManager.getWeather(), up));
 				break;
 			case SLOT_MULTIBOX:
 				game.boxManager.setMultiBox(!game.boxManager.isMultiBox());
@@ -155,6 +162,19 @@ public class SettingsMenu implements InventoryHolder
 			}
 		idx = (idx + (forward ? 1 : guns.size() - 1)) % guns.size();
 		return guns.get(idx).getName();
+	}
+
+	private static final List<Long> TIMES = Arrays.asList(null, EnvironmentManager.DAY_TICKS, EnvironmentManager.DUSK_TICKS, EnvironmentManager.NIGHT_TICKS);
+	private static final List<EnvironmentManager.Weather> WEATHERS = Arrays.asList(null, EnvironmentManager.Weather.CLEAR,
+			EnvironmentManager.Weather.RAIN, EnvironmentManager.Weather.STORM);
+
+	/** A value not in {@code options} (a custom tick count) starts the cycle over. */
+	private static <T> T cycle(List<T> options, T current, boolean forward)
+	{
+		int idx = options.indexOf(current);
+		if(idx < 0)
+			return options.get(0);
+		return options.get((idx + (forward ? 1 : options.size() - 1)) % options.size());
 	}
 
 	private static PerkPoolManager.Mode cyclePoolMode(PerkPoolManager.Mode current, boolean forward)

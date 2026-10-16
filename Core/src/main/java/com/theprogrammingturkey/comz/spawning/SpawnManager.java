@@ -14,6 +14,7 @@ import com.theprogrammingturkey.comz.game.features.Barrier;
 import com.theprogrammingturkey.comz.game.features.Door;
 import com.theprogrammingturkey.comz.game.features.PowerUp;
 import com.theprogrammingturkey.comz.game.features.Zone;
+import com.theprogrammingturkey.comz.spawning.special.SpecialEnemyCatalogue;
 import com.theprogrammingturkey.comz.spawning.special.SpecialEnemyType;
 import com.theprogrammingturkey.comz.spawning.special.SpecialRoundSpawner;
 import com.theprogrammingturkey.comz.util.BlockUtils;
@@ -269,11 +270,11 @@ public class SpawnManager
 		for(Mob mob : mobs)
 			if(!nonBlocking.contains(mob))
 				last = mob;
-		if(last == null || ZombieSpawner.isCrawler(last))
+		if(last == null || ZombieSpawner.isCrawler(last) || BossSpawner.isBoss(last) || game.specialEnemyManager.isSpecial(last))
 			return;
 		if(crawl)
 			ZombieSpawner.convertToCrawler(game, last);
-		else if(last instanceof Zombie && !game.specialEnemyManager.isSpecial(last))
+		else if(last instanceof Zombie)
 			ZombieSpawner.makeSprinter(last);
 	}
 
@@ -612,6 +613,9 @@ public class SpawnManager
 			if(pl.getWorld() == at.getWorld() && pl.getLocation().distanceSquared(at) <= reachSq)
 				return true;
 
+		// Bosses never tear boards, so one parked at a window is stuck, not busy.
+		if(BossSpawner.isBoss(mob))
+			return false;
 		double barrierRange = cfg.barrierBreakRadius + 1;
 		double barrierSq = barrierRange * barrierRange;
 		for(Barrier barrier : game.barrierManager.getBarriers())
@@ -631,9 +635,14 @@ public class SpawnManager
 	 * outside every zone count as active while a player is outside every zone too. Returns an empty
 	 * list when the arena has no zones covering spawns, so the caller falls back to nearest spawns.
 	 */
+	public List<SpawnPoint> activeSpawnPoints(List<SpawnPoint> candidates)
+	{
+		return activeZoneSpawns(candidates);
+	}
+
 	private List<SpawnPoint> activeZoneSpawns(List<SpawnPoint> candidates)
 	{
-		List<Zone> zones = game.zoneManager.getZones();
+		List<Zone> zones = game.zoneManager.getAreaZones();
 		if(zones.isEmpty() || candidates.isEmpty())
 			return Collections.emptyList();
 
@@ -734,17 +743,29 @@ public class SpawnManager
 	 */
 	private void teleportStuckMob(Mob mob, Player target)
 	{
+		if(BossSpawner.isBoss(mob))
+		{
+			Location spot = BossSpawner.safeSpawnLocation(game, target.getLocation());
+			if(spot != null)
+			{
+				mob.teleport(spot);
+				mob.setTarget(target);
+			}
+			return;
+		}
 		if(HellHoundSpawner.isDog(mob))
 		{
 			Location spot = HellHoundSpawner.findSpotNear(game, target);
-			if(spot != null)
+			if(spot != null && !game.zoneManager.pushesMobsAt(spot))
 			{
 				mob.teleport(spot);
 				mob.setTarget(target);
 				return;
 			}
 		}
-		List<SpawnPoint> spawnable = points.stream().filter(this::canSpawn).collect(Collectors.toList());
+		List<SpawnPoint> spawnable = points.stream()
+				.filter(point -> canSpawn(point) && !game.zoneManager.pushesMobsAt(point.getLocation().clone().add(0.5, 0, 0.5)))
+				.collect(Collectors.toList());
 		if(spawnable.isEmpty())
 			return;
 		List<SpawnPoint> nearest = nearestPoints(spawnable, target.getLocation(), 1);
@@ -835,7 +856,7 @@ public class SpawnManager
 		ConfigSetup cfg = ConfigManager.getMainConfig();
 
 		// Tier 4 — boss rounds take precedence over dog rounds on shared waves.
-		if(isBossRound(wave, cfg.bossRoundEveryX))
+		if(isBossRound(wave, cfg.bossRoundEveryX) && wave >= SpecialEnemyCatalogue.bossRules().minRound)
 		{
 			bossRound = true;
 			dogRound = false;

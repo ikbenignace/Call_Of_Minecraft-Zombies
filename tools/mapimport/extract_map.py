@@ -964,7 +964,8 @@ def parse_specials(fn_root):
         if special in ('thief', 'space_monkey'):
             rule = {'type': special, 'mode': 'replaces_dog_round', 'value': 100, 'max_alive': 1, 'first_round': 1, 'own_round': True}
         elif special == 'george_romero':
-            rule = {'type': special, 'mode': 'once_at_round', 'value': 1, 'max_alive': 1, 'first_round': 1, 'own_round': False}
+            # BO has George walking from round 1; here he comes in at round 5 and returns every 4 rounds once killed.
+            rule = {'type': special, 'mode': 'every_x_rounds', 'value': 4, 'max_alive': 1, 'first_round': 5, 'own_round': False}
         else:
             rule = {'type': special, 'mode': 'chance_per_round', 'value': 100 // int(odds.group(1)) if odds else 50,
                     'max_alive': 1, 'first_round': first, 'own_round': False}
@@ -1224,7 +1225,7 @@ def plate_gate(fn_root):
             plates = marker_positions(fn_root, m.group(1))
             name = os.path.relpath(path, fn_root)[:-len('.mcfunction')].replace(os.sep, '/')
             power = any(name in read(p) for p in glob.glob(os.path.join(fn_root, 'maps', 'power', '*.mcfunction')))
-            return {'plates': [tuple(int(math.floor(v)) for v in p) for p in plates], 'power': power}
+            return {'plates': [tuple(int(math.floor(v)) for v in p) for p in plates], 'power': power, 'path': name}
     return None
 
 
@@ -1283,22 +1284,24 @@ def link_time_limit(fn_root, chain):
     return min(ticks) // 20 if ticks else 0
 
 
-def pap_marker_sign(world, fn_root):
-    """A Pack-a-Punch sign the map only writes on its PaP marker mid-game (data merge block ~ ~ ~): the sign,
-    with the block state of the clone source that puts the sign there."""
-    for path in glob.glob(os.path.join(fn_root, '**', '*.mcfunction'), recursive=True):
+def pap_marker_signs(world, fn_root):
+    """Pack-a-Punch signs the map writes on its PaP markers (data merge block ~ ~ ~), at game start or mid-game:
+    the world may hold them blank, or not at all. Block state from the world's sign, else from the clone source
+    that puts the sign there."""
+    out = {}
+    for path in sorted(glob.glob(os.path.join(fn_root, '**', '*.mcfunction'), recursive=True)):
         text = read(path)
         m = re.search(r"as @e\[tag=(\w+)\] at @s run data merge block ~ ~ ~ (\{.*Pack-a-Punch.*\})", text)
         if not m:
             continue
         for pos in marker_positions(fn_root, m.group(1)):
             pos = tuple(int(math.floor(v)) for v in pos)
-            if 'sign' in world.block(*pos):
+            if pos in out:
                 continue
             lines = sign_lines(m.group(2))
             if not has_cost(lines):
                 lines[3] = '[Cost: 5000]'
-            state = None
+            state = world.block(*pos) if is_sign(world.block(*pos)) else None
             for c in CLONE.finditer(text):
                 x0, y0, z0, x1, y1, z1, dx, dy, dz = map(int, c.groups())
                 sx, sy, sz = pos[0] - dx + min(x0, x1), pos[1] - dy + min(y0, y1), pos[2] - dz + min(z0, z1)
@@ -1306,8 +1309,8 @@ def pap_marker_sign(world, fn_root):
                     found = world.block(sx, sy, sz)
                     if 'sign' in found:
                         state = found
-            return {'x': pos[0], 'y': pos[1], 'z': pos[2], 'lines': lines, 'blockdata': state or 'minecraft:oak_sign[rotation=0]'}
-    return None
+            out[pos] = {'x': pos[0], 'y': pos[1], 'z': pos[2], 'lines': lines, 'blockdata': state or 'minecraft:oak_sign[rotation=0]'}
+    return list(out.values())
 
 
 # ------------------------------------------------------------------ travel functions
@@ -1726,7 +1729,88 @@ def timed_pap(fn_root):
     return None
 
 
-HACK_SIGN = re.compile(r"data merge block (-?\d+) (-?\d+) (-?\d+) (\{.*Hold to Hack.*\})")
+PLAY_TIMER = re.compile(r"scoreboard objectives add (\w+) minecraft\.custom:minecraft\.play_time")
+TAG_CHANGE = re.compile(r"\btag @[ape](?:\[[^\]]*\])? (add|remove) (\w+)")
+KEEP_BACK = re.compile(r"as @e\[tag=(\w+)\] at @s run execute unless entity @[ap]\[tag=(\w+)\] run tp @([ape])\[([^\]]*)\] "
+                       + COORD + " " + COORD + " " + COORD)
+
+
+def single_score(timer):
+    """A selector checking nothing but {@code timer} at one value: other conditions (player count) mean variants."""
+    return re.compile(r"scores=\{" + re.escape(timer) + r"=(\d+)\}")
+
+
+def pap_open_sequence(fn_root, skip):
+    """What unique/pap/** does once a gate's own counter reaches its open value (Shangri-La's stones: the stairs
+    come up, a warning timer starts the Pack-a-Punch timer, whose loop takes the stairs away again and places
+    the stones anew): the lines checking that one score, followed through every play-time timer such a line
+    starts. Returns {'now': targets, 'timeline': after-steps, 'tags': [(tick, tag, added)], 'calls': [(tick,
+    function)]} or None. Block writes on {@code skip} (the stones) are left out."""
+    texts = [read(p) for p in sorted(glob.glob(os.path.join(fn_root, 'unique', 'pap', '**', '*.mcfunction'), recursive=True))]
+    lines = [line for text in texts for line in text.splitlines() if not line.lstrip().startswith('#')]
+    timers = {m.group(1) for line in lines for m in PLAY_TIMER.finditer(line)}
+    root = None
+    for line in lines:
+        start = PLAY_TIMER.search(line)
+        m = re.search(r"scores=\{(\w+)=(\d+)\}", line)
+        if start and m and m.group(1) not in timers:
+            root = (m.group(1), int(m.group(2)))
+            break
+    if not root:
+        return None
+    by_tick, tags, calls, seen = {}, [], [], set()
+
+    def follow(timer, wanted, offset):
+        pattern = single_score(timer)
+        for line in lines:
+            m = pattern.search(line)
+            if not m or wanted is not None and int(m.group(1)) != wanted:
+                continue
+            tick = offset + (0 if wanted is not None else int(m.group(1)))
+            rest = line[m.end():]
+            targets = [t for t in block_targets(rest)
+                       if not (t['kind'] == 'place_blocks' and all((b['x'], b['y'], b['z']) in skip for b in t['blocks']))]
+            if targets:
+                by_tick.setdefault(tick, []).extend(targets)
+            tags.extend((tick, c.group(2), c.group(1) == 'add') for c in TAG_CHANGE.finditer(rest))
+            calls.extend((tick, c) for c in FUNCTION_CALL.findall(rest))
+            for started in PLAY_TIMER.findall(rest):
+                if started not in seen:
+                    seen.add(started)
+                    follow(started, None, tick)
+
+    follow(root[0], root[1], 0)
+    steps = [{'kind': 'after', 'amount': tick, 'targets': targets} for tick, targets in sorted(by_tick.items()) if tick > 0]
+    return {'now': by_tick.get(0, []), 'timeline': steps, 'tags': tags, 'calls': calls}
+
+
+def keep_backs(fn_root):
+    """Players or zombies the map sends back from around a marker while nobody has a tag (Shangri-La keeps everyone
+    off the Pack-a-Punch stairs until the stones are done): [{'centre', 'radius', 'to', 'tag', 'mobs'}]."""
+    out = []
+    for path in sorted(glob.glob(os.path.join(fn_root, 'unique', '**', '*.mcfunction'), recursive=True)):
+        for m in KEEP_BACK.finditer(read(path)):
+            reach = re.search(r"distance=\.\.([\d.]+)", m.group(4))
+            if not reach:
+                continue
+            for centre in marker_positions(fn_root, m.group(1)):
+                out.append({'centre': centre, 'radius': float(reach.group(1)), 'to': tuple(float(v) for v in m.group(5, 6, 7)),
+                            'tag': m.group(2), 'mobs': m.group(3) == 'e' or 'tag=Zombie' in m.group(4)})
+    return out
+
+
+def keep_back_zone(zid, k):
+    r = k['radius']
+    lo = tuple(math.floor(c - r) for c in k['centre'])
+    hi = tuple(math.floor(c + r) for c in k['centre'])
+    # A tp to whole coordinates lands on a block corner; stand in the middle of that block instead.
+    x, y, z = k['to']
+    to = (x + 0.5 if x == int(x) else x, y, z + 0.5 if z == int(z) else z)
+    return {'id': zid, 'name': '', 'p1': loc(lo), 'p2': loc(hi), 'radius': r, 'push_out_to': loc(to),
+            'push_out': 'mobs' if k['mobs'] else 'players'}
+
+
+HACK_SIGN =re.compile(r"data merge block (-?\d+) (-?\d+) (-?\d+) (\{.*Hold to Hack.*\})")
 
 
 def hack_success(text):
@@ -1873,6 +1957,14 @@ def loc(p):
 
 def block_json(p, state):
     return {'x': float(p[0]), 'y': float(p[1]), 'z': float(p[2]), 'blockdata': state, 'material': state.split('[')[0].split(':')[1]}
+
+
+# The time of day and weather each Black Ops map is played in, held per player by the plugin.
+SKIES = {'NachtDerUntoten': {'time_of_day': 'night'}, 'Verruckt': {'time_of_day': 'night'},
+         'ShiNoNuma': {'time_of_day': 'night', 'weather': 'rain'}, 'DerRiese': {'time_of_day': 'night'},
+         'KinoDerToten': {'time_of_day': 'night'}, 'CallOfTheDead': {'time_of_day': 'night', 'weather': 'storm'},
+         'Shangri-La': {'time_of_day': 'day'}, 'Ascension': {'time_of_day': 'dusk'}, 'Moon': {'time_of_day': 'night'},
+         'Five': {'time_of_day': 'night'}}
 
 
 def build(world, datapacks, map_name, arena, world_name, index):
@@ -2206,7 +2298,7 @@ def build(world, datapacks, map_name, arena, world_name, index):
                      len(t['regions']), t['duration'], t['cooldown']))
 
     transport_json = []
-    speeds = {'zipline': 8.0, 'platform': 4.0, 'cart': 6.0, 'teleport': 4.0}
+    speeds = {'zipline': 8.0, 'platform': 4.0, 'cart': 12.0, 'teleport': 4.0}
     travel = parse_transports(fn_root) + parse_landers(fn_root) + parse_elevators(fn_root, exact_start) + \
         parse_jump_pads(fn_root) + parse_geysers(fn_root)
     travel = [t for t in travel if all(lo[0] - 40 <= p[0] <= hi[0] + 40 and lo[2] - 40 <= p[2] <= hi[2] + 40 for p in t['points'])]
@@ -2285,6 +2377,7 @@ def build(world, datapacks, map_name, arena, world_name, index):
                 hi[i] = max(hi[i], math.ceil(w[k]) + (8 if k == 'y' else 4))
 
     settings = {'pap_locked': False, 'perk_pool_mode': 'fixed'}
+    settings.update(SKIES.get(arena, {}))
     if len(switches) > 1:
         settings['power_switches'] = len(switches)
 
@@ -2367,6 +2460,27 @@ def build(world, datapacks, map_name, arena, world_name, index):
         gate = {'id': 'pap_plates', 'name': 'Stepping stones', 'ordered': False,
                 'steps': ([{'kind': 'power_on', 'amount': 0}] if plates['power'] else []) +
                          [dict(kind='stand_on', x=p[0], y=p[1], z=p[2], amount=1) for p in plates['plates']], 'teleporters': []}
+        seq = pap_open_sequence(fn_root, set(plates['plates']))
+        if seq:
+            by_tick = {s['amount']: list(s['targets']) for s in seq['timeline']}
+            by_tick[0] = list(seq['now'])
+            for k in keep_backs(fn_root):
+                opened = sorted(t for t, tag, added in seq['tags'] if tag == k['tag'] and added)
+                centre = tuple(int(math.floor(v)) for v in k['centre'])
+                if not opened or not in_bounds(centre):
+                    continue
+                zid = 'keep_back_%d' % (sum(1 for z in zones if z['id'].startswith('keep_back_')) + 1)
+                zones.append(keep_back_zone(zid, k))
+                by_tick.setdefault(opened[0], []).append({'kind': 'set_zone', 'value': zid, 'amount': 0})
+                for t in sorted(t for t, tag, added in seq['tags'] if tag == k['tag'] and not added and t > opened[0]):
+                    by_tick.setdefault(t, []).append({'kind': 'set_zone', 'value': zid, 'amount': 1})
+                report.append('%s: %s within %g of %d %d %d sent to %g %g %g until the gate opens' % (
+                    zid, 'zombies' if k['mobs'] else 'players', k['radius'], *centre, *k['to']))
+            # Placing the stones again starts the gate over.
+            for t in sorted({t for t, name in seq['calls'] if name == plates['path']}):
+                by_tick.setdefault(t, []).append({'kind': 'reset_trigger', 'value': 'pap_plates'})
+            gate['now'] = by_tick.pop(0)
+            gate['timeline'] = [{'kind': 'after', 'amount': t, 'targets': ts} for t, ts in sorted(by_tick.items()) if ts]
     elif pap_chain:
         gate = {'id': 'pap_link', 'name': 'Link the teleporter', 'ordered': True,
                 'steps': [{'kind': 'power_on', 'amount': 0}] + [dict(kind='interact', x=p[0], y=p[1], z=p[2], amount=0, description=click_label(p, 'Link')) for p in pap_chain['signs']],
@@ -2440,7 +2554,7 @@ def build(world, datapacks, map_name, arena, world_name, index):
     if gate:
         settings['pap_locked'] = True
         targets = ([] if pap_room else [{'kind': 'enable_pack_a_punch'}]) + [{'kind': 'enable_teleporter', 'value': tid} for tid in gate['teleporters']] + \
-                  [{'kind': 'open_door', 'value': i} for i in gate.get('doors', [])] + gate.get('timeline', [])
+                  [{'kind': 'open_door', 'value': i} for i in gate.get('doors', [])] + gate.get('now', []) + gate.get('timeline', [])
         triggers.append(trigger(gate['id'], gate['name'], gate['steps'], targets, ordered=gate['ordered']))
         if gate.get('timeline'):
             report.append('%s: %d timed step(s) over %ds' % (gate['id'], len(gate['timeline']), gate['timeline'][-1]['amount'] // 20))
@@ -2543,10 +2657,15 @@ def build(world, datapacks, map_name, arena, world_name, index):
         report.append('spawner %d %d %d from %s opens with door at %d %d %d' % (
             pos[0], pos[1], pos[2], relative_name(fn_root, path), nearest['blocks'][0]['x'], nearest['blocks'][0]['y'], nearest['blocks'][0]['z']))
 
-    pap_sign = pap_marker_sign(world, fn_root)
-    if pap_sign and inside((pap_sign['x'], pap_sign['y'], pap_sign['z']), lo, hi):
-        signs.append(pap_sign)
-        report.append('pack-a-punch sign written at %d %d %d' % (pap_sign['x'], pap_sign['y'], pap_sign['z']))
+    for pap_sign in pap_marker_signs(world, fn_root):
+        pos = (pap_sign['x'], pap_sign['y'], pap_sign['z'])
+        # A Pack-a-Punch sign the map writes right by the marker already is the machine.
+        other = next((s for s in signs if (s['x'], s['y'], s['z']) != pos and 'pack' in ' '.join(s['lines']).lower()
+                      and close((s['x'], s['y'], s['z']), pos)), None)
+        if not inside(pos, lo, hi) or other:
+            continue
+        put_sign(pos, pap_sign['lines'], pap_sign['blockdata'])
+        report.append('pack-a-punch sign written at %d %d %d (%s)' % (*pos, pap_sign['blockdata']))
 
     # Transport signs carry a short label: their prompt shows the cost, and buy text the sign converter
     # doesn't know would be left as an unknown sign.

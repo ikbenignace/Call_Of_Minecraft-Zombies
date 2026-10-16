@@ -41,9 +41,11 @@ import org.bukkit.potion.PotionEffectType;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -62,6 +64,7 @@ public class SpecialEnemyManager
 	private static final int TRAIL_SIZE = 128;
 	private static final double TRAIL_SPACING = 3.0;
 	private static final RoundSpawner ATTRIBUTES = new SpecialRoundSpawner(null);
+	private static final Set<String> OVERSIZED_WARNED = new HashSet<>();
 
 	final Game game;
 	private final List<SpecialEnemyRule> rules = new ArrayList<>();
@@ -136,15 +139,17 @@ public class SpecialEnemyManager
 		List<SpecialEnemyRule> ownRound = new ArrayList<>();
 		for(SpecialEnemyRule rule : rules)
 		{
-			if(SpecialEnemyCatalogue.get(rule.type) == null)
+			SpecialEnemyType type = SpecialEnemyCatalogue.get(rule.type);
+			if(type == null)
 				continue;
 			int roll = COMZombies.rand.nextInt(100);
+			int floor = rule.roundFloor(type);
 			if(dogRound)
 			{
-				if(rule.replacesDogRound(wave, roll))
+				if(rule.replacesDogRound(wave, roll, floor))
 					ownRound.add(rule);
 			}
-			else if(rule.mode != SpecialEnemyRule.Mode.REPLACES_DOG_ROUND && rule.firesOn(wave, roll))
+			else if(rule.mode != SpecialEnemyRule.Mode.REPLACES_DOG_ROUND && rule.firesOn(wave, roll, floor))
 			{
 				if(rule.isOwnRound())
 					ownRound.add(rule);
@@ -236,9 +241,13 @@ public class SpecialEnemyManager
 		World world = point.getWorld();
 		if(world == null)
 			return null;
+		boolean boss = type.behaviour == SpecialBehaviour.BOSS;
 		if(type.behaviour == SpecialBehaviour.STEAL_PERK)
 			point = spawnNearPerkMachine(point);
-		Location loc = new Location(world, point.getBlockX() + 0.5, point.getBlockY(), point.getBlockZ() + 0.5);
+		Location loc = boss ? BossSpawner.spawnLocation(game, point)
+				: new Location(world, point.getBlockX() + 0.5, point.getBlockY(), point.getBlockZ() + 0.5);
+		if(loc.getWorld() != null)
+			world = loc.getWorld();
 
 		Entity entity = world.spawnEntity(loc, resolveEntity(type));
 		if(!(entity instanceof Mob))
@@ -249,15 +258,17 @@ public class SpecialEnemyManager
 		Mob mob = (Mob) entity;
 
 		applyLooks(mob, type);
+		if(boss && !BossSpawner.fitThroughDoorways(mob, type.scale) && OVERSIZED_WARNED.add(type.id))
+			COMZombies.log.warning("Boss " + type.id + " (" + mob.getType() + ") is bigger than a doorway and this server can't scale it down; it may get stuck.");
 		ATTRIBUTES.setFollowDistance(mob, 512);
 		if(type.speed != 1.0)
 			ATTRIBUTES.setSpeed(mob, (float) type.speed);
-		if(type.scale != 1.0)
+		if(!boss && type.scale != 1.0)
 			ATTRIBUTES.setScale(mob, type.scale);
 		double health = type.health(wave, game.getPlayersInGame().size());
 		double cappedHealth = com.theprogrammingturkey.comz.spawning.ZombieHealth.applyHealth(mob, health);
 
-		if(type.behaviour == SpecialBehaviour.BOSS)
+		if(boss)
 			BossSpawner.markBoss(mob);
 		ActiveSpecial special = new ActiveSpecial(mob, type, blocksRound);
 		special.maxHealth = cappedHealth;

@@ -125,8 +125,6 @@ public class Game
 	 */
 	private int waveNumber = 0;
 
-	private boolean forceNight;
-
 	/** Arena setting: Pack-a-Punch starts locked and needs an enable_pack_a_punch trigger target. */
 	private boolean packAPunchLocked;
 
@@ -1052,67 +1050,87 @@ public class Game
 		signManager.updateGame();
 	}
 
-	/**
-	 * Causes the game to always be at night time.
-	 */
-	public void forceNight()
-	{
-		// Set the "advance_time" game rule to false by string, NOT via the typed GameRule API.
-		// The GameRule type flipped from interface to class between Paper 26.2 snapshots, so any
-		// reference compiled against one form throws IncompatibleClassChangeError on a server shipping
-		// the other. Reflecting on the World's string-based setGameRule keeps us binary-compatible
-		// across both shapes.
-		World world = arena.getWorld();
-		if(world == null)
-		{
-			COMZombies.log.log(Level.WARNING, "forceNight(): arena '" + arena.getName() + "' has no world yet; skipping.");
-			return;
-		}
-		// "advance_time" replaced "doDaylightCycle" in 26.x.
-		if(!setGameRuleByName(world, "advance_time", "false"))
-			setGameRuleByName(world, "doDaylightCycle", "false");
-		world.setTime(18000L);
-	}
+	private static final java.util.Set<String> daylightCheckedWorlds = new java.util.HashSet<>();
 
 	/**
-	 * Set a game rule by its string name and string value, via reflection on the concrete World impl.
-	 * Falls back to the typed {@code setGameRule(GameRule, Object)} API only if no string overload is
-	 * found at runtime (older servers). Returns true if the rule was set.
+	 * Older builds froze the world clock through the daylight game rule, which persists in level.dat.
+	 * Time is per player now, so thaw the clock once per world in case a previous version left it off.
 	 */
-	@SuppressWarnings("unchecked")
-	private boolean setGameRuleByName(org.bukkit.World world, String rule, String value)
+	private static void restoreDaylightCycle(World world)
 	{
-		if(world == null)
+		if(!daylightCheckedWorlds.add(world.getName()))
+			return;
+		// "advance_time" replaced "doDaylightCycle" in 26.x.
+		for(String rule : new String[]{"advance_time", "doDaylightCycle"})
 		{
-			COMZombies.log.log(Level.WARNING, "Could not set game rule " + rule + " on a null world.");
-			return false;
+			String value = getGameRuleByName(world, rule);
+			if(value == null)
+				continue;
+			if("false".equalsIgnoreCase(value) && setGameRuleByName(world, rule, "true"))
+				COMZombies.log.log(Level.INFO, "Re-enabled game rule " + rule + " on world " + world.getName() + ".");
+			return;
 		}
+	}
+
+	// The GameRule type flipped from interface to class between Paper 26.2 snapshots, so game rules are
+	// reached by name through reflection instead of the typed API to stay binary-compatible with both.
+	private static String getGameRuleByName(World world, String rule)
+	{
 		try
 		{
-			// Prefer the deprecated (String, String) overload present on CraftWorld.
 			try
 			{
-				java.lang.reflect.Method m = world.getClass().getMethod("setGameRule", String.class, String.class);
-				return (Boolean) m.invoke(world, rule, value);
+				Object value = world.getClass().getMethod("getGameRuleValue", String.class).invoke(world, rule);
+				if(value != null && !value.toString().isEmpty())
+					return value.toString();
 			}
 			catch(NoSuchMethodException ignored)
 			{
 			}
-			// Fallback: typed API resolved by name. Resolved via the GameRule class's getByName, but
-			// reached reflectively so we don't statically reference the shifted type.
+			Object gameRule = resolveGameRule(rule);
+			if(gameRule == null)
+				return null;
 			Class<?> gameRuleClass = Class.forName("org.bukkit.GameRule");
-			java.lang.reflect.Method getByName = gameRuleClass.getMethod("getByName", String.class);
-			Object gameRule = getByName.invoke(null, rule);
+			Object value = world.getClass().getMethod("getGameRuleValue", gameRuleClass).invoke(world, gameRule);
+			return value == null ? null : value.toString();
+		}
+		catch(Exception e)
+		{
+			return null;
+		}
+	}
+
+	private static boolean setGameRuleByName(World world, String rule, String value)
+	{
+		try
+		{
+			try
+			{
+				Object result = world.getClass().getMethod("setGameRuleValue", String.class, String.class).invoke(world, rule, value);
+				if(Boolean.TRUE.equals(result))
+					return true;
+			}
+			catch(NoSuchMethodException ignored)
+			{
+			}
+			Object gameRule = resolveGameRule(rule);
 			if(gameRule == null)
 				return false;
-			java.lang.reflect.Method setGameRule = world.getClass().getMethod("setGameRule", gameRuleClass, Object.class);
-			return (Boolean) setGameRule.invoke(world, gameRule, Boolean.valueOf(value));
+			Class<?> gameRuleClass = Class.forName("org.bukkit.GameRule");
+			Object result = world.getClass().getMethod("setGameRule", gameRuleClass, Object.class).invoke(world, gameRule, Boolean.valueOf(value));
+			return Boolean.TRUE.equals(result);
 		}
 		catch(Exception e)
 		{
 			COMZombies.log.log(Level.WARNING, "Could not set game rule " + rule + " to " + value + " on world " + world.getName(), e);
 			return false;
 		}
+	}
+
+	private static Object resolveGameRule(String rule) throws Exception
+	{
+		Class<?> gameRuleClass = Class.forName("org.bukkit.GameRule");
+		return gameRuleClass.getMethod("getByName", String.class).invoke(null, rule);
 	}
 
 	/**
@@ -1354,7 +1372,6 @@ public class Game
 			dogRoundEveryX = ConfigManager.getMainConfig().dogRoundEveryX;
 		maxAmmoReplishClip = CustomConfig.getBoolean(arenaSettingsJson, "max_ammo_replenish_clip", false);
 
-		forceNight = CustomConfig.getBoolean(arenaSettingsJson, "force_night", false);
 		packAPunchLocked = CustomConfig.getBoolean(arenaSettingsJson, "pap_locked", false);
 		setPowerSwitches(CustomConfig.getInt(arenaSettingsJson, "power_switches", 1));
 		perkPoolManager.load(arenaSaveJson, arenaSettingsJson);
@@ -1362,6 +1379,7 @@ public class Game
 		specialEnemyManager.load(arenaSettingsJson);
 
 		arena.loadArena(arenaSaveJson, world);
+		restoreDaylightCycle(world);
 		status = GameStatus.WAITING;
 
 		// Auto-repair: pre-fix arenas (commit 129a260) had power_setup incorrectly saved as false
@@ -1374,11 +1392,6 @@ public class Game
 			COMZombies.log.log(Level.INFO, "Arena '" + arena.getName() + "' had power_setup=false but a Power sign exists; auto-enabling power.");
 			powerSetup = true;
 		}
-
-		// Apply force-night AFTER arena.loadArena so arena.getWorld() is populated. forceNight() reads
-		// the world from the arena; calling it before loadArena (the old order) hit a null world here.
-		if(forceNight)
-			forceNight();
 
 		if(arenaSettingsJson.has("powerup_settings"))
 			powerUpManager.loadAllPowerUps(arenaSettingsJson.get("powerup_settings").getAsJsonObject());
@@ -1437,7 +1450,6 @@ public class Game
 
 		arena.saveArena(arenaSaveJson);
 		arenaSaveJson.addProperty("power_setup", powerSetup);
-		arenaSettingsJson.addProperty("force_night", forceNight);
 		arenaSettingsJson.addProperty("pap_locked", packAPunchLocked);
 		arenaSettingsJson.addProperty("power_switches", powerSwitches);
 		perkPoolManager.save(arenaSaveJson, arenaSettingsJson);
@@ -1925,11 +1937,6 @@ public class Game
 	}
 
 	// Setters used by the in-game settings GUI (/zombies settings). Callers persist via saveAllGames.
-	public boolean isForceNight()
-	{
-		return forceNight;
-	}
-
 	public void setTeddyBearPercent(int v)
 	{
 		this.teddyBearPercent = Math.max(0, Math.min(100, v));
@@ -1943,13 +1950,6 @@ public class Game
 	public void setMaxAmmoReplenishClip(boolean v)
 	{
 		this.maxAmmoReplishClip = v;
-	}
-
-	public void setForceNight(boolean v)
-	{
-		this.forceNight = v;
-		if(v)
-			forceNight();
 	}
 
 	public void setStartingGun(String gun)
