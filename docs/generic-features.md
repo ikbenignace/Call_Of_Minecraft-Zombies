@@ -158,6 +158,9 @@ play song).
 A perk machine can be `pooled`: the arena keeps a pool of spots; machines appear at random spots when a door opens
 or a trigger fires (Shi No Numa). Setting: `perk_pool_mode` = `fixed` | `random_on_open` | `random_on_start` (every
 spot gets a different random pooled perk at game start; leftovers stay hidden for `spawn_perk`).
+Only perk signs on (or next to) a pool spot are pooled; the map's other perks stay where they are. When no perk
+sign stands on a spot, every perk in the arena is pooled. `perk_pool_perks` (list of perk types) adds perks that
+have no sign of their own, e.g. Moon's No Man's Land spot drops Jugger-Nog or Speed Cola.
 
 ## 9. Import
 

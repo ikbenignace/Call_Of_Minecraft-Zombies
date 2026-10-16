@@ -96,6 +96,8 @@ public class PerkPoolManager
 	private Mode mode = Mode.FIXED;
 	/** When false only {@code spawn_perk} trigger targets reveal pooled perks, not doors. */
 	private boolean revealOnDoor = true;
+	/** Perks the pool deals out besides the perk signs on its spots (Moon: Speed Cola, which has no sign anywhere). */
+	private final List<String> extraPerks = new ArrayList<>();
 
 	private boolean active;
 	private final List<String[]> pending = new ArrayList<>();
@@ -158,6 +160,11 @@ public class PerkPoolManager
 	{
 		mode = Mode.fromKey(CustomConfig.getString(settingsJson, "perk_pool_mode", Mode.FIXED.key()));
 		revealOnDoor = !CustomConfig.getString(settingsJson, "perk_pool_reveal", "door").equalsIgnoreCase("trigger");
+		extraPerks.clear();
+		if(settingsJson.has("perk_pool_perks") && settingsJson.get("perk_pool_perks").isJsonArray())
+			for(JsonElement element : settingsJson.getAsJsonArray("perk_pool_perks"))
+				if(element.isJsonPrimitive())
+					extraPerks.add(element.getAsString());
 		spots.clear();
 		if(saveJson.has("perk_pool_spots") && saveJson.get("perk_pool_spots").isJsonArray())
 			for(JsonElement element : saveJson.getAsJsonArray("perk_pool_spots"))
@@ -181,6 +188,13 @@ public class PerkPoolManager
 	{
 		settingsJson.addProperty("perk_pool_mode", mode.key());
 		settingsJson.addProperty("perk_pool_reveal", revealOnDoor ? "door" : "trigger");
+		if(!extraPerks.isEmpty())
+		{
+			JsonArray perks = new JsonArray();
+			for(String perk : extraPerks)
+				perks.add(perk);
+			settingsJson.add("perk_pool_perks", perks);
+		}
 		JsonArray array = new JsonArray();
 		for(Spot spot : spots)
 		{
@@ -203,15 +217,33 @@ public class PerkPoolManager
 		restore();
 		if(mode == Mode.FIXED || spots.isEmpty())
 			return;
+		List<Sign> perkSigns = new ArrayList<>();
 		MachineSigns.forEachArenaSign(game, sign ->
 		{
-			if(!ChatColor.stripColor(sign.getLine(1)).trim().equalsIgnoreCase("perk machine"))
-				return;
+			if(ChatColor.stripColor(sign.getLine(1)).trim().equalsIgnoreCase("perk machine"))
+				perkSigns.add(sign);
+		});
+		// Only the perks standing on pool spots move; the rest of the map's perks stay put. Pools set up before
+		// spots carried their own signs have none on a spot, and pool every perk as they always did.
+		List<Sign> pooled = new ArrayList<>();
+		for(Sign sign : perkSigns)
+			if(onSpot(sign.getBlock()))
+				pooled.add(sign);
+		if(pooled.isEmpty())
+			pooled = perkSigns;
+		for(Sign sign : pooled)
+		{
 			SignSnapshot snapshot = SignSnapshot.of(sign);
 			pending.add(sign.getLines().clone());
 			snapshot.hide();
 			hiddenSigns.add(snapshot);
-		});
+		}
+		for(String name : extraPerks)
+		{
+			PerkType perk = PerkType.getPerkType(name.trim().replace(' ', '_'));
+			if(perk != null && pending.stream().noneMatch(lines -> PerkType.getPerkType(ChatColor.stripColor(lines[2]).trim()) == perk))
+				pending.add(perkLines(perk));
+		}
 		Collections.shuffle(pending);
 		freeSpots.addAll(spots);
 		Collections.shuffle(freeSpots);
@@ -256,8 +288,7 @@ public class PerkPoolManager
 				pooled = candidate;
 				break;
 			}
-		String[] lines = pooled != null ? pooled
-				: new String[]{ChatColor.RED + "[Zombies]", ChatColor.AQUA + "Perk Machine", perk.toString().toLowerCase(Locale.ROOT), Integer.toString(perk.getDefaultCost())};
+		String[] lines = pooled != null ? pooled : perkLines(perk);
 
 		Spot spot = at != null ? new Spot(at.toVector(), BlockFace.SOUTH) : nextFreeSpot();
 		if(spot == null || !place(lines, spot))
@@ -266,6 +297,21 @@ public class PerkPoolManager
 			pending.remove(pooled);
 		freeSpots.remove(spot);
 		return true;
+	}
+
+	private static String[] perkLines(PerkType perk)
+	{
+		return new String[]{ChatColor.RED + "[Zombies]", ChatColor.AQUA + "Perk Machine", perk.toString().toLowerCase(Locale.ROOT), Integer.toString(perk.getDefaultCost())};
+	}
+
+	/** A spot's own block or one next to it: some maps build a perk one block over in another machine layout. */
+	private boolean onSpot(Block block)
+	{
+		for(Spot spot : spots)
+			if(Math.abs(spot.block.getBlockX() - block.getX()) <= 1 && Math.abs(spot.block.getBlockY() - block.getY()) <= 1
+					&& Math.abs(spot.block.getBlockZ() - block.getZ()) <= 1)
+				return true;
+		return false;
 	}
 
 	private boolean revealNext()

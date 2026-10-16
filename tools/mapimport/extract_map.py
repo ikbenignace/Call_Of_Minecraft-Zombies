@@ -679,7 +679,7 @@ def parse_perk_pool(fn_root):
         pos, state, nbt = found[0]
         by_perk.setdefault(perk, {})[place] = perk_spot(pos, state, sign_lines(nbt))
     if not by_perk:
-        return parse_perk_sets(fn_root)
+        return parse_perk_sets(fn_root) or parse_perk_drops(fn_root)
     perks = sorted(by_perk)
     places = sorted({p for spots in by_perk.values() for p in spots})
     spots, signs = [], []
@@ -718,6 +718,35 @@ def parse_perk_sets(fn_root):
     signs = [dict(spot, lines=perks[name]) for spot, name in zip(ordered, names)]
     return {'spots': ordered, 'signs': signs, 'perks': names, 'places': ['%d %d %d' % s['pos'] for s in ordered],
             'mode': 'random_on_start'}
+
+
+PERK_IDS = (('jugger', 'juggernog'), ('speed', 'speed_cola'), ('double tap', 'double_tap'), ('revive', 'quick_revive'),
+            ('mule', 'mule_kick'), ('phd', 'phd_flopper'), ('stamin', 'stamin_up'), ('deadshot', 'deadshot_daiq'))
+
+
+def perk_id(lines):
+    text = ' '.join(lines).lower()
+    return next((pid for key, pid in PERK_IDS if key in text), None)
+
+
+def parse_perk_drops(fn_root):
+    """A function that puts different perk signs on one spot depending on a random score (Moon's No Man's Land
+    drops Jugger-Nog or Speed Cola at game start): that spot is a pool of those perks, dealt at game start."""
+    for path in sorted(glob.glob(os.path.join(fn_root, '**', '*.mcfunction'), recursive=True)):
+        by_pos = {}
+        for pos, state, nbt in sign_sets(read(path)):
+            lines = sign_lines(nbt)
+            pid = perk_id(lines)
+            if pid and has_cost(lines):
+                by_pos.setdefault(pos, {}).setdefault(pid, (state, lines))
+        for pos, perks in sorted(by_pos.items()):
+            if len(perks) < 2:
+                continue
+            first, (state, lines) = next(iter(perks.items()))
+            spot = perk_spot(pos, state, lines)
+            return {'spots': [spot], 'signs': [spot], 'perks': sorted(perks), 'extra': [p for p in perks if p != first],
+                    'places': ['%d %d %d' % pos], 'mode': 'random_on_start'}
+    return None
 
 
 # ------------------------------------------------------------------ map-specific traps (unique/<trap>/)
@@ -1994,6 +2023,8 @@ def build(world, datapacks, map_name, arena, world_name, index):
         settings['perk_pool_mode'] = pool['mode']
         if pool['mode'] == 'random_on_open':
             settings['perk_pool_reveal'] = 'door'
+        if pool.get('extra'):
+            settings['perk_pool_perks'] = pool['extra']
         pool_spots = [{'x': s['pos'][0], 'y': s['pos'][1], 'z': s['pos'][2], 'facing': s['facing']} for s in pool['spots']]
         pool_positions = {s['pos'] for s in pool['spots']}
         for s in pool['signs']:
