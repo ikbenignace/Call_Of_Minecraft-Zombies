@@ -139,27 +139,29 @@ public enum PerkType
 		return null;
 	}
 
-	/** Plays the drink jingle + potion-break particle when a perk is consumed. No inventory item. */
+	private static final int DRINK_DELAY_TICKS = 5;
+	// The pack's drink clip gulps until ~2.2 s in, so the burp lands right after the last swallow.
+	private static final int BURP_DELAY_TICKS = DRINK_DELAY_TICKS + 45;
+
+	/** Plays the jingle, drink and burp + potion-break particle when a perk is consumed. No inventory item. */
 	public void initialEffect(final Player player)
 	{
 		final World world = player.getLocation().getWorld();
 		if(world == null)
 			return;
-		// Per-perk BO2 jingle (perk.drink.<PERK>) if configured; else the generic double-glug.
 		String jingle = com.theprogrammingturkey.comz.util.SoundConfig.get("perk.drink." + name(), "");
 		if(!jingle.isEmpty())
-		{
-			COMZombies.scheduleTask(5, () -> com.theprogrammingturkey.comz.util.SoundUtil.play(world, player.getLocation(), jingle, org.bukkit.SoundCategory.MASTER, 1, 1));
-		}
-		else
-		{
-			String drink = com.theprogrammingturkey.comz.util.SoundConfig.get("perk.buy", "ENTITY_GENERIC_DRINK");
-			COMZombies.scheduleTask(5, () -> com.theprogrammingturkey.comz.util.SoundUtil.play(world, player.getLocation(), drink, org.bukkit.SoundCategory.MASTER, 1, 1));
-			COMZombies.scheduleTask(10, () -> com.theprogrammingturkey.comz.util.SoundUtil.play(world, player.getLocation(), drink, org.bukkit.SoundCategory.MASTER, 1, 1));
-		}
+			playLater(world, player, jingle, DRINK_DELAY_TICKS);
+		playLater(world, player, com.theprogrammingturkey.comz.util.SoundConfig.get("perk.buy", "ENTITY_GENERIC_DRINK"), DRINK_DELAY_TICKS);
+		playLater(world, player, com.theprogrammingturkey.comz.util.SoundConfig.get("perk.burp", "ENTITY_PLAYER_BURP"), BURP_DELAY_TICKS);
 		COMZombies.scheduleTask(20, () -> world.playEffect(player.getLocation(), Effect.POTION_BREAK, 1));
 		// BO2 perk-buy feedback: rewarding jingle + colored particle puff (gated, self-contained helper).
 		perkBuyFeedback(player, world);
+	}
+
+	private static void playLater(World world, Player player, String sound, int delayTicks)
+	{
+		COMZombies.scheduleTask(delayTicks, () -> com.theprogrammingturkey.comz.util.SoundUtil.play(world, player.getLocation(), sound, org.bukkit.SoundCategory.MASTER, 1, 1));
 	}
 
 	/**

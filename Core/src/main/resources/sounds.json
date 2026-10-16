@@ -3,6 +3,7 @@
   "perk": {
     "buy": "custom.global.perk_drink",
     "noPower": "custom.global.deny",
+    "burp": "ENTITY_PLAYER_BURP",
     "drink": {
       "JUGGERNOG": "custom.global.buyjuggernog",
       "SPEED_COLA": "custom.global.buyspeed",
@@ -48,6 +49,11 @@
   },
   "trap": "custom.trap.flame",
   "traps": {
+    "turret": {
+      "activate": "BLOCK_PISTON_EXTEND",
+      "loop": "custom.weapon.shoot.bo2.m60",
+      "kill": "ENTITY_ZOMBIE_DEATH"
+    },
     "electric": {
       "activate": "ENTITY_LIGHTNING_BOLT_THUNDER",
       "loop": "ENTITY_LIGHTNING_BOLT_IMPACT",
@@ -403,6 +409,10 @@
       "reload": "custom.weapon.reload.bo2.m60"
     },
     "Mounted M60": {
+      "shoot": "custom.weapon.shoot.bo2.m60",
+      "reload": "custom.weapon.reload.bo2.m60"
+    },
+    "Death Machine": {
       "shoot": "custom.weapon.shoot.bo2.m60",
       "reload": "custom.weapon.reload.bo2.m60"
     },
