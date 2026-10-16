@@ -22,7 +22,7 @@ public class TrapType
 {
 	public enum Style
 	{
-		ELECTRIC, FIRE, ARM, SPIKES, GENERIC;
+		ELECTRIC, FIRE, ARM, SPIKES, TURRET, GENERIC;
 
 		static Style parse(String value)
 		{

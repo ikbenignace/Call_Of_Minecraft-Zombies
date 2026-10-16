@@ -138,7 +138,7 @@ public class TrapRun
 
 		drawVisuals();
 		TrapSound loop = type.getLoopSound();
-		if(loop != null && ticks % loop.getEveryTicks() < STEP_TICKS)
+		if(loop != null && type.getStyle() != TrapType.Style.TURRET && ticks % loop.getEveryTicks() < STEP_TICKS)
 			loop.play(area.centre().add(0, 1, 0));
 		hitEntities();
 	}
@@ -150,6 +150,11 @@ public class TrapRun
 	{
 		if(type.getStyle() == TrapType.Style.SPIKES && !spikesJustRose())
 			return;
+		if(type.getStyle() == TrapType.Style.TURRET)
+		{
+			shootNearest();
+			return;
+		}
 
 		for(Mob mob : new ArrayList<>(game.spawnManager.getEntities()))
 		{
@@ -171,6 +176,45 @@ public class TrapRun
 			// Routed through EntityDamageEvent so the game's own player damage rules (downing, god mode) apply.
 			player.damage(type.getPlayerDamage());
 		}
+	}
+
+	/** A turret fires one round at a time, at the closest zombie in range it isn't still reloading on. */
+	private void shootNearest()
+	{
+		Location muzzle = muzzle();
+		Mob target = null;
+		double best = Double.MAX_VALUE;
+		for(Mob mob : game.spawnManager.getEntities())
+		{
+			if(mob == null || mob.isDead() || !area.contains(mob.getLocation()))
+				continue;
+			Integer last = lastHit.get(mob.getUniqueId());
+			if(last != null && ticks - last < type.getHitIntervalTicks())
+				continue;
+			double distance = mob.getLocation().distanceSquared(muzzle);
+			if(distance < best)
+			{
+				best = distance;
+				target = mob;
+			}
+		}
+		if(target == null)
+			return;
+		lastHit.put(target.getUniqueId(), ticks);
+		Location hit = target.getLocation().add(0, target.getHeight() * 0.6, 0);
+		Vector line = hit.toVector().subtract(muzzle.toVector());
+		double length = line.length();
+		for(double d = 0; d < length; d += 0.5)
+			spawn(type.getParticle(), muzzle.clone().add(line.clone().multiply(d / length)), 1, 0, 0, 0, 0);
+		spawn(type.getSecondaryParticle(), muzzle, 2, 0.05, 0.05, 0.05, 0.01);
+		if(type.getLoopSound() != null)
+			type.getLoopSound().play(muzzle);
+		hitMob(target);
+	}
+
+	private Location muzzle()
+	{
+		return area.centre().add(0, 2.5, 0);
 	}
 
 	private boolean readyToHit(Entity entity)
@@ -336,6 +380,10 @@ public class TrapRun
 				break;
 			case SPIKES:
 				drawSpikes();
+				break;
+			case TURRET:
+				if(ticks % 10 < STEP_TICKS)
+					spawn(type.getSecondaryParticle(), muzzle(), 1, 0.1, 0.1, 0.1, 0);
 				break;
 			default:
 				drawGeneric();

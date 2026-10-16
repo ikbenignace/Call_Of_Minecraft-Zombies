@@ -1,5 +1,5 @@
 {
-  "_comment": "COM:Z trap catalogue. Each entry under 'types' is a trap type an arena trap can use (arenas.json 'traps[].type'). style: electric | fire | arm | spikes | generic (controls the visual pattern). damage_model: instant_kill | per_tick. mob_damage is absolute health per hit, mob_damage_percent a fraction of the mob's max health per hit (the larger wins). hit_interval_ticks: how often one entity can be hit. particles: candidate particle names, the first one this server knows is used. sounds: sounds.json key plus the vanilla sound used when the key is missing or needs the resource pack. points_per_kill: points the activating player earns per trap kill (BO gives none).",
+  "_comment": "COM:Z trap catalogue. Each entry under 'types' is a trap type an arena trap can use (arenas.json 'traps[].type'). style: electric | fire | arm | spikes | turret | generic (controls the visual pattern). damage_model: instant_kill | per_tick. mob_damage is absolute health per hit, mob_damage_percent a fraction of the mob's max health per hit (the larger wins). hit_interval_ticks: how often one entity can be hit. particles: candidate particle names, the first one this server knows is used. sounds: sounds.json key plus the vanilla sound used when the key is missing or needs the resource pack. points_per_kill: points the activating player earns per trap kill (BO gives none).",
   "points_per_kill": 0,
   "types": {
     "electric": {
@@ -122,6 +122,29 @@
         "activate": {"key": "traps.spikes.activate", "vanilla": "BLOCK_PISTON_EXTEND", "volume": 1.0, "pitch": 1.0},
         "loop": {"key": "traps.spikes.loop", "vanilla": "BLOCK_PISTON_EXTEND", "volume": 0.8, "pitch": 1.6, "every_ticks": 20},
         "kill": {"key": "traps.spikes.kill", "vanilla": "ENTITY_ZOMBIE_DEATH", "volume": 1.0, "pitch": 1.0}
+      }
+    },
+    "turret": {
+      "name": "Automatic Turret",
+      "style": "turret",
+      "cost": 1500,
+      "duration_seconds": 30,
+      "cooldown_seconds": 0,
+      "requires_power": true,
+      "damage_model": "per_tick",
+      "mob_damage": 4.0,
+      "mob_damage_percent": 0.25,
+      "hit_interval_ticks": 4,
+      "hurts_players": false,
+      "player_damage": 0.0,
+      "knockback": 0.1,
+      "particles": ["CRIT"],
+      "secondary_particles": ["SMOKE_NORMAL", "SMOKE"],
+      "density": 1,
+      "sounds": {
+        "activate": {"key": "traps.turret.activate", "vanilla": "BLOCK_PISTON_EXTEND", "volume": 1.0, "pitch": 1.2},
+        "loop": {"key": "traps.turret.loop", "vanilla": "ENTITY_FIREWORK_ROCKET_BLAST", "volume": 0.8, "pitch": 1.6},
+        "kill": {"key": "traps.turret.kill", "vanilla": "ENTITY_ZOMBIE_DEATH", "volume": 1.0, "pitch": 1.0}
       }
     },
     "generic": {

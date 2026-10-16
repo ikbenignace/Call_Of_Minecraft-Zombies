@@ -45,6 +45,7 @@ A transport is an ordered list of waypoints plus options:
 - `cooldown_group`: transports with the same group share one cooldown (Der Riese teleporters, Ascension landers);
 - locked while a trigger has an `enable_teleporter` target naming its id or name (Five's Pack-a-Punch teleporter);
 - `relock_after_use`: after every ride it locks again and those triggers reset, so it has to be re-linked (Kino);
+- `stay_seconds` + `then` ([{`points`, `seconds`}]): after arriving, riders stay `stay_seconds`, then visit each `then` stop in turn (a random one of its `points`) for its `seconds` (Kino: 30 s at Pack-a-Punch, a few seconds in a side room, then back to the projector room);
 - `call_points`: where players press F to call or ride (each resolves to the nearer end); none = both ends;
 - riders are never sent back by the leave-the-arena check while riding;
 - optional `on_arrival` trigger (see 7).
@@ -65,7 +66,7 @@ The existing `Trap` (cost, kill radius, duration, cooldown) gains:
 Implemented as:
 
 - `traps.json` (plugin folder, new types merged in on update): root `points_per_kill` (default 0, BO gives no
-  points for trap kills) and `types.<id>` with `name`, `style` (`electric|fire|arm|spikes|generic`), `cost`,
+  points for trap kills) and `types.<id>` with `name`, `style` (`electric|fire|arm|spikes|turret|generic`; a turret shoots the nearest zombie in its area one round at a time), `cost`,
   `duration_seconds`, `cooldown_seconds`, `requires_power`, `damage_model` (`instant_kill|per_tick`),
   `mob_damage`/`mob_damage_percent`, `hit_interval_ticks`, `ignite_ticks`, `hurts_players`, `player_damage`,
   `knockback`, `particles`/`secondary_particles` (candidate names, first known one wins), `density`, arm

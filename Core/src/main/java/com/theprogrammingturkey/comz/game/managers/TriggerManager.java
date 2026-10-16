@@ -413,7 +413,20 @@ public class TriggerManager
 			return;
 		}
 		SoundUtil.play(player, where, SoundConfig.get("trigger.denied", "ENTITY_VILLAGER_NO"), SoundCategory.MASTER, 1, 1);
-		CommandUtil.actionBar(player, ChatColor.GRAY + "Nothing happens...");
+		CommandUtil.actionBar(player, ChatColor.GRAY + "Nothing happens..." + firstHint(trigger));
+	}
+
+	/** What an ordered trigger waits for, so a player who starts at the wrong end knows where to go. */
+	private String firstHint(Trigger trigger)
+	{
+		TriggerStep next = trigger.isOrdered() ? trigger.nextStep() : null;
+		if(next == null)
+			return "";
+		if(next.getKind() == TriggerStep.Kind.POWER_ON)
+			return ChatColor.GRAY + " Turn on the power first.";
+		if(next.getDescription().isEmpty())
+			return "";
+		return ChatColor.GRAY + " First: " + ChatColor.RESET + ChatColor.translateAlternateColorCodes('&', next.getDescription());
 	}
 
 	// ---------------------------------------------------------------- other events

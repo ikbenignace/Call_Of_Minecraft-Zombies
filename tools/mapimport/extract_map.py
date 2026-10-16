@@ -494,6 +494,13 @@ def parse_traps(fn_root, merged):
             regions = [({k: float(v) for k, v in lo.items()}, {k: float(v) for k, v in hi.items()}) for lo, hi in kill_boxes(visuals)]
         if not regions:
             continue
+        # Sparks hang at head height while the kill selectors sit at the floor (Kino trap 1: sparks at y 40,
+        # zombies killed around y 37); stretch the area down to where the map really kills.
+        for lo, hi in kill_boxes(visuals):
+            for rlo, rhi in regions:
+                if rlo['x'] - 1 <= hi['x'] and lo['x'] <= rhi['x'] + 1 and rlo['z'] - 1 <= hi['z'] and lo['z'] <= rhi['z'] + 1:
+                    rlo['y'] = float(min(rlo['y'], lo['y'] + 1))
+                    rhi['y'] = float(max(rhi['y'], hi['y']))
         lowered = (name + ' ' + particle_names).lower()
         kind = next((t for key, t in TRAP_TYPES if key in lowered), 'generic')
         timers = sorted({int(t) for t in TIMER.findall(clock)})
@@ -502,6 +509,33 @@ def parse_traps(fn_root, merged):
         traps.append({'n': n, 'name': name, 'type': kind, 'cost': int(price.group(1)) if price else 1000,
                       'signs': signs, 'regions': regions, 'duration': duration, 'cooldown': cooldown})
     return traps
+
+
+SENTRY_RANGE = re.compile(r"@e\[tag=Zombie,x=(-?[\d.]+),y=(-?[\d.]+),z=(-?[\d.]+),distance=\.\.([\d.]+)\] add")
+
+
+def parse_sentries(fn_root):
+    """maps/sentry/sentryNbuy/clock: an automatic turret bought at its sign that shoots every zombie within range
+    of its spot for a while (Kino, Ascension). Becomes a turret trap over a box around that spot."""
+    out = []
+    folder = os.path.join(fn_root, 'maps', 'sentry')
+    for buy in sorted(glob.glob(os.path.join(folder, 'sentry*buy.mcfunction'))):
+        n = re.search(r'sentry(\d+)buy', buy).group(1)
+        text = read(buy)
+        clock_path = os.path.join(folder, 'sentry%sclock.mcfunction' % n)
+        clock = read(clock_path) if os.path.exists(clock_path) else ''
+        signs = sorted({tuple(map(int, m.group(1, 2, 3))) for m in merges(text) + merges(clock)})
+        reach = SENTRY_RANGE.search(clock)
+        if not signs or not reach:
+            continue
+        x, y, z, r = (float(v) for v in reach.groups())
+        price = re.search(r'Points=(\d+)\.\.', text)
+        timers = sorted({int(t) for t in TIMER.findall(clock)})
+        out.append({'n': n, 'signs': signs, 'cost': int(price.group(1)) if price else 1500,
+                    'duration': timers[0] // 20 if timers else 30,
+                    'region': ({'x': math.floor(x - r), 'y': math.floor(y) - 3, 'z': math.floor(z - r)},
+                               {'x': math.floor(x + r), 'y': math.floor(y) + 4, 'z': math.floor(z + r)})})
+    return out
 
 
 TP_ANY = re.compile(r"(?:^|run )tp (@[apes])(\[[^\]]*\])? (-?[\d.]+) (-?[\d.]+) (-?[\d.]+)(?:\s|$)")
@@ -1234,6 +1268,41 @@ def travel_steps(text):
     return [(k, mean(steps[k])) for k in keys], source, everyone
 
 
+def tour_after(text, target):
+    """What a teleporter tour does after its destination (Kino: 30 s at Pack-a-Punch, a few seconds in one of four
+    side rooms, then back to the projector room): (seconds at the destination, [(points, seconds)]). Spots the tour
+    passes several times are the dark waiting room between stops and are skipped. Teleports a few blocks apart
+    are one spot (one per player); spots further apart are alternatives a rider is sent to one of."""
+    stages = {}
+    for line in text.splitlines():
+        m = TP_ANY.search(line)
+        step = STEP.search(line)
+        if m and step and not moves_zombies(m.group(2) or ''):
+            stages.setdefault(int(step.group(1)), []).append(tuple(float(v) for v in m.group(3, 4, 5)))
+    timers = sorted(stages)
+    seen = {}
+    for t in timers:
+        for p in stages[t]:
+            key = tuple(round(v) for v in p)
+            seen.setdefault(key, set()).add(t)
+    waiting = {k for k, ts in seen.items() if len(ts) >= 2}
+    real = [t for t in timers if not all(tuple(round(v) for v in p) in waiting for p in stages[t])]
+    at = next((t for t in real if any(close(p, target, 3) for p in stages[t])), None)
+    if at is None or at == real[-1]:
+        return 0, []
+
+    def leaves(t):
+        later = [u for u in timers if u > t]
+        return (later[0] - t) // 20 if later else 0
+
+    stops = []
+    for t in real[real.index(at) + 1:]:
+        pts = stages[t]
+        spots = [mean(pts)] if max(max(abs(a[i] - b[i]) for i in range(3)) for a in pts for b in pts) <= 4 else pts
+        stops.append((spots, max(1, round(leaves(t)))))
+    return round(leaves(at)), stops
+
+
 def travel_pairs(text):
     """Pads that each send whoever stands on them to their own spot (tp @e[x,y,z,distance] X Y Z, no timer),
     when one function holds several: [(pad, destination)]."""
@@ -1355,8 +1424,9 @@ def parse_transports(fn_root):
                 target = points[-1]
             points = [points[0], target]
             cooldown = teleport_cooldown(steps, text)
+        stay, then = tour_after(text, points[-1]) if style == 'teleport' else (0, [])
         out.append({'name': friendly_name(label), 'label': label, 'style': style, 'points': points, 'cost': cost,
-                    'path': path, 'cooldown': cooldown})
+                    'path': path, 'cooldown': cooldown, 'stay': stay, 'then': then})
     return dedupe_transports(out)
 
 
@@ -1921,6 +1991,11 @@ def build(world, datapacks, map_name, arena, world_name, index):
                  t['signs'], t['cost'],
                  'trap %s: %s (%s), %d area(s), %d sign(s), %d points' % (t['n'], t['name'], t['type'], len(t['regions']), len(t['signs']), t['cost']))
 
+    for t in parse_sentries(fn_root):
+        add_trap({'id': 'sentry%s' % t['n'], 'cost': t['cost'], 'type': 'turret', 'requires_power': has_power,
+                  'duration_seconds': t['duration'], 'cooldown_seconds': 0, 'region': fbox(t['region']), 'extra_regions': []},
+                 t['signs'], t['cost'], 'turret %s: %d sign(s), %d points, %ds' % (t['n'], len(t['signs']), t['cost'], t['duration']))
+
     for t in parse_unique_traps(fn_root):
         main = t['regions'][0]
         anchor = tuple((main[0][k] + main[1][k]) // 2 for k in 'xyz')
@@ -1994,6 +2069,10 @@ def build(world, datapacks, map_name, arena, world_name, index):
             entry['cooldown_group'] = t['cooldown_group']
         if t['relock']:
             entry['relock_after_use'] = True
+        if t.get('then'):
+            entry['stay_seconds'] = t['stay']
+            entry['then'] = [{'points': [{'x': p[0], 'y': p[1], 'z': p[2]} for p in pts], 'seconds': sec} for pts, sec in t['then']]
+            report.append('%s: stays %ds, then %s' % (t['id'], t['stay'], ', '.join('%d spot(s) for %ds' % (len(pts), sec) for pts, sec in t['then'])))
         transport_json.append(entry)
         report.append('transport %s: %s, %d points%s%s%s%s%s%s' % (
             t['name'], t['style'], len(t['points']), ', two-way' if entry['two_way'] else ', one-way',
@@ -2003,7 +2082,7 @@ def build(world, datapacks, map_name, arena, world_name, index):
 
     # Riders must stay inside the arena all the way: landers fly high above the map.
     for t in transport_json:
-        for w in t['waypoints'] + t['call_points']:
+        for w in t['waypoints'] + t['call_points'] + [p for stop in t.get('then', []) for p in stop['points']]:
             for i, k in enumerate('xyz'):
                 lo[i] = min(lo[i], math.floor(w[k]) - (2 if k == 'y' else 4))
                 hi[i] = max(hi[i], math.ceil(w[k]) + (8 if k == 'y' else 4))
@@ -2050,6 +2129,14 @@ def build(world, datapacks, map_name, arena, world_name, index):
     def transport_in(folder):
         return [t for t in travel if t['path'] and os.path.dirname(t['path']) == folder and t['id'] in {x['id'] for x in transport_json}]
 
+    def click_label(pos, fallback):
+        """The text the map shows on a sign while clicking it does something ("Initiate link", "Link pad with core")."""
+        for q, lines, nbt, _, _ in writes:
+            text = ' '.join(l.strip() for l in lines if l.strip())
+            if q == pos and 'clickEvent' in click_text(nbt) and text and not is_placeholder(lines) and not has_cost(lines):
+                return text
+        return fallback
+
     # Teleporters that have to be linked first (Der Riese: each pad to the mainframe, Kino: the projector).
     chains = [c for c in link_chains(fn_root) if all(in_bounds(p) for p in c['signs'])]
     link_triggers = []
@@ -2061,7 +2148,7 @@ def build(world, datapacks, map_name, arena, world_name, index):
             report.append('link at %s: no teleporter found in %s' % (c['signs'][0], c['folder']))
             continue
         tid = 'link_' + os.path.basename(c['folder'])
-        steps = [{'kind': 'power_on', 'amount': 0}] + [dict(kind='interact', x=p[0], y=p[1], z=p[2], amount=0, description='Link') for p in c['signs']]
+        steps = [{'kind': 'power_on', 'amount': 0}] + [dict(kind='interact', x=p[0], y=p[1], z=p[2], amount=0, description=click_label(p, 'Link')) for p in c['signs']]
         limit = link_time_limit(fn_root, c)
         triggers.append(trigger(tid, 'Link ' + linked[0]['name'], steps, [{'kind': 'enable_teleporter', 'value': t['id']} for t in linked],
                                 ordered=True, time_limit=limit, reset_on_fail=limit > 0))
@@ -2085,7 +2172,7 @@ def build(world, datapacks, map_name, arena, world_name, index):
                          [dict(kind='stand_on', x=p[0], y=p[1], z=p[2], amount=1) for p in plates['plates']], 'teleporters': []}
     elif pap_chain:
         gate = {'id': 'pap_link', 'name': 'Link the teleporter', 'ordered': True,
-                'steps': [{'kind': 'power_on', 'amount': 0}] + [dict(kind='interact', x=p[0], y=p[1], z=p[2], amount=0, description='Link') for p in pap_chain['signs']],
+                'steps': [{'kind': 'power_on', 'amount': 0}] + [dict(kind='interact', x=p[0], y=p[1], z=p[2], amount=0, description=click_label(p, 'Link')) for p in pap_chain['signs']],
                 'teleporters': [t['id'] for t in transport_in(pap_chain['folder']) if t['style'] == 'teleport']}
     elif landers and any('pap' in read(f).lower() for f in glob.glob(os.path.join(fn_root, 'unique', '*lander*', '*.mcfunction'))):
         gate = {'id': 'pap_landers', 'name': 'Ride every lander, then launch', 'ordered': False,
@@ -2186,6 +2273,26 @@ def build(world, datapacks, map_name, arena, world_name, index):
                 if p in trap_spots or p in pool_positions or p in sign_spots or (p in t['call_points']) != calls:
                     continue
                 put_sign(p, ['', word if calls else step_names.get(p, ''), '', ''])
+    # The buy sign beside a call point ("Use Elevator [Cost: 250]", "Teleport to Mainframe") is the transport's
+    # too: the converter can't read it, and the transport's prompt already shows the cost.
+    ride_words = ('use ', 'teleport', 'elevator', 'zipline', 'lander', 'ride', 'minecart', 'slide')
+    current = {(x['x'], x['y'], x['z']): x['lines'] for x in signs}
+    done = set()
+    for t in kept:
+        word = '' if 'zipline' in t['id'] else next((w.capitalize() for w in ('lander', 'elevator', 'slide', 'geyser', 'flinger') if w in t['id']), labels[t['style']])
+        for c in t['call_points']:
+            cx, cy, cz = (int(math.floor(v)) for v in c)
+            for p in box_points(cx - 1, cy - 1, cz - 1, cx + 1, cy + 1, cz + 1):
+                if p in done or p in trap_spots or p in sign_spots or any(near(p, q, 1) for q in pool_positions):
+                    continue
+                lines = current.get(p)
+                if lines is None and is_sign(world.block(*p)):
+                    be = world.block_entity(*p)
+                    lines = world_sign_lines(be) if be is not None else None
+                text = ' '.join(lines or []).lower()
+                if lines and has_cost(lines) and any(w in text for w in ride_words):
+                    put_sign(p, ['', word, '', ''])
+                    done.add(p)
     # Signs that only ever show a placeholder ("You must turn on the power first!", "Cooling down...") are
     # blanked, or labelled with the step a trigger waits for there.
     sign_states = placed_signs

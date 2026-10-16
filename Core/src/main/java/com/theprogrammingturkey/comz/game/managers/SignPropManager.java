@@ -193,6 +193,9 @@ public class SignPropManager
 	private void trySpawnSign(Sign sign)
 	{
 		String[] lines = sign.getLines().clone();
+		// A plain label such as "Teleporter" on an imported transport sign is not a game sign.
+		if(!ChatColor.stripColor(lines[0]).trim().equalsIgnoreCase("[zombies]"))
+			return;
 		String typeLine = ChatColor.stripColor(lines[1]).trim().toLowerCase();
 		IGameSign handler = SignListener.getSignHandler(typeLine);
 		PropType type = typeOf(handler, lines);

@@ -53,6 +53,8 @@ public final class MapSignConverter
 	static
 	{
 		GUN_ALIASES.put("m16", "Colt M16A1");
+		// Nacht der Untoten's cabinet sells the scoped Kar98k; the plain Kar98k is the closest gun we have.
+		GUN_ALIASES.put("snipercabinet", "Kar98k");
 		GUN_ALIASES.put("ak74u", "AK-74u");
 		GUN_ALIASES.put("barbipod", "BAR");
 		GUN_ALIASES.put("doublebarrelshotgun", "Double-Barreled Shotgun");
@@ -66,6 +68,8 @@ public final class MapSignConverter
 		GUN_ALIASES.put("garand", "M1 Garand");
 		GUN_ALIASES.put("carbine", "M1 Carbine");
 
+		// Moon's P.E.S. lockers are free and carry no price, unlike every other map buy.
+		EQUIPMENT_ALIASES.put("tradeequipmentforpes", "P.E.S.");
 		EQUIPMENT_ALIASES.put("bowie", "Bowie Knife");
 		EQUIPMENT_ALIASES.put("bowieknife", "Bowie Knife");
 		EQUIPMENT_ALIASES.put("claymores", "Claymore");
@@ -154,7 +158,7 @@ public final class MapSignConverter
 		for(Sign sign : arenaSigns(game, world))
 		{
 			String[] lines = plainLines(sign);
-			if(!lines[0].toLowerCase(Locale.ROOT).contains("[zombies]") && hasCost(lines))
+			if(!lines[0].toLowerCase(Locale.ROOT).contains("[zombies]") && (hasCost(lines) || EQUIPMENT_ALIASES.containsKey(normalize(nameOf(lines)))))
 				buySigns.add(sign);
 		}
 
@@ -304,7 +308,7 @@ public final class MapSignConverter
 		String key = normalize(name);
 		int cost = numberIn(lines, "cost", 0);
 
-		if(key.contains("door") || key.contains("debris"))
+		if(key.contains("door") || key.contains("debris") || key.contains("opengate"))
 			return new Entry(Kind.DOOR, loc, name, lines, null);
 
 		if(key.contains("packapunch"))

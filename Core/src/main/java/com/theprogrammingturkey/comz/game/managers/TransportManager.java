@@ -72,6 +72,7 @@ public class TransportManager
 	private final List<Ride> rides = new ArrayList<>();
 	private final Map<UUID, Ride> rideByPlayer = new HashMap<>();
 	private final List<Entity> ropes = new ArrayList<>();
+	private final List<Visit> visits = new ArrayList<>();
 	private int taskId = -1;
 	private long tick;
 	/** Set while this manager itself takes riders out of a cart, so the exit guard lets it through. */
@@ -122,6 +123,22 @@ public class TransportManager
 			this.reverse = reverse;
 			this.length = transport.length();
 			this.lastPos = transport.pointAt(0, reverse);
+		}
+	}
+
+	/** A rider who arrived somewhere with a timed stay, waiting to be moved to the transport's next stop. */
+	private static final class Visit
+	{
+		final Player player;
+		final Transport transport;
+		int stop;
+		long atTick;
+
+		Visit(Player player, Transport transport, long atTick)
+		{
+			this.player = player;
+			this.transport = transport;
+			this.atTick = atTick;
 		}
 	}
 
@@ -253,6 +270,7 @@ public class TransportManager
 			abortRide(ride);
 		rides.clear();
 		rideByPlayer.clear();
+		visits.clear();
 		for(Entity rope : ropes)
 			rope.remove();
 		ropes.clear();
@@ -610,6 +628,7 @@ public class TransportManager
 		}
 		for(Ride ride : new ArrayList<>(rides))
 			tickRide(ride);
+		tickVisits();
 		for(Transport transport : transports.values())
 		{
 			State state = states.get(transport.getId());
@@ -619,6 +638,32 @@ public class TransportManager
 				sendPlatform(transport, true);
 			if(tick % ROPE_PARTICLE_PERIOD == 0)
 				drawIdle(transport, state);
+		}
+	}
+
+	private void tickVisits()
+	{
+		for(Iterator<Visit> it = visits.iterator(); it.hasNext(); )
+		{
+			Visit visit = it.next();
+			if(tick < visit.atTick)
+				continue;
+			if(!game.getLivingPlayers().contains(visit.player) || !canRide(visit.player) || isRiding(visit.player))
+			{
+				it.remove();
+				continue;
+			}
+			List<Transport.Stop> stops = visit.transport.getThenStops();
+			Transport.Stop stop = stops.get(visit.stop);
+			Vector spot = stop.points.get((int) (Math.random() * stop.points.size()));
+			visit.player.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 25, 1, false, false));
+			visit.player.teleport(at(visit.player, spot));
+			visit.player.setFallDistance(0f);
+			SoundUtil.playKey(game.getWorld(), visit.player.getLocation(), "transport.teleport.arrive", "BLOCK_NOTE_BLOCK_BELL", SoundCategory.MASTER, 1f, 1f);
+			if(++visit.stop >= stops.size())
+				it.remove();
+			else
+				visit.atTick = tick + Math.max(1, stop.seconds) * 20L;
 		}
 	}
 
@@ -749,6 +794,8 @@ public class TransportManager
 				if(transport.getStyle() == Transport.Style.TELEPORT)
 					player.removePotionEffect(PotionEffectType.BLINDNESS);
 				Bukkit.getPluginManager().callEvent(new PlayerTransportRideEvent(game, player, transport, !ride.reverse));
+				if(!ride.reverse && transport.getStaySeconds() > 0 && !transport.getThenStops().isEmpty())
+					visits.add(new Visit(player, transport, tick + transport.getStaySeconds() * 20L));
 			}
 			else
 				dropSafely(ride, rider);

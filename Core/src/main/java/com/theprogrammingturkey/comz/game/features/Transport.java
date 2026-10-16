@@ -80,6 +80,24 @@ public class Transport
 	private int platformSize = 3;
 	private String cooldownGroup = "";
 	private boolean relockAfterUse;
+	private int staySeconds;
+	private final List<Stop> thenStops = new ArrayList<>();
+
+	/**
+	 * Where riders go after their stay at the destination (Kino: a random side room, then back to the
+	 * projector room). Each rider lands on one of {@code points} and stays {@code seconds} before the next stop.
+	 */
+	public static final class Stop
+	{
+		public final List<Vector> points;
+		public final int seconds;
+
+		public Stop(List<Vector> points, int seconds)
+		{
+			this.points = points;
+			this.seconds = seconds;
+		}
+	}
 
 	public Transport(String id, Style style)
 	{
@@ -233,6 +251,22 @@ public class Transport
 		this.relockAfterUse = relockAfterUse;
 	}
 
+	/** Seconds riders spend at the destination before {@link #getThenStops()} move them on; 0 = they stay. */
+	public int getStaySeconds()
+	{
+		return staySeconds;
+	}
+
+	public void setStaySeconds(int staySeconds)
+	{
+		this.staySeconds = Math.max(0, staySeconds);
+	}
+
+	public List<Stop> getThenStops()
+	{
+		return thenStops;
+	}
+
 	public boolean isUsable()
 	{
 		return waypoints.size() >= 2;
@@ -328,6 +362,17 @@ public class Transport
 		transport.setRelockAfterUse(CustomConfig.getBoolean(json, "relock_after_use", false));
 		readPoints(json, "waypoints", transport.waypoints);
 		readPoints(json, "call_points", transport.callPoints);
+		transport.setStaySeconds(CustomConfig.getInt(json, "stay_seconds", 0));
+		if(json.has("then") && json.get("then").isJsonArray())
+			for(JsonElement elem : json.getAsJsonArray("then"))
+			{
+				if(!elem.isJsonObject())
+					continue;
+				List<Vector> points = new ArrayList<>();
+				readPoints(elem.getAsJsonObject(), "points", points);
+				if(!points.isEmpty())
+					transport.thenStops.add(new Stop(points, CustomConfig.getInt(elem.getAsJsonObject(), "seconds", 0)));
+			}
 		return transport;
 	}
 
@@ -349,6 +394,20 @@ public class Transport
 			json.addProperty("relock_after_use", true);
 		json.add("waypoints", writePoints(waypoints));
 		json.add("call_points", writePoints(callPoints));
+		if(staySeconds > 0)
+			json.addProperty("stay_seconds", staySeconds);
+		if(!thenStops.isEmpty())
+		{
+			JsonArray then = new JsonArray();
+			for(Stop stop : thenStops)
+			{
+				JsonObject entry = new JsonObject();
+				entry.add("points", writePoints(stop.points));
+				entry.addProperty("seconds", stop.seconds);
+				then.add(entry);
+			}
+			json.add("then", then);
+		}
 		return json;
 	}
 
