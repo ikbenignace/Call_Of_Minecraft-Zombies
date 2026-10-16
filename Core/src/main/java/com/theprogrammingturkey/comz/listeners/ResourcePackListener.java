@@ -26,6 +26,20 @@ public class ResourcePackListener implements Listener
 	/** Players whose client has successfully loaded our pack — used to gate client-only custom models. */
 	private static final Set<UUID> packLoaded = ConcurrentHashMap.newKeySet();
 
+	/** Players the pack was sent to this session, still downloading or loaded; a failure clears it so the next join retries. */
+	private static final Set<UUID> packSent = ConcurrentHashMap.newKeySet();
+
+	/** Marks the pack as sent; false when it already was, so re-joining a game does not reload the client's resources. */
+	public static boolean markSent(Player player)
+	{
+		return packSent.add(player.getUniqueId());
+	}
+
+	public static void forgetSent(Player player)
+	{
+		packSent.remove(player.getUniqueId());
+	}
+
 	/** True if this player's client has our custom pack applied (so custom item models will resolve). */
 	public static boolean hasPackLoaded(Player player)
 	{
@@ -36,6 +50,7 @@ public class ResourcePackListener implements Listener
 	public void onQuit(PlayerQuitEvent event)
 	{
 		packLoaded.remove(event.getPlayer().getUniqueId());
+		packSent.remove(event.getPlayer().getUniqueId());
 	}
 
 	@EventHandler
@@ -60,6 +75,7 @@ public class ResourcePackListener implements Listener
 			case "INVALID_URL":
 			case "FAILED_RELOAD":
 				packLoaded.remove(player.getUniqueId());
+				packSent.remove(player.getUniqueId());
 				if(ConfigManager.getMainConfig().resourcePackForce && ConfigManager.getMainConfig().resourcePackKickOnDecline)
 				{
 					if(GameManager.INSTANCE.isPlayerInGame(player))

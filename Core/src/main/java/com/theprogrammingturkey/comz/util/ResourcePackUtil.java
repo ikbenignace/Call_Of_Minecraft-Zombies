@@ -3,6 +3,7 @@ package com.theprogrammingturkey.comz.util;
 import com.theprogrammingturkey.comz.COMZombies;
 import com.theprogrammingturkey.comz.config.ConfigManager;
 import com.theprogrammingturkey.comz.config.ConfigSetup;
+import com.theprogrammingturkey.comz.listeners.ResourcePackListener;
 import org.bukkit.entity.Player;
 
 import java.util.UUID;
@@ -37,6 +38,8 @@ public final class ResourcePackUtil
 		if(!PackModels.isPackEnabled() || cfg.resourcePackUrl == null || cfg.resourcePackUrl.isEmpty())
 			return;
 
+		if(!ResourcePackListener.markSent(player))
+			return;
 		byte[] hash = hexToBytes(cfg.resourcePackSha1);
 		try
 		{
@@ -44,6 +47,7 @@ public final class ResourcePackUtil
 					.invoke(player, PACK_ID, cfg.resourcePackUrl, hash, cfg.resourcePackPrompt, cfg.resourcePackForce);
 		} catch(Exception e)
 		{
+			ResourcePackListener.forgetSent(player);
 			COMZombies.getPlugin().getLogger().warning("Failed to send resource pack to " + player.getName() + ": " + e);
 		}
 	}
