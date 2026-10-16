@@ -442,12 +442,14 @@ def parse_boxes(fn_root):
             continue
         sign = WALL_SIGN_FACING.search(text)
         facing = sign.group(1).upper() if sign else facing_of_yaw(m.group(4) or 0)
-        boxes.append(((int(float(m.group(1))), int(float(m.group(2))) - 1, int(float(m.group(3)))), facing))
+        body = (int(float(m.group(1))), int(float(m.group(2))) - 1, int(float(m.group(3))))
+        boxes.append((body, facing))
         gone = {}
         for path in sorted(glob.glob(os.path.join(folder, '*move*.mcfunction'))):
             gone.update(block_writes(read(path)))
         for pos, state in block_writes(text).items():
-            edits[pos] = gone.get(pos, 'minecraft:air')
+            # The map lays a pedestal on the box's own row once it leaves; the box model fills that row.
+            edits[pos] = 'minecraft:air' if pos[1] == body[1] else gone.get(pos, 'minecraft:air')
     begin = os.path.join(fn_root, 'unique', 'begin.mcfunction')
     if not boxes and os.path.exists(begin):
         m = BOX_MARKER.search(read(begin))
@@ -2576,11 +2578,11 @@ def build(world, datapacks, map_name, arena, world_name, index):
         targets = [{'kind': 'reset_trigger', 'value': run['id']}] + ex['hacked'] + \
                   ([{'kind': 'give_points_to_player', 'amount': ex['points']}] if ex['points'] else []) + [{'kind': 'reset_trigger', 'value': hack_id}]
         hack = trigger(hack_id, 'Hack excavator %s' % ex['n'],
-                       [{'kind': 'trigger_done', 'trigger': run['id'], 'amount': 0},
+                       [{'kind': 'trigger_done', 'trigger': run['id'], 'amount': 0, 'description': 'wait until this excavator starts digging'},
                         dict(kind='interact', x=ex['sign'][0], y=ex['sign'][1], z=ex['sign'][2], amount=0, description='Hack the excavator',
                              gear='Hacker', hold_seconds=ex['hold'])], targets, ordered=True)
         triggers += [run, hack]
-        put_sign(ex['sign'], ['Excavator', '', '', ''])
+        put_sign(ex['sign'], ['Excavator', '', 'Hack it with', 'the Hacker'])
         report.append('excavator %s: starts at random after power, breaches after %ds, hack at %d %d %d (%ds) for %d points'
                       % (ex['n'], max(s['amount'] for s in ex['timeline']) // 20, *ex['sign'], ex['hold'], ex['points']))
     if hacks['pap'] and in_bounds(hacks['pap']['sign']):

@@ -395,7 +395,7 @@ public class RandomBox
 	 */
 	private Location getBoxCenterLoc(Location chestLocation)
 	{
-		Location base = chestLocation.clone();
+		Location base = chestLocation.clone().add(0.5, 0, 0.5);
 		Block chestBlock = chestLocation.getBlock();
 		BlockData data = chestBlock.getBlockData();
 		if(data instanceof Chest && ((Chest) data).getType() != org.bukkit.block.data.type.Chest.Type.SINGLE)

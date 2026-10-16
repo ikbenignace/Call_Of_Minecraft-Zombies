@@ -74,8 +74,8 @@ config:
     zombieSpawnDelayMin: 0.1
     #Global multiplier on the BO round count.
     zombieCountMultiplier: 1.0
-    #BO1 speed roll: each zombie rolls round*zombieMoveSpeedPerRound + random(0..zombieMoveSpeedSpread). Up to zombieWalkThreshold it walks, up to zombieRunThreshold it runs, above that it sprints. Defaults: round 1 ~80% walkers, all sprinters from round 9.
-    zombieMoveSpeedPerRound: 8
+    #BO1 speed roll: each zombie rolls round*zombieMoveSpeedPerRound + random(0..zombieMoveSpeedSpread). Up to zombieWalkThreshold it walks, up to zombieRunThreshold it runs, above that it sprints. Defaults: round 1 ~85% walkers, round 3 about half, walkers gone from round 6, all sprinters from round 12 (BO1 itself uses 8).
+    zombieMoveSpeedPerRound: 6
     zombieMoveSpeedSpread: 35
     zombieWalkThreshold: 35
     zombieRunThreshold: 70

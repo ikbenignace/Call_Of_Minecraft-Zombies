@@ -158,7 +158,7 @@ public class ZombieSpawner extends RoundSpawner
 	/**
 	 * BO1 move speed roll: a zombie rolls in {@code [round * perRound, round * perRound + spread)};
 	 * up to the walk threshold it walks, up to the run threshold it runs, above that it sprints.
-	 * With the defaults round 1 is ~80% walkers and every zombie sprints from round 9.
+	 * With the defaults round 1 is ~85% walkers and every zombie sprints from round 12.
 	 */
 	static double paceMultiplier(int wave)
 	{

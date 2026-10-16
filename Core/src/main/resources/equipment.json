@@ -205,9 +205,9 @@
       "type": "gear",
       "behaviour": "breathing",
       "cost": 0,
-      "material": "GLASS_PANE",
+      "material": "CARVED_PUMPKIN",
       "item_model": "",
-      "helmet_material": "WHITE_STAINED_GLASS",
+      "helmet_material": "CARVED_PUMPKIN",
       "sounds": {
         "buy": "ITEM_ARMOR_EQUIP_GENERIC",
         "toggle": "BLOCK_PISTON_CONTRACT"

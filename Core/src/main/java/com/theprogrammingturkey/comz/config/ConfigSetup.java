@@ -637,7 +637,7 @@ public class ConfigSetup
 		zombieCountBase = plugin.getConfig().getInt("config.gameSettings.zombieCountBase", 24);
 		zombieCountPerPlayer = plugin.getConfig().getInt("config.gameSettings.zombieCountPerPlayer", 6);
 		zombieCountMultiplier = plugin.getConfig().getDouble("config.gameSettings.zombieCountMultiplier", 1.0);
-		zombieMoveSpeedPerRound = plugin.getConfig().getInt("config.gameSettings.zombieMoveSpeedPerRound", 8);
+		zombieMoveSpeedPerRound = plugin.getConfig().getInt("config.gameSettings.zombieMoveSpeedPerRound", 6);
 		zombieMoveSpeedSpread = plugin.getConfig().getInt("config.gameSettings.zombieMoveSpeedSpread", 35);
 		zombieWalkThreshold = plugin.getConfig().getInt("config.gameSettings.zombieWalkThreshold", 35);
 		zombieRunThreshold = plugin.getConfig().getInt("config.gameSettings.zombieRunThreshold", 70);
