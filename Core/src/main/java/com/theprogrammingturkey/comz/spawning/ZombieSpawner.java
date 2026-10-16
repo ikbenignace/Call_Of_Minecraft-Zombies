@@ -160,16 +160,16 @@ public class ZombieSpawner extends RoundSpawner
 	 * up to the walk threshold it walks, up to the run threshold it runs, above that it sprints.
 	 * With the defaults round 1 is ~80% walkers and every zombie sprints from round 9.
 	 */
-	static float speedMultiplier(int wave)
+	static double paceMultiplier(int wave)
 	{
 		com.theprogrammingturkey.comz.config.ConfigSetup cfg = ConfigManager.getMainConfig();
 		int spread = Math.max(1, cfg.zombieMoveSpeedSpread);
 		int roll = Math.max(0, wave) * cfg.zombieMoveSpeedPerRound + COMZombies.rand.nextInt(spread);
 		if(roll > cfg.zombieRunThreshold)
-			return (float) cfg.zombieSprinterSpeed;
+			return cfg.zombieSprinterSpeed;
 		if(roll > cfg.zombieWalkThreshold)
-			return (float) cfg.zombieRunnerSpeed;
-		return 1f;
+			return cfg.zombieRunnerSpeed;
+		return 1;
 	}
 
 	/** Bumps the last zombie of a round to sprinter speed; a no-op on crawlers or a mob already that fast. */
@@ -184,7 +184,7 @@ public class ZombieSpawner extends RoundSpawner
 		for(MetadataValue mv : mob.getMetadata(BASE_SPEED_META))
 			if(mv.getOwningPlugin() == COMZombies.getPlugin())
 				base = mv.asDouble();
-		double sprint = base * ConfigManager.getMainConfig().zombieSprinterSpeed;
+		double sprint = base * Math.sqrt(ConfigManager.getMainConfig().zombieSprinterSpeed);
 		if(attr.getBaseValue() < sprint)
 			attr.setBaseValue(sprint);
 	}
@@ -216,9 +216,9 @@ public class ZombieSpawner extends RoundSpawner
 		if(speedAttr != null)
 			zomb.setMetadata(BASE_SPEED_META, new FixedMetadataValue(COMZombies.getPlugin(), speedAttr.getValue()));
 		double variation = ConfigManager.getMainConfig().zombieSpeedVariation;
-		float speed = speedMultiplier(wave) * (float) (1 + variation * (COMZombies.rand.nextDouble() * 2 - 1));
-		if(speed != 1f)
-			setSpeed(zomb, speed);
+		double pace = paceMultiplier(wave) * (1 + variation * (COMZombies.rand.nextDouble() * 2 - 1));
+		if(pace != 1)
+			setPace(zomb, pace);
 
 		// #130/#96 — barrier breaking is now proximity-driven (BarrierManager.tickBarriers checks
 		// which zombies are near each barrier), so we no longer tie a barrier to the specific zombie

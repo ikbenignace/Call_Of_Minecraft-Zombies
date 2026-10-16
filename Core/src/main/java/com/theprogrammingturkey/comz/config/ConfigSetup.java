@@ -125,9 +125,10 @@ public class ConfigSetup
 	public double zombieHealthCap;
 	/** Spawn zombies only in zones holding a player and their adjacent zones (needs arena zones). */
 	public boolean spawnActiveZonesOnly;
+	/** Ground-speed multipliers over a walker (a sprinter at 2.2 stays just under a sprinting player). */
 	public double zombieRunnerSpeed;
 	public double zombieSprinterSpeed;
-	/** Random per-zombie speed spread (fraction either way) on top of the walker/runner/sprinter tier. */
+	/** Random per-zombie ground-speed spread (fraction either way) on top of the walker/runner/sprinter tier. */
 	public double zombieSpeedVariation;
 	public int dogRoundFirstMin;
 	public int dogRoundFirstMax;
@@ -550,6 +551,7 @@ public class ConfigSetup
 	public boolean visualsHitFeedback;
 	/** Boss health bar + stinger on boss rounds. */
 	public boolean visualsBossBar;
+	public boolean visualsRoundBar;
 	/** Vertical locator beam on the Mystery Box. */
 	public boolean visualsBoxBeam;
 	/** Visual flourish (burst + jingle) when buying / receiving a perk. */
@@ -642,9 +644,9 @@ public class ConfigSetup
 		lastZombieSprintRound = plugin.getConfig().getInt("config.gameSettings.lastZombieSprintRound", 4);
 		zombieHealthCap = plugin.getConfig().getDouble("config.gameSettings.zombieHealthCap", 1024);
 		spawnActiveZonesOnly = plugin.getConfig().getBoolean("config.gameSettings.spawnActiveZonesOnly", true);
-		zombieRunnerSpeed = plugin.getConfig().getDouble("config.gameSettings.zombieRunnerSpeed", 1.3);
-		zombieSprinterSpeed = plugin.getConfig().getDouble("config.gameSettings.zombieSprinterSpeed", 1.7);
-		zombieSpeedVariation = plugin.getConfig().getDouble("config.gameSettings.zombieSpeedVariation", 0.12);
+		zombieRunnerSpeed = plugin.getConfig().getDouble("config.gameSettings.zombieRunnerSpeed", 1.6);
+		zombieSprinterSpeed = plugin.getConfig().getDouble("config.gameSettings.zombieSprinterSpeed", 2.2);
+		zombieSpeedVariation = plugin.getConfig().getDouble("config.gameSettings.zombieSpeedVariation", 0.08);
 		dogRoundFirstMin = plugin.getConfig().getInt("config.gameSettings.dogRoundFirstMin", 5);
 		dogRoundFirstMax = Math.max(dogRoundFirstMin, plugin.getConfig().getInt("config.gameSettings.dogRoundFirstMax", 8));
 		doubleTapDamageMultiplier = plugin.getConfig().getDouble("config.perks.doubleTapDamageMultiplier", 2.0);
@@ -770,6 +772,7 @@ public class ConfigSetup
 		visualsRoundAmbience = plugin.getConfig().getBoolean("config.visuals.roundAmbience", true);
 		visualsHitFeedback = plugin.getConfig().getBoolean("config.visuals.hitFeedback", true);
 		visualsBossBar = plugin.getConfig().getBoolean("config.visuals.bossBar", true);
+		visualsRoundBar = plugin.getConfig().getBoolean("config.visuals.roundBar", true);
 		visualsBoxBeam = plugin.getConfig().getBoolean("config.visuals.boxBeam", true);
 		visualsPerkFeedback = plugin.getConfig().getBoolean("config.visuals.perkFeedback", true);
 		visualsPapFeedback = plugin.getConfig().getBoolean("config.visuals.papFeedback", true);

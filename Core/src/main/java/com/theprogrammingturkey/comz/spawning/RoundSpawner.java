@@ -61,6 +61,12 @@ public abstract class RoundSpawner
 		}
 	}
 
+	/** Vanilla mobs cover ground with the square of their speed attribute, so a pace multiplier needs its root. */
+	public void setPace(Mob mob, double pace)
+	{
+		setSpeed(mob, (float) Math.sqrt(pace));
+	}
+
 	public void setMaxHealth(Mob mob, float strength)
 	{
 		AttributeInstance attr = mob.getAttribute(Compat.MAX_HEALTH);
