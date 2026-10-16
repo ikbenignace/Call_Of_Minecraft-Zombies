@@ -4,9 +4,14 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.theprogrammingturkey.comz.COMZombies;
+import com.theprogrammingturkey.comz.config.ConfigManager;
+import com.theprogrammingturkey.comz.economy.PointManager;
 import com.theprogrammingturkey.comz.game.Game;
 import com.theprogrammingturkey.comz.game.features.PerkType;
 import com.theprogrammingturkey.comz.game.features.PowerUp;
+import com.theprogrammingturkey.comz.game.features.RandomBox;
+import com.theprogrammingturkey.comz.spawning.BossSpawner;
+import com.theprogrammingturkey.comz.spawning.HellHoundSpawner;
 import com.theprogrammingturkey.comz.spawning.RoundSpawner;
 import com.theprogrammingturkey.comz.spawning.SpawnManager;
 import com.theprogrammingturkey.comz.spawning.SpawnPoint;
@@ -20,7 +25,6 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.SoundCategory;
 import org.bukkit.World;
-import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.boss.BarColor;
 import org.bukkit.boss.BarStyle;
 import org.bukkit.boss.BossBar;
@@ -53,6 +57,10 @@ import java.util.stream.Collectors;
 public class SpecialEnemyManager
 {
 	private static final long TICK_PERIOD = 5L;
+	private static final int LOCK_FX_EVERY_TICKS = 4;
+	private static final int TRAIL_SAMPLE_EVERY_TICKS = 8;
+	private static final int TRAIL_SIZE = 128;
+	private static final double TRAIL_SPACING = 3.0;
 	private static final RoundSpawner ATTRIBUTES = new SpecialRoundSpawner(null);
 
 	final Game game;
@@ -65,6 +73,10 @@ public class SpecialEnemyManager
 	private int tickTask = -1;
 	private Map<Location, PerkType> perkMachines = new HashMap<>();
 	private long perkMachinesAt;
+	private final Map<String, Location> lockedMachines = new HashMap<>();
+	/** Spots players have recently stood on: known to be inside the playable, opened part of the map. */
+	private final List<Location> playerTrail = new ArrayList<>();
+	private int tickCount;
 
 	public SpecialEnemyManager(Game game)
 	{
@@ -224,6 +236,8 @@ public class SpecialEnemyManager
 		World world = point.getWorld();
 		if(world == null)
 			return null;
+		if(type.behaviour == SpecialBehaviour.STEAL_PERK)
+			point = spawnNearPerkMachine(point);
 		Location loc = new Location(world, point.getBlockX() + 0.5, point.getBlockY(), point.getBlockZ() + 0.5);
 
 		Entity entity = world.spawnEntity(loc, resolveEntity(type));
@@ -241,11 +255,10 @@ public class SpecialEnemyManager
 		if(type.scale != 1.0)
 			ATTRIBUTES.setScale(mob, type.scale);
 		double health = type.health(wave, game.getPlayersInGame().size());
-		ATTRIBUTES.setMaxHealth(mob, (float) health);
-		AttributeInstance max = mob.getAttribute(Compat.MAX_HEALTH);
-		double cappedHealth = max != null ? Math.min(health, max.getValue()) : Math.min(health, mob.getHealth());
-		mob.setHealth(cappedHealth);
+		double cappedHealth = com.theprogrammingturkey.comz.spawning.ZombieHealth.applyHealth(mob, health);
 
+		if(type.behaviour == SpecialBehaviour.BOSS)
+			BossSpawner.markBoss(mob);
 		ActiveSpecial special = new ActiveSpecial(mob, type, blocksRound);
 		special.maxHealth = cappedHealth;
 		special.nextAmbientAt = System.currentTimeMillis() + 3000L + COMZombies.rand.nextInt(6000);
@@ -256,6 +269,19 @@ public class SpecialEnemyManager
 		SpecialBehaviours.onSpawn(this, special);
 		ensureTicking();
 		return mob;
+	}
+
+	/** The open zombie spawn closest to a random perk machine, so perk thieves come out right next to their prey. */
+	private Location spawnNearPerkMachine(Location fallback)
+	{
+		List<Location> machines = new ArrayList<>(perkMachines().keySet());
+		machines.removeIf(m -> m.getWorld() != fallback.getWorld());
+		if(machines.isEmpty())
+			return fallback;
+		Location machine = machines.get(COMZombies.rand.nextInt(machines.size()));
+		List<SpawnPoint> open = game.spawnManager.getPoints().stream().filter(game.spawnManager::canSpawnPoint).collect(Collectors.toList());
+		List<SpawnPoint> nearest = SpawnManager.nearestPoints(open, machine, 1);
+		return nearest.isEmpty() ? fallback : nearest.get(0).getLocation();
 	}
 
 	private static EntityType resolveEntity(SpecialEnemyType type)
@@ -347,6 +373,11 @@ public class SpecialEnemyManager
 	{
 		if(game.getStatus() != Game.GameStatus.INGAME)
 			return;
+		tickCount++;
+		if(tickCount % TRAIL_SAMPLE_EVERY_TICKS == 0)
+			samplePlayerTrail();
+		if(tickCount % LOCK_FX_EVERY_TICKS == 0)
+			showLocks();
 		long now = System.currentTimeMillis();
 		for(ActiveSpecial a : new ArrayList<>(active.values()))
 		{
@@ -431,13 +462,21 @@ public class SpecialEnemyManager
 	public boolean isInstaKillImmune(Mob mob)
 	{
 		ActiveSpecial a = active.get(mob);
-		return a != null && a.type.instaKillImmune;
+		return a != null ? a.type.instaKillImmune : BossSpawner.isBoss(mob);
 	}
 
 	public boolean isNukeImmune(Mob mob)
 	{
 		ActiveSpecial a = active.get(mob);
-		return a != null && a.type.nukeImmune;
+		return a != null ? a.type.nukeImmune : BossSpawner.isBoss(mob);
+	}
+
+	/** A nuke just kills a napalm zombie: no blast of its own. */
+	public void suppressDeathBlast(Mob mob)
+	{
+		ActiveSpecial a = active.get(mob);
+		if(a != null && a.type.behaviour == SpecialBehaviour.NAPALM)
+			a.exploded = true;
 	}
 
 	public boolean showsName(Mob mob)
@@ -504,6 +543,9 @@ public class SpecialEnemyManager
 		pendingMixed.clear();
 		roundRule = null;
 		perkMachinesAt = 0;
+		lockedMachines.clear();
+		playerTrail.clear();
+		tickCount = 0;
 		for(ActiveSpecial a : active.values())
 		{
 			if(a.bossBar != null)
@@ -565,5 +607,124 @@ public class SpecialEnemyManager
 	static RoundSpawner attributes()
 	{
 		return ATTRIBUTES;
+	}
+
+	// --- machine locks (Brutus) -------------------------------------------------------------------------------
+
+	private static String blockKey(Location loc)
+	{
+		return (loc.getWorld() == null ? "" : loc.getWorld().getName()) + ":" + loc.getBlockX() + ":" + loc.getBlockY() + ":" + loc.getBlockZ();
+	}
+
+	/** Locks every perk machine and mystery box within {@code radius} of {@code at}. */
+	public void lockMachinesNear(Location at, double radius, String by)
+	{
+		if(radius <= 0)
+			return;
+		List<Location> machines = new ArrayList<>(perkMachines().keySet());
+		for(RandomBox box : game.boxManager.getActiveBoxes())
+			if(box.getLocation() != null)
+				machines.add(box.getLocation().getBlock().getLocation().add(0.5, 0.5, 0.5));
+		double radiusSq = radius * radius;
+		for(Location machine : machines)
+		{
+			if(machine.getWorld() != at.getWorld() || machine.distanceSquared(at) > radiusSq)
+				continue;
+			String key = blockKey(machine);
+			if(lockedMachines.containsKey(key))
+				continue;
+			lockedMachines.put(key, machine.clone());
+			World world = machine.getWorld();
+			world.spawnParticle(Compat.SMOKE, machine, 30, 0.4, 0.6, 0.4, 0.03);
+			world.spawnParticle(Compat.ELECTRIC_SPARK, machine, 20, 0.4, 0.6, 0.4, 0.1);
+			SoundUtil.play(world, machine, "BLOCK_ANVIL_LAND", SoundCategory.HOSTILE, 1.0f, 0.6f);
+			broadcast(ChatColor.RED + by + ChatColor.YELLOW + " locked a machine! Pay " + ChatColor.GOLD + ConfigManager.getMainConfig().brutusUnlockCost
+					+ ChatColor.YELLOW + " points at it to unlock it.");
+		}
+	}
+
+	/**
+	 * True when the machine at {@code machine} is locked and the interaction is used up: either the player paid to unlock
+	 * it or was told it is locked. The next interaction buys as usual.
+	 */
+	public boolean blockedByLock(Player player, Location machine)
+	{
+		if(machine == null || lockedMachines.isEmpty())
+			return false;
+		String key = blockKey(machine);
+		Location locked = lockedMachines.get(key);
+		if(locked == null)
+			return false;
+		int cost = ConfigManager.getMainConfig().brutusUnlockCost;
+		if(!PointManager.INSTANCE.canBuy(player, cost))
+		{
+			player.sendMessage(COMZombies.PREFIX + ChatColor.RED + "This machine is locked! It costs " + cost + " points to unlock.");
+			return true;
+		}
+		PointManager.INSTANCE.takePoints(player, cost);
+		PointManager.INSTANCE.notifyPlayer(player);
+		lockedMachines.remove(key);
+		SoundUtil.play(locked.getWorld(), locked, "BLOCK_IRON_DOOR_OPEN", SoundCategory.BLOCKS, 1.0f, 1.0f);
+		locked.getWorld().spawnParticle(Compat.HAPPY_VILLAGER, locked, 15, 0.4, 0.6, 0.4, 0);
+		player.sendMessage(COMZombies.PREFIX + ChatColor.GREEN + "Machine unlocked.");
+		return true;
+	}
+
+	public boolean isLocked(Location machine)
+	{
+		return machine != null && lockedMachines.containsKey(blockKey(machine));
+	}
+
+	private void showLocks()
+	{
+		for(Location locked : lockedMachines.values())
+			if(locked.getWorld() != null)
+				locked.getWorld().spawnParticle(Compat.SMOKE, locked.clone().add(0, 0.6, 0), 4, 0.3, 0.3, 0.3, 0.01);
+	}
+
+	// --- safe in-map spots ------------------------------------------------------------------------------------
+
+	private void samplePlayerTrail()
+	{
+		for(Player p : livingPlayers())
+		{
+			if(!p.isOnGround() || p.isInsideVehicle() || p.isFlying())
+				continue;
+			Location spot = p.getLocation().getBlock().getLocation().add(0.5, 0, 0.5);
+			boolean known = false;
+			for(Location l : playerTrail)
+				if(l.getWorld() == spot.getWorld() && l.distanceSquared(spot) < TRAIL_SPACING * TRAIL_SPACING)
+				{
+					known = true;
+					break;
+				}
+			if(known)
+				continue;
+			if(playerTrail.size() >= TRAIL_SIZE)
+				playerTrail.remove(0);
+			playerTrail.add(spot);
+		}
+	}
+
+	/**
+	 * A random spot inside the playable area for throwing {@code player} away: somewhere players have stood this game, at
+	 * least {@code minDistance} from them when possible. Falls back to the arena's player spawn.
+	 */
+	Location safeTeleportSpot(Player player, double minDistance)
+	{
+		List<Location> far = new ArrayList<>();
+		List<Location> any = new ArrayList<>();
+		for(Location l : playerTrail)
+		{
+			if(l.getWorld() != player.getWorld() || !HellHoundSpawner.isStandableSpot(l.getBlock()))
+				continue;
+			any.add(l);
+			if(l.distanceSquared(player.getLocation()) >= minDistance * minDistance)
+				far.add(l);
+		}
+		List<Location> pool = !far.isEmpty() ? far : any;
+		if(!pool.isEmpty())
+			return pool.get(COMZombies.rand.nextInt(pool.size())).clone();
+		return game.arena.hasPlayerTPLocation() ? game.arena.getPlayerTPLocation().clone() : null;
 	}
 }

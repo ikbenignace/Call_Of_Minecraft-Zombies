@@ -33,7 +33,10 @@
     "regular": "custom.round.newround",
     "dogs": "custom.round.dogstart",
     "gameover": "custom.round.gameover",
-    "first": "custom.round.roundone"
+    "first": "custom.round.roundone",
+    "end": "custom.round.newround",
+    "dogsEnd": "custom.round.dogend",
+    "dogSpawn": "custom.round.dogspawn"
   },
   "packapunch": "custom.pap.upgrade",
   "pap": {
@@ -812,7 +815,10 @@
     }
   },
   "zombie": {
-    "spawn": "custom.zombie.spawn"
+    "spawn": "custom.zombie.spawn",
+    "hurt": "ENTITY_ZOMBIE_HURT",
+    "death": "ENTITY_ZOMBIE_DEATH",
+    "attack": ""
   },
   "pickup": {
     "ammo": "custom.pickup.ammo",

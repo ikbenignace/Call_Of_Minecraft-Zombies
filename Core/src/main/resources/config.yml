@@ -6,7 +6,9 @@ config:
     drinkLockSeconds: 2.0
     #Quick Revive price in a solo game (BO2: 500). Multiplayer uses the machine's own price.
     soloQuickRevivePrice: 500
-    #Juggernog damage divisor on zombie hits. With zombieDamage 8 the player goes down in 3 hits; at 2.4 Juggernog stretches that to 6 hits (BO2 ratio: 2 hits -> 5 hits).
+    #Zombie hits that down a player holding Juggernog (BO: 5). Set to 0 to use juggernogHealth instead.
+    juggernogHitsToDown: 5
+    #Juggernog damage divisor on zombie hits, only used when juggernogHitsToDown is 0.
     juggernogHealth: 2.4
     #Deadshot Daiquiri extra headshot damage multiplier, applied on top of the base 1.5x headshot bonus.
     deadshotHeadshotMultiplier: 2.0
@@ -49,8 +51,8 @@ config:
     reloadTime: 3
     #Default points when you hit a zombie, value * 2 on double points
     defaultPointsOnHit: 10
-    #Default points when you kill a zombie, value * 2 on double points
-    defaultPointsOnKill: 50
+    #Default points when you kill a zombie, value * 2 on double points (BO: 60)
+    defaultPointsOnKill: 60
     #Maximum wave a game will run before ending automatically. 0 = no cap (games run until players die).
     maxWave: 0
     #Interval (seconds) between round change and the first zombie spawning. 0 = spawn immediately.
@@ -60,7 +62,9 @@ config:
     #BO2 board capacity: zombies alive at once = zombieBoardBase + zombieBoardPerPlayer*(players-1). BO2 = 24 regardless of player count.
     zombieBoardBase: 24
     zombieBoardPerPlayer: 0
-    #BO2 per-round zombie count multiplier for rounds >= 5 (count = round * mult * boardMax). Rounds 1-4 ramp .2/.4/.6/.8.
+    #BO round count: zombieCountBase + zombieCountPerPlayer*(players-1)*mult (solo: half of zombieCountPerPlayer*mult), mult = max(1, round/5), from round 10 also * round*zombieRoundMultiplier. Rounds 1-5 take 25/30/50/70/90%. Solo r1 = 6, 4 players r1 = 10, r20 = 240.
+    zombieCountBase: 24
+    zombieCountPerPlayer: 6
     zombieRoundMultiplier: 0.15
     #Spawn delay is divided by this each round (1.0526 = x0.95 per round, BO2).
     zombieSpawnDelayFactor: 1.0526
@@ -68,14 +72,19 @@ config:
     zombieSpawnDelay: 2.0
     #Lowest spawn delay in seconds (BO2 ~0.1).
     zombieSpawnDelayMin: 0.1
-    #Solo zombie counts follow the BO2 curve; each extra player adds this fraction of the solo count (0.5 = 2 players -> x1.5).
-    zombieCoopCountScale: 0.5
-    #Global multiplier on the BO2 round count.
+    #Global multiplier on the BO round count.
     zombieCountMultiplier: 1.0
-    #First round at which runners can appear, and the chance ramps up from there.
-    zombieRunnerStartRound: 4
-    #First round at which sprinters can appear.
-    zombieSprinterStartRound: 10
+    #BO1 speed roll: each zombie rolls round*zombieMoveSpeedPerRound + random(0..zombieMoveSpeedSpread). Up to zombieWalkThreshold it walks, up to zombieRunThreshold it runs, above that it sprints. Defaults: round 1 ~80% walkers, all sprinters from round 9.
+    zombieMoveSpeedPerRound: 8
+    zombieMoveSpeedSpread: 35
+    zombieWalkThreshold: 35
+    zombieRunThreshold: 70
+    #From this round the last zombie alive in a round sprints (BO). 0 disables.
+    lastZombieSprintRound: 4
+    #Highest real max health a mob gets (server attribute cap is 2048). Higher BO health is kept by scaling incoming damage.
+    zombieHealthCap: 1024
+    #Spawn zombies only in arena zones that hold a player or touch one (directly or via an opened door), as in BO. Arenas without zones spawn near players as before.
+    spawnActiveZonesOnly: true
     #Speed multipliers relative to a walker.
     zombieRunnerSpeed: 1.3
     zombieSprinterSpeed: 1.7
@@ -87,40 +96,76 @@ config:
     ZoomTexture: false
     #Change the volume of the round sound
     roundSoundVolume: 0.2
-    #Damage of one zombie hit out of 20 hp. 8 = down on the 3rd hit (6 hits with Juggernog, see perks.juggernogHealth).
+    #Zombie hits that down a player without Juggernog (BO: 2). Set to 0 to use zombieDamage instead.
+    zombieHitsToDown: 2
+    #Damage of one zombie hit out of 20 hp, only used when zombieHitsToDown is 0.
     zombieDamage: 8
+    #A dead player who respawns at the next round keeps their own points (BO). false = respawn with 500 x round.
+    respawnKeepsPoints: true
+    #Walk-speed multiplier while aiming (sneaking) with a non-sniper gun, on top of the sneak slowdown.
+    aimWalkSpeedMultiplier: 0.75
     #The amount of seconds after being hit to be healed. BO2: ~2.5s short delay then fast regen.
     healTime: 2.5
     #Quick Revive multiplies the heal delay by this (faster regen start).
     quickReviveHealDelayFactor: 0.5
     #Per-zombie attack cooldown in ticks. Each zombie damages a player at most once per this; hits from different zombies STACK (no shared invuln). 20 = ~1s, matching BO2.
     zombieAttackCooldownTicks: 20
-    #Bonus points on top of a kill when the killing blow is a headshot (BO2: 50 + 50 = 100).
-    headshotKillBonus: 50
-    #Bonus points on top of a kill when the killing blow is melee/knife (BO2: 50 + 80 = 130).
-    meleeKillBonus: 80
-    #Base knife one-shots zombies through (and including) this round; knife damage derives from the HP curve at this round.
-    knifeOneShotThroughRound: 9
+    #Bonus points on top of a kill when the killing blow is a headshot (BO: 60 + 40 = 100).
+    headshotKillBonus: 40
+    #Bonus points on top of a kill when the killing blow is melee/knife (BO: 60 + 70 = 130).
+    meleeKillBonus: 70
+    #Base knife one-shots zombies through (and including) this round; knife damage derives from the HP curve at this round (BO: 150 damage = round 1 HP).
+    knifeOneShotThroughRound: 1
+    #Headshot damage multiplier for guns that set no headshot_multiplier in guns.json.
+    headshotDamageMultiplier: 1.5
+    #Damage (out of 20 HP) a grenade or splash weapon (Ray Gun, launchers) deals to its own user at point blank, falling off with distance. PhD Flopper negates it. 0 disables.
+    explosiveSelfDamage: 8.0
     #When a round's zombies are all spawned and exactly one regular zombie remains, turn it into a slow gas-emitting crawler. Off by default: in BO crawlers come from explosions (see crawlerExplosiveChance).
     lastZombieCrawler: false
     #Chance (0-1) that a zombie surviving an explosion (grenades, mines, splash weapons) loses its legs and crawls on, like in BO.
     crawlerExplosiveChance: 0.35
-    #Max health (plugin HP scale) a zombie is set to when converted into a crawler.
-    crawlerHealth: 2.0
-    #Radius (blocks) around a crawler within which its toxic gas poisons players.
+    #Optional health ceiling for a zombie converted into a crawler. 0 = keep its remaining health (BO).
+    crawlerHealth: 0
+    #Radius (blocks) around a gas crawler within which its toxic gas poisons players.
     crawlerGasRadius: 3.0
+    #Chance (0-1) a crawler is a Nova-style gas crawler. Ordinary BO crawlers leave no gas, so 0 by default.
+    crawlerGasChance: 0.0
+    #Ticks between zombie target refreshes (20 = every second, as in BO).
+    zombieRetargetTicks: 20
+    #Zombies chase the player with the shortest walking route (Paper pathfinder) instead of the nearest through walls.
+    zombiePathTargeting: true
     #Movement-speed multiplier applied to a crawler (1.0 = normal zombie speed, 0.35 = 35% speed). Multiplies the zombie's real base; no slowness potion is stacked on top. Keep below 0.5 or crawlers stop feeling slow.
     crawlerSpeedMultiplier: 0.35
     #Seconds a zombie may make no progress before it teleports to a reachable spawn near a player (fixes stuck/"1 zombie left" hangs). 0 disables.
     zombieStuckSeconds: 6
     #A zombie moving less than this many blocks within a check interval counts as no progress.
     zombieStuckMoveThreshold: 1.0
+    #A zombie within this many blocks of a player is attacking, so it is never treated as stuck. Zombies at a boarded window are never stuck either.
+    zombieStuckTargetRange: 2.5
     #Flat points awarded to every player by the Bonus Points power-up.
     bonusPointsAmount: 100
     #Maximum throwables (grenades / Monkey Bombs) a player may hold at once (buy-to-cap).
     maxGrenades: 4
-    #Dogs spawned per player on a dog round (total = dogsPerPlayer * players). BO scales dogs by players, not round.
-    dogsPerPlayer: 3
+    #Lethal grenades every player gets at the start of each round, up to maxGrenades (BO: 2; round 1 is the starting pair). 0 disables.
+    grenadesPerRound: 2
+    #Dogs spawned per player on the second and later dog rounds (total = dogsPerPlayer * players). BO scales dogs by players, not round.
+    dogsPerPlayer: 8
+    #Dogs spawned per player on the first dog round of a game.
+    dogsPerPlayerFirstRound: 6
+    #Hellhounds alive at once, per player (BO: 2).
+    dogMaxAlivePerPlayer: 2
+    #BO hellhound health on the 1st, 2nd, 3rd, 4th+ dog round (the last entry repeats), in BO health units.
+    dogHealthByDogRound: [400, 900, 1300, 1600]
+    #Hellhounds appear between these distances (blocks) from the player they hunt, after a lightning strike.
+    dogSpawnRadiusMin: 4.0
+    dogSpawnRadiusMax: 8.0
+    #Ticks between the lightning strike and the hound appearing.
+    dogSpawnDelayTicks: 20
+    #A dying hound bursts into flame: damage to players within the radius (PhD Flopper is immune).
+    dogExplosionDamage: 2.0
+    dogExplosionRadius: 2.5
+    #Smoke fog around the players during a dog round.
+    dogRoundFog: true
     #First dog round is rolled between these rounds (BO2: 5-8); later ones come dogRoundEveryX (+0 or 1) rounds apart.
     dogRoundFirstMin: 5
     dogRoundFirstMax: 8
@@ -184,10 +229,15 @@ config:
     bossHealthMultiplier: 8.0
     #Brutus ability: seconds one of a damaged player's perks is temporarily disabled before being restored.
     brutusDisableSeconds: 5
+    #Brutus locks perk machines and mystery boxes he passes within this radius; a player pays brutusUnlockCost to unlock one.
+    brutusLockRadius: 3.0
+    brutusUnlockCost: 2000
   ReviveSettings:
     ReviveTimer: 4
     ReviveRange: 2
     MaxDownTime: 45
+    #Revive every downed player for free at the end of a round. BO does not do this.
+    ReviveOnRoundEnd: false
     #Solo self-revive: seconds before Quick Revive auto-revives a lone downed player in a solo game.
     SoloReviveDelaySeconds: 10
   Economy:

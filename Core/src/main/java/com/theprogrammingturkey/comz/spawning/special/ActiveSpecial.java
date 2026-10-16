@@ -21,6 +21,8 @@ class ActiveSpecial
 
 	/** True while the behaviour drives movement itself (heading to a machine, fleeing). */
 	boolean steering;
+	/** Running off with its loot; it escapes once the flee time runs out. */
+	boolean fleeing;
 	Location goal;
 	long phaseStartedAt;
 	long lastActionAt;

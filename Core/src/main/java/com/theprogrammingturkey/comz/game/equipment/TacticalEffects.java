@@ -101,12 +101,12 @@ final class TacticalEffects
 				SoundUtil.play(world, centre, equipment.sound("loop"), SoundCategory.PLAYERS, 1.0f, 0.6f);
 			for(Mob mob : EquipmentManager.zombiesNear(game, centre, equipment.radius))
 			{
-				if(mob.isDead())
+				if(mob.isDead() || game.specialEnemyManager.isInstaKillImmune(mob))
 					continue;
 				Vector pull = centre.toVector().subtract(mob.getLocation().toVector());
 				if(pull.length() <= equipment.killRadius)
 				{
-					game.damageMob(mob, player, (float) mob.getHealth() + 1000f);
+					game.damageMob(mob, player, (float) com.theprogrammingturkey.comz.spawning.ZombieHealth.virtualHealth(mob) + 1000f);
 					continue;
 				}
 				mob.setVelocity(pull.normalize().multiply(equipment.pullStrength).setY(0.1));
@@ -136,8 +136,8 @@ final class TacticalEffects
 				break;
 			case "kill_nearby":
 				for(Mob mob : EquipmentManager.zombiesNear(game, at, equipment.radius))
-					if(!mob.isDead())
-						game.damageMob(mob, player, (float) mob.getHealth() + 1000f);
+					if(!mob.isDead() && !game.specialEnemyManager.isInstaKillImmune(mob))
+						game.damageMob(mob, player, (float) com.theprogrammingturkey.comz.spawning.ZombieHealth.virtualHealth(mob) + 1000f);
 				ParticleFX.blast(at.getWorld(), at);
 				break;
 			case "teleport_player":

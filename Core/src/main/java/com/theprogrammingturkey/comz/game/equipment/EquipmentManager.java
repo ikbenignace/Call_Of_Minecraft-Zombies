@@ -1,6 +1,7 @@
 package com.theprogrammingturkey.comz.game.equipment;
 
 import com.theprogrammingturkey.comz.COMZombies;
+import com.theprogrammingturkey.comz.config.ConfigManager;
 import com.theprogrammingturkey.comz.economy.PointManager;
 import com.theprogrammingturkey.comz.game.Game;
 import com.theprogrammingturkey.comz.util.BreathingGear;
@@ -340,11 +341,18 @@ public class EquipmentManager
 		return (float) (damage * melee.damageMultiplier);
 	}
 
-	/** BO refill: owned placeables and tacticals with a {@code refill_per_round} are topped back up to it. */
+	/**
+	 * BO refill: every player gets {@code grenadesPerRound} lethal grenades (up to the cap; round 1 is the starting
+	 * pair), and owned placeables and tacticals with a {@code refill_per_round} are topped back up to it.
+	 */
 	public void onNewRound()
 	{
+		int grenadesPerRound = ConfigManager.getMainConfig().grenadesPerRound;
 		for(Player player : game.getLivingPlayers())
 		{
+			com.theprogrammingturkey.comz.game.managers.PlayerWeaponManager weapons = game.getPlayersWeapons(player);
+			if(weapons != null)
+				weapons.addGrenades(grenadesPerRound, ConfigManager.getMainConfig().maxGrenades);
 			Loadout loadout = loadouts.get(player.getUniqueId());
 			if(loadout == null)
 				continue;

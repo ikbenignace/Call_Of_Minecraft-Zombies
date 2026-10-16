@@ -4,6 +4,7 @@ import com.theprogrammingturkey.comz.COMZombies;
 import com.theprogrammingturkey.comz.config.ConfigManager;
 import com.theprogrammingturkey.comz.game.Game;
 import com.theprogrammingturkey.comz.game.managers.PermaPerkManager;
+import com.theprogrammingturkey.comz.game.managers.PlayerSpeed;
 import com.theprogrammingturkey.comz.game.managers.PlayerWeaponManager;
 import com.theprogrammingturkey.comz.game.managers.WeaponManager;
 import com.theprogrammingturkey.comz.game.weapons.WeaponInstance;
@@ -99,18 +100,25 @@ public class DownedPlayer implements Listener
 		game.perkManager.clearPlayersPerks(player);
 		PowerUpDropListener.revertDeathMachine(game, player);
 		PlayerWeaponManager manager = game.getPlayersWeapons(player);
-		guns[0] = snapshotGun(manager.removeWeapon(1));
-		guns[1] = snapshotGun(manager.removeWeapon(2));
-		manager.removeWeapon(3);
+		// Removed weapons leave their item behind, so each emptied gun slot is cleared. The Mule Kick
+		// gun in slot 3 is not snapshotted: in BO it is gone for good once you go down.
+		for(int slot = 1; slot <= 3; slot++)
+		{
+			WeaponInstance removed = manager.removeWeapon(slot);
+			if(removed != null)
+				player.getInventory().setItem(slot, null);
+			if(slot <= 2)
+				guns[slot - 1] = snapshotGun(removed);
+		}
 		manager.addWeapon(WeaponManager.getGun(game.getStartingGun()).getNewInstance(player, 1));
 		player.setInvulnerable(true);
-		player.setWalkSpeed(0.02f);
+		PlayerSpeed.setAiming(player, null);
 		// #114 — explicitly stop and lock sprinting while downed. The old code only set a very low
 		// walk speed, which a client-side sprint glitch (especially while riding the down-state
 		// armour-stand seat) could bypass, letting the player sprint at full pace while downed.
 		player.setSprinting(false);
 		applyDownVisuals();
-		applyDownedEffects();
+		applyDownedEffects(true);
 		scheduleTask();
 	}
 
@@ -148,7 +156,7 @@ public class DownedPlayer implements Listener
 		removeDownedEffects();
 		player.setGameMode(GameMode.SURVIVAL);
 		player.setInvulnerable(false);
-		player.setWalkSpeed(0.2F);
+		PlayerSpeed.apply(player);
 		player.setHealth(20);
 		LowHealthVignette.clear(player);
 		reviver = null;
@@ -193,15 +201,23 @@ public class DownedPlayer implements Listener
 		}
 	}
 
+	public void keepSeated()
+	{
+		if(!isPlayerDown || seat == null || !seat.isValid() || !player.isOnline())
+			return;
+		if(!seat.getPassengers().contains(player))
+			seat.addPassenger(player);
+	}
+
 	/**
 	 * Slow, dimmed view while down. Effects are short and re-applied from the bleed-out tick so they
 	 * can never outlive the down state; the darkness pulse only exists from 1.19.
 	 */
-	private void applyDownedEffects()
+	private void applyDownedEffects(boolean bleeding)
 	{
 		if(Compat.SLOWNESS != null)
 			player.addPotionEffect(new PotionEffect(Compat.SLOWNESS, DOWNED_EFFECT_TICKS, 2, false, false, false), true);
-		if(Compat.DARKNESS != null && downTime % DARKNESS_PULSE_SECONDS == 0)
+		if(Compat.DARKNESS != null && bleeding && downTime % DARKNESS_PULSE_SECONDS == 0)
 			player.addPotionEffect(new PotionEffect(Compat.DARKNESS, DARKNESS_PULSE_TICKS, 0, false, false, false), true);
 	}
 
@@ -336,6 +352,17 @@ public class DownedPlayer implements Listener
 		bleedoutSuppressed = false;
 	}
 
+	/** Stops a co-op revive because the reviver went down, died or left, telling the downed player. */
+	public void interruptRevive()
+	{
+		if(!isBeingRevived)
+			return;
+		Player lost = reviver;
+		cancelRevive();
+		if(lost != null)
+			player.sendMessage(ChatColor.RED + "" + ChatColor.BOLD + lost.getName() + " stopped reviving you!");
+	}
+
 	/** Suppresses the bleed-out death (used when a solo Quick Revive self-revive is pending). */
 	public void suppressBleedout()
 	{
@@ -378,7 +405,14 @@ public class DownedPlayer implements Listener
 		if (game.perkManager.hasPerk(reviver, PerkType.QUICK_REVIVE))
 			reviveTime /= 2;
 		startReviveBar(ChatColor.GREEN + "Reviving " + player.getName(), BarColor.GREEN, reviveTime);
-		reviveTask = COMZombies.scheduleTask(reviveTime, this::revivePlayer);
+		reviveTask = COMZombies.scheduleTask(reviveTime, () ->
+		{
+			reviveTask = -1;
+			if(this.reviver != null && game.isActivePlayer(this.reviver) && this.reviver.isOnline())
+				revivePlayer();
+			else
+				interruptRevive();
+		});
 		// Note: the consolidated branch shows revive progress via the boss bar (startReviveBar)
 		// rather than action-bar messages, so the action-bar countdown that the "improved" branch
 		// added (which depended on an NMS method not present here) is intentionally not restored.
@@ -388,8 +422,12 @@ public class DownedPlayer implements Listener
 	{
 		fireWorksTask = COMZombies.scheduleTask(0, 20, () ->
 		{
-			downTime++;
-			applyDownedEffects();
+			// BO pauses the bleed-out while someone is reviving you.
+			boolean bleeding = !isBeingRevived;
+			if(bleeding)
+				downTime++;
+			applyDownedEffects(bleeding);
+			keepSeated();
 			displayDown();
 			player.setHealth(1);
 			// #114 — keep re-asserting sprint-off each tick while downed, in case a client-side

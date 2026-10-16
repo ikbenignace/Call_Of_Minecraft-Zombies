@@ -109,10 +109,23 @@ public class WeaponManager
 
 	public static Weapon getRandomWeapon(boolean includePackaPunch, PlayerWeaponManager playerWeaponManager)
 	{
+		return getRandomWeapon(includePackaPunch, playerWeaponManager, java.util.Collections.emptySet());
+	}
+
+	/**
+	 * @param wondersInPlay wonder weapons (base guns) already held by someone or offered by another box;
+	 *                      BO allows only one of each in the game at a time
+	 */
+	public static Weapon getRandomWeapon(boolean includePackaPunch, PlayerWeaponManager playerWeaponManager, java.util.Set<Weapon> wondersInPlay)
+	{
 		List<Weapon> weaponsToChoose = weapons.stream().filter(weapon ->
 		{
 			// Death Machine is only ever handed out by its power-up, never by the mystery box.
 			if(weapon.getName().equals(DEATH_MACHINE_NAME))
+				return false;
+			if(weapon.getWeaponType() == WeaponType.GRENADE)
+				return false;
+			if(weapon.wonderWeapon && wondersInPlay.contains(weapon))
 				return false;
 			if(weapon instanceof BaseGun && playerWeaponManager.hasGun((BaseGun) weapon))
 				return false;
@@ -123,6 +136,19 @@ public class WeaponManager
 		if(weaponsToChoose.isEmpty())
 			return null;
 		return weaponsToChoose.get(COMZombies.rand.nextInt(weaponsToChoose.size()));
+	}
+
+	/** The base wonder weapon a held gun counts as: itself, or the base of its Pack-a-Punch upgrade. */
+	public static Weapon wonderBaseOf(Weapon held)
+	{
+		if(held == null)
+			return null;
+		if(held.wonderWeapon && !(held instanceof PackAPunchGun))
+			return held;
+		for(Weapon weapon : weapons)
+			if(weapon instanceof BasicGun && ((BasicGun) weapon).getPackAPunchGun() == held)
+				return weapon.wonderWeapon ? weapon : null;
+		return held.wonderWeapon ? held : null;
 	}
 
 	/**
@@ -168,7 +194,7 @@ public class WeaponManager
 	{
 		weapons.clear();
 		Weapon grenade = new Weapon("Grenade", WeaponType.GRENADE);
-		grenade.totalAmmo = 4;
+		grenade.totalAmmo = Math.max(1, ConfigManager.getMainConfig().maxGrenades);
 		grenade.itemModel = "comz:throwable/grenade";
 		WeaponManager.registerWeapon(grenade);
 		Weapon monkeyBomb = new Weapon("Monkey Bomb", WeaponType.MONKEY_BOMB);

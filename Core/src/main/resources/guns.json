@@ -15,6 +15,7 @@
         "max_distance": 15.0,
         "particle_color": "808080",
         "multi_hit": false,
+        "headshot_multiplier": 2.0,
         "pack_a_punch_gun": {
           "name": "B34R",
           "material": "DIAMOND_HOE",
@@ -28,7 +29,8 @@
           "reload_time": 1.8,
           "max_distance": 15.0,
           "particle_color": "AA00AA",
-          "multi_hit": true
+          "multi_hit": true,
+          "headshot_multiplier": 2.0
         }
       },
       {
@@ -44,6 +46,7 @@
         "max_distance": 15.0,
         "particle_color": "808080",
         "multi_hit": true,
+        "headshot_multiplier": 2.0,
         "pack_a_punch_gun": {
           "name": "Voice of Justice",
           "material": "STONE_HOE",
@@ -57,7 +60,8 @@
           "max_distance": 15.0,
           "particle_color": "AA00AA",
           "multi_hit": true,
-          "wm_weapon": "comz_executioner_pap"
+          "wm_weapon": "comz_executioner_pap",
+          "headshot_multiplier": 2.0
         },
         "wm_weapon": "comz_executioner"
       },
@@ -74,6 +78,7 @@
         "max_distance": 15.0,
         "particle_color": "808080",
         "multi_hit": false,
+        "headshot_multiplier": 2.0,
         "pack_a_punch_gun": {
           "name": "Ultra",
           "material": "IRON_HOE",
@@ -87,7 +92,8 @@
           "max_distance": 15.0,
           "particle_color": "AA00AA",
           "multi_hit": true,
-          "wm_weapon": "comz_five_seven_pap"
+          "wm_weapon": "comz_five_seven_pap",
+          "headshot_multiplier": 2.0
         },
         "wm_weapon": "comz_five_seven"
       },
@@ -104,6 +110,7 @@
         "max_distance": 15.0,
         "particle_color": "808080",
         "multi_hit": false,
+        "headshot_multiplier": 2.0,
         "pack_a_punch_gun": {
           "name": "Karmic Atom Perforator-4000",
           "material": "GOLDEN_HOE",
@@ -117,7 +124,8 @@
           "max_distance": 15.0,
           "particle_color": "AA00AA",
           "multi_hit": true,
-          "wm_weapon": "comz_kap_40_pap"
+          "wm_weapon": "comz_kap_40_pap",
+          "headshot_multiplier": 2.0
         },
         "wm_weapon": "comz_kap_40"
       },
@@ -134,6 +142,7 @@
         "max_distance": 15.0,
         "particle_color": "808080",
         "multi_hit": false,
+        "headshot_multiplier": 2.0,
         "pack_a_punch_gun": {
           "name": "C-3000 b1at-ch35",
           "material": "WOODEN_HOE",
@@ -147,7 +156,8 @@
           "max_distance": 15.0,
           "particle_color": "AA00AA",
           "multi_hit": true,
-          "wm_weapon": "comz_m1911_pap"
+          "wm_weapon": "comz_m1911_pap",
+          "headshot_multiplier": 2.0
         },
         "wm_weapon": "comz_m1911"
       },
@@ -164,6 +174,7 @@
         "max_distance": 15.0,
         "particle_color": "808080",
         "multi_hit": false,
+        "headshot_multiplier": 2.0,
         "pack_a_punch_gun": {
           "name": "Cobra",
           "material": "NETHERITE_HOE",
@@ -177,7 +188,8 @@
           "max_distance": 15.0,
           "particle_color": "AA00AA",
           "multi_hit": true,
-          "wm_weapon": "comz_python_pap"
+          "wm_weapon": "comz_python_pap",
+          "headshot_multiplier": 2.0
         },
         "wm_weapon": "comz_python"
       },
@@ -194,6 +206,7 @@
         "max_distance": 15.0,
         "particle_color": "808080",
         "multi_hit": false,
+        "headshot_multiplier": 2.0,
         "pack_a_punch_gun": {
           "name": "Rarov",
           "material": "WOODEN_HOE",
@@ -206,7 +219,8 @@
           "reload_time": 1.6,
           "max_distance": 15.0,
           "particle_color": "AA00AA",
-          "multi_hit": true
+          "multi_hit": true,
+          "headshot_multiplier": 2.0
         }
       },
       {
@@ -222,6 +236,7 @@
         "max_distance": 15.0,
         "particle_color": "808080",
         "multi_hit": false,
+        "headshot_multiplier": 2.0,
         "pack_a_punch_gun": {
           "name": "Aspirator",
           "material": "STONE_HOE",
@@ -234,7 +249,8 @@
           "reload_time": 1.6,
           "max_distance": 15.0,
           "particle_color": "AA00AA",
-          "multi_hit": true
+          "multi_hit": true,
+          "headshot_multiplier": 2.0
         }
       },
       {
@@ -250,6 +266,7 @@
         "max_distance": 15.0,
         "particle_color": "808080",
         "multi_hit": false,
+        "headshot_multiplier": 2.0,
         "pack_a_punch_gun": {
           "name": "Calamity",
           "material": "GOLDEN_HOE",
@@ -262,7 +279,8 @@
           "reload_time": 1.8,
           "max_distance": 15.0,
           "particle_color": "AA00AA",
-          "multi_hit": true
+          "multi_hit": true,
+          "headshot_multiplier": 2.0
         }
       }
     ]
@@ -1802,6 +1820,7 @@
         "max_distance": 100.0,
         "particle_color": "808080",
         "multi_hit": true,
+        "headshot_multiplier": 3.0,
         "pack_a_punch_gun": {
           "name": "Macro Annihilator",
           "material": "BLAZE_ROD",
@@ -1815,7 +1834,8 @@
           "max_distance": 100.0,
           "particle_color": "AA00AA",
           "multi_hit": true,
-          "wm_weapon": "comz_barret_50kcal_pap"
+          "wm_weapon": "comz_barret_50kcal_pap",
+          "headshot_multiplier": 3.0
         },
         "wm_weapon": "comz_barret_50kcal"
       },
@@ -1832,6 +1852,7 @@
         "max_distance": 100.0,
         "particle_color": "808080",
         "multi_hit": true,
+        "headshot_multiplier": 3.0,
         "pack_a_punch_gun": {
           "name": "Dead Specimen Reactor 5000",
           "material": "STICK",
@@ -1845,7 +1866,8 @@
           "max_distance": 100.0,
           "particle_color": "AA00AA",
           "multi_hit": true,
-          "wm_weapon": "comz_dsr_50_pap"
+          "wm_weapon": "comz_dsr_50_pap",
+          "headshot_multiplier": 3.0
         },
         "wm_weapon": "comz_dsr_50"
       },
@@ -1862,6 +1884,7 @@
         "max_distance": 100.0,
         "particle_color": "808080",
         "multi_hit": true,
+        "headshot_multiplier": 3.0,
         "pack_a_punch_gun": {
           "name": "Shadowy Veil Utilizer",
           "material": "BONE",
@@ -1875,7 +1898,8 @@
           "max_distance": 100.0,
           "particle_color": "AA00AA",
           "multi_hit": true,
-          "wm_weapon": "comz_svu_as_pap"
+          "wm_weapon": "comz_svu_as_pap",
+          "headshot_multiplier": 3.0
         },
         "wm_weapon": "comz_svu_as"
       },
@@ -1892,6 +1916,7 @@
         "max_distance": 80.0,
         "particle_color": "808080",
         "multi_hit": true,
+        "headshot_multiplier": 3.0,
         "pack_a_punch_gun": {
           "name": "D115 Disassembler",
           "material": "BLAZE_ROD",
@@ -1904,7 +1929,8 @@
           "reload_time": 3.0,
           "max_distance": 80.0,
           "particle_color": "AA00AA",
-          "multi_hit": true
+          "multi_hit": true,
+          "headshot_multiplier": 3.0
         }
       },
       {
@@ -1920,6 +1946,7 @@
         "max_distance": 90.0,
         "particle_color": "808080",
         "multi_hit": true,
+        "headshot_multiplier": 3.0,
         "pack_a_punch_gun": {
           "name": "L115 Isolator",
           "material": "STICK",
@@ -1932,7 +1959,8 @@
           "reload_time": 3.2,
           "max_distance": 90.0,
           "particle_color": "AA00AA",
-          "multi_hit": true
+          "multi_hit": true,
+          "headshot_multiplier": 3.0
         }
       },
       {
@@ -1948,6 +1976,7 @@
         "max_distance": 70.0,
         "particle_color": "808080",
         "multi_hit": true,
+        "headshot_multiplier": 3.0,
         "pack_a_punch_gun": {
           "name": "Armageddon Maximus",
           "material": "STICK",
@@ -1960,7 +1989,8 @@
           "reload_time": 3.0,
           "max_distance": 70.0,
           "particle_color": "AA00AA",
-          "multi_hit": true
+          "multi_hit": true,
+          "headshot_multiplier": 3.0
         }
       },
       {
@@ -1976,6 +2006,7 @@
         "max_distance": 70.0,
         "particle_color": "808080",
         "multi_hit": true,
+        "headshot_multiplier": 3.0,
         "pack_a_punch_gun": {
           "name": "The Eviscerator",
           "material": "BONE",
@@ -1988,7 +2019,8 @@
           "reload_time": 3.0,
           "max_distance": 70.0,
           "particle_color": "AA00AA",
-          "multi_hit": true
+          "multi_hit": true,
+          "headshot_multiplier": 3.0
         }
       }
     ]
@@ -2010,6 +2042,7 @@
         "multi_hit": true,
         "splash_radius": 3.5,
         "splash_damage": 60,
+        "wonder_weapon": true,
         "pack_a_punch_gun": {
           "name": "Porter's X2 Ray Gun",
           "material": "DIAMOND_SHOVEL",
@@ -2042,6 +2075,8 @@
         "multi_hit": true,
         "splash_radius": 5.0,
         "splash_damage": 80,
+        "wonder_weapon": true,
+        "self_damage": false,
         "pack_a_punch_gun": {
           "name": "Zeus Cannon",
           "material": "GOLDEN_SHOVEL",
@@ -2056,7 +2091,8 @@
           "particle_color": "66CCFF",
           "multi_hit": true,
           "splash_radius": 6.0,
-          "splash_damage": 130
+          "splash_damage": 130,
+          "self_damage": false
         }
       },
       {
@@ -2072,6 +2108,7 @@
         "max_distance": 40.0,
         "particle_color": "FFFF66",
         "multi_hit": false,
+        "wonder_weapon": true,
         "pack_a_punch_gun": {
           "name": "Wunderwaffe DG-3 JZ",
           "material": "LIGHTNING_ROD",
@@ -2226,6 +2263,8 @@
         "multi_hit": true,
         "splash_radius": 3.0,
         "splash_damage": 50,
+        "wonder_weapon": true,
+        "self_damage": false,
         "pack_a_punch_gun": {
           "name": "Winter's Fury",
           "material": "IRON_HORSE_ARMOR",
@@ -2240,7 +2279,8 @@
           "particle_color": "AA00AA",
           "multi_hit": true,
           "splash_radius": 4.0,
-          "splash_damage": 80
+          "splash_damage": 80,
+          "self_damage": false
         }
       },
       {
@@ -2258,6 +2298,7 @@
         "multi_hit": true,
         "splash_radius": 4.0,
         "splash_damage": 150,
+        "wonder_weapon": true,
         "pack_a_punch_gun": {
           "name": "Hyena Infra-Dead",
           "material": "LEATHER_HORSE_ARMOR",
@@ -2288,6 +2329,7 @@
         "max_distance": 40.0,
         "particle_color": "808080",
         "multi_hit": false,
+        "wonder_weapon": true,
         "pack_a_punch_gun": {
           "name": "V-R11 Upgraded",
           "material": "GOLDEN_HORSE_ARMOR",
@@ -2318,6 +2360,8 @@
         "multi_hit": true,
         "splash_radius": 3.0,
         "splash_damage": 60,
+        "wonder_weapon": true,
+        "self_damage": false,
         "pack_a_punch_gun": {
           "name": "Fractalizer",
           "material": "BONE",
@@ -2332,7 +2376,8 @@
           "particle_color": "AA00AA",
           "multi_hit": true,
           "splash_radius": 4.0,
-          "splash_damage": 96
+          "splash_damage": 96,
+          "self_damage": false
         }
       },
       {
@@ -2350,6 +2395,8 @@
         "multi_hit": true,
         "splash_radius": 3.0,
         "splash_damage": 70,
+        "wonder_weapon": true,
+        "self_damage": false,
         "pack_a_punch_gun": {
           "name": "Porter's Mark II Ray Gun",
           "material": "DIAMOND_HORSE_ARMOR",
@@ -2364,7 +2411,8 @@
           "particle_color": "AA00AA",
           "multi_hit": true,
           "splash_radius": 4.0,
-          "splash_damage": 112
+          "splash_damage": 112,
+          "self_damage": false
         }
       }
     ]

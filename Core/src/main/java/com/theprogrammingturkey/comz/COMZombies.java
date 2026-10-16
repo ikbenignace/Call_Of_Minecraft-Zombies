@@ -93,6 +93,7 @@ public class COMZombies extends JavaPlugin
 
 		HiddenSignJournal.restoreAll();
 		GameManager.INSTANCE.loadAllGames();
+		com.theprogrammingturkey.comz.game.CachedPlayerInfo.restoreAllBackups();
 	}
 
 	public void loadConfigFiles()
@@ -208,6 +209,8 @@ public class COMZombies extends JavaPlugin
 		reloadConfig();
 		com.theprogrammingturkey.comz.game.builder.BuildModeManager.INSTANCE.exitAll();
 		GameManager.INSTANCE.endAll();
+		// endAll skips games still in the lobby, whose players hold a cached inventory too.
+		com.theprogrammingturkey.comz.game.CachedPlayerInfo.restoreAll();
 		// Defensive: endAll() already clears heal timers via each Game.endGame(), but make sure no
 		// recurring heal task survives the disable for games that were never INGAME.
 		com.theprogrammingturkey.comz.listeners.EntityListener.clearHealTimers();

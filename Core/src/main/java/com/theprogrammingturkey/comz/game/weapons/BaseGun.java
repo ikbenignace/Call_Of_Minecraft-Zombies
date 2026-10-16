@@ -31,6 +31,10 @@ public abstract class BaseGun extends Weapon
 	public double splashRadius;
 	/** Damage dealt to each mob inside {@link #splashRadius}. guns.json {@code splash_damage}. */
 	public double splashDamage;
+	/** Headshot damage multiplier; guns.json {@code headshot_multiplier}, negative = the config default. */
+	public double headshotMultiplier = -1;
+	/** Whether the splash also hurts the shooter (Ray Gun, launchers); guns.json {@code self_damage}. */
+	public boolean selfDamage;
 
 	/**
 	 * Per-shot sound, as either a legacy Bukkit {@code Sound} enum name or a namespaced
@@ -57,6 +61,8 @@ public abstract class BaseGun extends Weapon
 		this.multiHit = CustomConfig.getBoolean(json, "multi_hit", false);
 		this.splashRadius = CustomConfig.getDouble(json, "splash_radius", 0);
 		this.splashDamage = CustomConfig.getDouble(json, "splash_damage", 0);
+		this.headshotMultiplier = CustomConfig.getDouble(json, "headshot_multiplier", -1);
+		this.selfDamage = CustomConfig.getBoolean(json, "self_damage", splashRadius > 0);
 
 		String particleColor = CustomConfig.getString(json, "particle_color", "808080");
 		if(particleColor.matches("\\A[0-9a-fA-F]{6}$"))
@@ -65,6 +71,11 @@ public abstract class BaseGun extends Weapon
 		String defaultSound = this.isPackAPunched() ? "ENTITY_GHAST_SHOOT" : "BLOCK_LAVA_POP";
 		this.soundKey = CustomConfig.getString(json, "sound", defaultSound);
 		this.reloadSoundKey = CustomConfig.getString(json, "reload_sound", null);
+	}
+
+	public double headshotMultiplier()
+	{
+		return headshotMultiplier >= 0 ? headshotMultiplier : com.theprogrammingturkey.comz.config.ConfigManager.getMainConfig().headshotDamageMultiplier;
 	}
 
 	public void updateAmmo(int clip, int total)

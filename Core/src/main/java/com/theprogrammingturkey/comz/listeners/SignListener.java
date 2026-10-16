@@ -148,7 +148,11 @@ public class SignListener implements Listener
 			{
 				Game game = GameManager.INSTANCE.getGame(player);
 				Barrier b = game.barrierManager.getBarrierFromRepair(sign.getLocation());
-				if(b != null)
+				if(b != null && !game.isActivePlayer(player))
+				{
+					event.setCancelled(true);
+				}
+				else if(b != null)
 				{
 					b.repair(player);
 					event.setCancelled(true);

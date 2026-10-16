@@ -15,6 +15,8 @@ import com.theprogrammingturkey.comz.spawning.RoundSpawner;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Effect;
+import org.bukkit.EntityEffect;
+import org.bukkit.Sound;
 import org.bukkit.Material;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Mob;
@@ -62,6 +64,32 @@ public class EntityListener implements Listener
 	public static float knifeDamage(int throughRound)
 	{
 		return RoundSpawner.zombieHealth(throughRound);
+	}
+
+	/**
+	 * Kills a game mob through vanilla death so it plays the fall-over animation instead of vanishing. Silenced
+	 * because the kill path plays the configured death sound itself; drops and XP are cleared in
+	 * {@link EXPListener}. The body is removed shortly after in case another plugin cancels the death.
+	 */
+	public static void playDeath(Mob mob)
+	{
+		if(mob.isDead() || !mob.isValid())
+			return;
+		try
+		{
+			mob.setSilent(true);
+			mob.setHealth(0);
+		}
+		catch(RuntimeException e)
+		{
+			mob.remove();
+			return;
+		}
+		COMZombies.scheduleTask(30, () ->
+		{
+			if(mob.isValid())
+				mob.remove();
+		});
 	}
 
 	@EventHandler(priority = EventPriority.HIGH)
@@ -127,28 +155,22 @@ public class EntityListener implements Listener
 						return;
 					}
 					damager.setMetadata(LAST_ATTACK_META, new FixedMetadataValue(COMZombies.getPlugin(), now));
+					if(damager instanceof org.bukkit.entity.Zombie)
+						com.theprogrammingturkey.comz.util.SoundUtil.playKey(damager.getWorld(), damager.getLocation(), "zombie.attack", "", org.bukkit.SoundCategory.HOSTILE, 1.0F, 1.0F);
 
-					float damage = (float) ConfigManager.getMainConfig().zombieDamage;
-
-					if(game.perkManager.getPlayersPerks(player).contains(PerkType.JUGGERNOG))
-						damage = damage / (float) ConfigManager.getMainConfig().juggernogHealth;
+					float damage = zombieHitDamage(game.perkManager.hasPerk(player, PerkType.JUGGERNOG));
 
 					// Tier 4 — Zombie Shield (buildable): while held, reduce incoming zombie melee
 					// damage and consume one of the shield's hits. When hits run out it breaks.
 					damage = applyZombieShield(player, damage);
 
 					damage = game.damagePlayer(player, damage);
-					e.setDamage(damage);
-					if(damage == 0 && game.downedPlayerManager.isDownedPlayer(player))
-					{
-						e.setCancelled(true);
+					// The hit is applied by hand so armour can't change the hits-to-down count and the
+					// player gets no vanilla knockback, as in BO.
+					e.setCancelled(true);
+					if(damage == 0)
 						return;
-					}
-
-					// 0c — no i-frames so concurrent swarm hits this tick all land. setNoDamageTicks alone is
-					// overwritten with the maximum after the event; Game.resetPlayer restores the maximum.
-					player.setMaximumNoDamageTicks(0);
-					player.setNoDamageTicks(0);
+					applyZombieHit(player, damage);
 
 					//heal system
 					resetHealingTimer(player);
@@ -158,9 +180,6 @@ public class EntityListener implements Listener
 					// of that player's perks, then restore it after brutusDisableSeconds (reversible).
 					if(damager instanceof Mob && BossSpawner.isBrutus((Mob) damager))
 						brutusDisablePerk(game, player);
-
-					if(damage == 0)
-						e.setCancelled(true);
 				}
 			}
 		}
@@ -220,6 +239,9 @@ public class EntityListener implements Listener
 
 		if(e.getEntity() instanceof Player)
 		{
+			// Melee hits are fully handled (and cancelled) by damage(); listener order is not guaranteed.
+			if(e instanceof EntityDamageByEntityEvent && e.getCause() == EntityDamageEvent.DamageCause.ENTITY_ATTACK)
+				return;
 			Player player = (Player) e.getEntity();
 			Game game = GameManager.INSTANCE.getGame(player);
 
@@ -275,6 +297,26 @@ public class EntityListener implements Listener
 	{
 		stopHealingTimer(e.getPlayer());
 		com.theprogrammingturkey.comz.game.dev.DevTools.clearGod(e.getPlayer());
+	}
+
+	/** Damage of one zombie hit so a player goes down on exactly the configured hit (BO: 2, or 5 with Juggernog). */
+	public static float zombieHitDamage(boolean juggernog)
+	{
+		int hits = juggernog ? ConfigManager.getMainConfig().juggernogHitsToDown : ConfigManager.getMainConfig().zombieHitsToDown;
+		if(hits > 0)
+			return PLAYER_HEALTH / hits;
+		float damage = (float) ConfigManager.getMainConfig().zombieDamage;
+		return juggernog ? damage / (float) ConfigManager.getMainConfig().juggernogHealth : damage;
+	}
+
+	private static final float PLAYER_HEALTH = 20f;
+
+	private static void applyZombieHit(Player player, float damage)
+	{
+		player.setHealth(Math.max(1D, Math.min(player.getHealth(), PLAYER_HEALTH) - damage));
+		player.playEffect(EntityEffect.HURT);
+		player.getWorld().playSound(player.getLocation(), Sound.ENTITY_PLAYER_HURT, 1f, 1f);
+		player.getWorld().playEffect(player.getLocation().add(0, 1, 0), Effect.STEP_SOUND, 152);
 	}
 
 	/**

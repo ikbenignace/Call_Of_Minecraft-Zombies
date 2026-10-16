@@ -82,6 +82,17 @@ public class ConfigSetup
 
 	public double juggernogHealth;
 
+	/** Zombie hits that down a player without Juggernog; when above 0 it overrides zombieDamage. */
+	public int zombieHitsToDown;
+	/** Zombie hits that down a player with Juggernog; when above 0 it overrides juggernogHealth. */
+	public int juggernogHitsToDown;
+	/** A dead player respawning at the next round keeps their own points (BO) instead of getting 500 x round. */
+	public boolean respawnKeepsPoints;
+	/** Revive every downed player for free when a round ends (not a BO rule). */
+	public boolean reviveDownedOnRoundEnd;
+	/** Walk-speed multiplier while aiming down sights with a non-sniper gun. */
+	public double aimWalkSpeedMultiplier;
+
 	public double healTime;
 
 	// ---- BO2 fidelity (Tier 0) -------------------------------------------------
@@ -96,10 +107,21 @@ public class ConfigSetup
 	 */
 	public int zombieBoardPerPlayer;
 	public double zombieSpawnDelayMin;
-	public double zombieCoopCountScale;
+	public int zombieCountBase;
+	/** Zombies per extra player in the BO round count (solo adds half of it). */
+	public int zombieCountPerPlayer;
 	public double zombieCountMultiplier;
-	public int zombieRunnerStartRound;
-	public int zombieSprinterStartRound;
+	/** BO1 speed roll: each round adds this to a zombie's speed roll, which walks up to zombieWalkThreshold, runs up to zombieRunThreshold, then sprints. */
+	public int zombieMoveSpeedPerRound;
+	public int zombieMoveSpeedSpread;
+	public int zombieWalkThreshold;
+	public int zombieRunThreshold;
+	/** From this round the last zombie alive sprints; 0 disables. */
+	public int lastZombieSprintRound;
+	/** Highest real max health a mob gets; health above it is kept by scaling incoming damage (server cap is 2048). */
+	public double zombieHealthCap;
+	/** Spawn zombies only in zones holding a player and their adjacent zones (needs arena zones). */
+	public boolean spawnActiveZonesOnly;
 	public double zombieRunnerSpeed;
 	public double zombieSprinterSpeed;
 	/** Random per-zombie speed spread (fraction either way) on top of the walker/runner/sprinter tier. */
@@ -145,6 +167,12 @@ public class ConfigSetup
 	 * Tier 1 — Maximum throwables (grenades / Monkey Bombs) a player may hold (buy-to-cap).
 	 */
 	public int maxGrenades;
+	/** Lethal grenades every player gets at the start of each round, capped at {@link #maxGrenades} (BO: 2). */
+	public int grenadesPerRound;
+	/** Headshot damage multiplier for guns without their own {@code headshot_multiplier} in guns.json. */
+	public double headshotDamageMultiplier;
+	/** Damage (of 20 HP) an explosive deals to its own thrower/shooter at point blank; PhD Flopper negates it. 0 disables. */
+	public double explosiveSelfDamage;
 
 	/**
 	 * 0e — Speed Cola reload-time multiplier (0.5 = reloads twice as fast).
@@ -172,11 +200,29 @@ public class ConfigSetup
 	 * to have made no progress.
 	 */
 	public double zombieStuckMoveThreshold;
+	/** A mob this close to a player is attacking, never stuck. */
+	public double zombieStuckTargetRange;
 
 	/**
-	 * 0g — Dogs spawned per player on a dog round (total = dogsPerPlayer * players).
+	 * 0g — Dogs spawned per player on the second and later dog rounds (total = dogsPerPlayer * players).
 	 */
 	public int dogsPerPlayer;
+	/** Dogs spawned per player on the first dog round of a game. */
+	public int dogsPerPlayerFirstRound;
+	/** Hellhounds alive at once, per player. */
+	public int dogMaxAlivePerPlayer;
+	/** BO hellhound health for the 1st, 2nd, 3rd... dog round; the last entry repeats. */
+	public List<Integer> dogHealthByDogRound;
+	/** Hellhounds appear this many blocks (min..max) away from the player they hunt. */
+	public double dogSpawnRadiusMin;
+	public double dogSpawnRadiusMax;
+	/** Ticks between the lightning strike and the hound appearing. */
+	public int dogSpawnDelayTicks;
+	/** Fire burst when a hound dies: damage to players within the radius. */
+	public double dogExplosionDamage;
+	public double dogExplosionRadius;
+	/** Smoke fog around the players during a dog round. */
+	public boolean dogRoundFog;
 	/**
 	 * 0g — Whether a guaranteed Max Ammo drops when the last dog of a dog round dies.
 	 */
@@ -273,6 +319,12 @@ public class ConfigSetup
 	 * Tier 2 — Radius (blocks) around a crawler within which its gas poisons players.
 	 */
 	public double crawlerGasRadius;
+	/** Chance (0-1) a new crawler is a Nova-style gas crawler; ordinary BO crawlers leave no gas. */
+	public double crawlerGasChance;
+	/** Ticks between zombie target refreshes (BO re-evaluates about every second). */
+	public int zombieRetargetTicks;
+	/** Pick the player with the shortest walking route (Paper pathfinder) instead of the straight-line nearest. */
+	public boolean zombiePathTargeting;
 	/**
 	 * Tier 2 — Movement-speed multiplier applied to a crawler (relative to the zombie's normal
 	 * speed). 1.0 = full speed, 0.35 = 35% speed. This multiplies the zombie's real base speed
@@ -424,6 +476,9 @@ public class ConfigSetup
 	 * before it is restored. Default 5.
 	 */
 	public int brutusDisableSeconds;
+	/** Brutus locks perk machines and mystery boxes within this many blocks; players pay to unlock them. */
+	public double brutusLockRadius;
+	public int brutusUnlockCost;
 
 	/**
 	 * Tier 4 — Zombie Shield (buildable): number of zombie hits the equipped shield absorbs
@@ -544,8 +599,8 @@ public class ConfigSetup
 		perkLife = plugin.getConfig().getDouble("config.gameSettings.perkLife", 26.5);
 		maxZombies = (int) plugin.getConfig().getDouble("config.gameSettings.maxZombies");
 		waveSpawnInterval = plugin.getConfig().getInt("config.gameSettings.waveSpawnInterval");
-		pointsOnHit = plugin.getConfig().getInt("config.gameSettings.defaultPointsOnHit");
-		pointsOnKill = plugin.getConfig().getInt("config.gameSettings.defaultPointsOnKill");
+		pointsOnHit = plugin.getConfig().getInt("config.gameSettings.defaultPointsOnHit", 10);
+		pointsOnKill = plugin.getConfig().getInt("config.gameSettings.defaultPointsOnKill", 60);
 		maxWave = plugin.getConfig().getInt("config.gameSettings.maxWave");
 		reviveTimer = plugin.getConfig().getInt("config.ReviveSettings.ReviveTimer");
 		reviveRange = Math.min(plugin.getConfig().getInt("config.ReviveSettings.ReviveRange"), 6);
@@ -562,15 +617,26 @@ public class ConfigSetup
 		zombieDamage = plugin.getConfig().getDouble("config.gameSettings.zombieDamage", 8);
 		juggernogHealth = plugin.getConfig().getDouble("config.perks.juggernogHealth", 2.4);
 		healTime = plugin.getConfig().getDouble("config.gameSettings.healTime", 2.5);
+		zombieHitsToDown = plugin.getConfig().getInt("config.gameSettings.zombieHitsToDown", 2);
+		juggernogHitsToDown = plugin.getConfig().getInt("config.perks.juggernogHitsToDown", 5);
+		respawnKeepsPoints = plugin.getConfig().getBoolean("config.gameSettings.respawnKeepsPoints", true);
+		reviveDownedOnRoundEnd = plugin.getConfig().getBoolean("config.ReviveSettings.ReviveOnRoundEnd", false);
+		aimWalkSpeedMultiplier = plugin.getConfig().getDouble("config.gameSettings.aimWalkSpeedMultiplier", 0.75);
 
 		// ---- BO2 fidelity (Tier 0) defaults ----
 		zombieBoardBase = plugin.getConfig().getInt("config.gameSettings.zombieBoardBase", 24);
 		zombieBoardPerPlayer = plugin.getConfig().getInt("config.gameSettings.zombieBoardPerPlayer", 0);
 		zombieSpawnDelayMin = plugin.getConfig().getDouble("config.gameSettings.zombieSpawnDelayMin", 0.1);
-		zombieCoopCountScale = plugin.getConfig().getDouble("config.gameSettings.zombieCoopCountScale", 0.5);
+		zombieCountBase = plugin.getConfig().getInt("config.gameSettings.zombieCountBase", 24);
+		zombieCountPerPlayer = plugin.getConfig().getInt("config.gameSettings.zombieCountPerPlayer", 6);
 		zombieCountMultiplier = plugin.getConfig().getDouble("config.gameSettings.zombieCountMultiplier", 1.0);
-		zombieRunnerStartRound = plugin.getConfig().getInt("config.gameSettings.zombieRunnerStartRound", 4);
-		zombieSprinterStartRound = plugin.getConfig().getInt("config.gameSettings.zombieSprinterStartRound", 10);
+		zombieMoveSpeedPerRound = plugin.getConfig().getInt("config.gameSettings.zombieMoveSpeedPerRound", 8);
+		zombieMoveSpeedSpread = plugin.getConfig().getInt("config.gameSettings.zombieMoveSpeedSpread", 35);
+		zombieWalkThreshold = plugin.getConfig().getInt("config.gameSettings.zombieWalkThreshold", 35);
+		zombieRunThreshold = plugin.getConfig().getInt("config.gameSettings.zombieRunThreshold", 70);
+		lastZombieSprintRound = plugin.getConfig().getInt("config.gameSettings.lastZombieSprintRound", 4);
+		zombieHealthCap = plugin.getConfig().getDouble("config.gameSettings.zombieHealthCap", 1024);
+		spawnActiveZonesOnly = plugin.getConfig().getBoolean("config.gameSettings.spawnActiveZonesOnly", true);
 		zombieRunnerSpeed = plugin.getConfig().getDouble("config.gameSettings.zombieRunnerSpeed", 1.3);
 		zombieSprinterSpeed = plugin.getConfig().getDouble("config.gameSettings.zombieSprinterSpeed", 1.7);
 		zombieSpeedVariation = plugin.getConfig().getDouble("config.gameSettings.zombieSpeedVariation", 0.12);
@@ -584,17 +650,32 @@ public class ConfigSetup
 		visualsLowHealthVignette = plugin.getConfig().getBoolean("config.visuals.lowHealthVignette", true);
 		zombieRoundMultiplier = plugin.getConfig().getDouble("config.gameSettings.zombieRoundMultiplier", 0.15);
 		zombieAttackCooldownTicks = plugin.getConfig().getInt("config.gameSettings.zombieAttackCooldownTicks", 20);
-		headshotKillBonus = plugin.getConfig().getInt("config.gameSettings.headshotKillBonus", 50);
-		meleeKillBonus = plugin.getConfig().getInt("config.gameSettings.meleeKillBonus", 80);
+		headshotKillBonus = plugin.getConfig().getInt("config.gameSettings.headshotKillBonus", 40);
+		meleeKillBonus = plugin.getConfig().getInt("config.gameSettings.meleeKillBonus", 70);
 		deadshotHeadshotMultiplier = plugin.getConfig().getDouble("config.perks.deadshotHeadshotMultiplier", 2.0);
 		bonusPointsAmount = plugin.getConfig().getInt("config.gameSettings.bonusPointsAmount", 100);
 		maxGrenades = plugin.getConfig().getInt("config.gameSettings.maxGrenades", 4);
+		grenadesPerRound = plugin.getConfig().getInt("config.gameSettings.grenadesPerRound", 2);
+		headshotDamageMultiplier = plugin.getConfig().getDouble("config.gameSettings.headshotDamageMultiplier", 1.5);
+		explosiveSelfDamage = plugin.getConfig().getDouble("config.gameSettings.explosiveSelfDamage", 8.0);
 		speedColaReloadMultiplier = plugin.getConfig().getDouble("config.perks.speedColaReloadMultiplier", 0.5);
 		doubleTapFireMultiplier = plugin.getConfig().getDouble("config.perks.doubleTapFireMultiplier", 1.5);
-		knifeOneShotThroughRound = plugin.getConfig().getInt("config.gameSettings.knifeOneShotThroughRound", 9);
+		knifeOneShotThroughRound = plugin.getConfig().getInt("config.gameSettings.knifeOneShotThroughRound", 1);
 		zombieStuckSeconds = plugin.getConfig().getInt("config.gameSettings.zombieStuckSeconds", 6);
 		zombieStuckMoveThreshold = plugin.getConfig().getDouble("config.gameSettings.zombieStuckMoveThreshold", 1.0);
-		dogsPerPlayer = plugin.getConfig().getInt("config.gameSettings.dogsPerPlayer", 3);
+		zombieStuckTargetRange = plugin.getConfig().getDouble("config.gameSettings.zombieStuckTargetRange", 2.5);
+		dogsPerPlayer = plugin.getConfig().getInt("config.gameSettings.dogsPerPlayer", 8);
+		dogsPerPlayerFirstRound = plugin.getConfig().getInt("config.gameSettings.dogsPerPlayerFirstRound", 6);
+		dogMaxAlivePerPlayer = Math.max(1, plugin.getConfig().getInt("config.gameSettings.dogMaxAlivePerPlayer", 2));
+		dogHealthByDogRound = plugin.getConfig().getIntegerList("config.gameSettings.dogHealthByDogRound");
+		if(dogHealthByDogRound.isEmpty())
+			dogHealthByDogRound = java.util.Arrays.asList(400, 900, 1300, 1600);
+		dogSpawnRadiusMin = plugin.getConfig().getDouble("config.gameSettings.dogSpawnRadiusMin", 4.0);
+		dogSpawnRadiusMax = Math.max(dogSpawnRadiusMin, plugin.getConfig().getDouble("config.gameSettings.dogSpawnRadiusMax", 8.0));
+		dogSpawnDelayTicks = Math.max(0, plugin.getConfig().getInt("config.gameSettings.dogSpawnDelayTicks", 20));
+		dogExplosionDamage = plugin.getConfig().getDouble("config.gameSettings.dogExplosionDamage", 2.0);
+		dogExplosionRadius = plugin.getConfig().getDouble("config.gameSettings.dogExplosionRadius", 2.5);
+		dogRoundFog = plugin.getConfig().getBoolean("config.gameSettings.dogRoundFog", true);
 		dogRoundEveryX = plugin.getConfig().getInt("config.gameSettings.dogRoundEveryX", 4);
 		dogRoundMaxAmmoDrop = plugin.getConfig().getBoolean("config.gameSettings.dogRoundMaxAmmoDrop", true);
 		maxPowerUpsOnGround = plugin.getConfig().getInt("config.gameSettings.maxPowerUpsOnGround", 4);
@@ -627,8 +708,11 @@ public class ConfigSetup
 		teleporterPaPAccessSeconds = plugin.getConfig().getInt("config.teleporter.paPAccessSeconds", 30);
 		lastZombieCrawler = plugin.getConfig().getBoolean("config.gameSettings.lastZombieCrawler", false);
 		crawlerExplosiveChance = plugin.getConfig().getDouble("config.gameSettings.crawlerExplosiveChance", 0.35);
-		crawlerHealth = plugin.getConfig().getDouble("config.gameSettings.crawlerHealth", 2.0);
+		crawlerHealth = plugin.getConfig().getDouble("config.gameSettings.crawlerHealth", 0);
 		crawlerGasRadius = plugin.getConfig().getDouble("config.gameSettings.crawlerGasRadius", 3.0);
+		crawlerGasChance = plugin.getConfig().getDouble("config.gameSettings.crawlerGasChance", 0.0);
+		zombieRetargetTicks = plugin.getConfig().getInt("config.gameSettings.zombieRetargetTicks", 20);
+		zombiePathTargeting = plugin.getConfig().getBoolean("config.gameSettings.zombiePathTargeting", true);
 		crawlerSpeedMultiplier = plugin.getConfig().getDouble("config.gameSettings.crawlerSpeedMultiplier", 0.35);
 		deathMachineDurationSeconds = plugin.getConfig().getInt("config.gameSettings.deathMachineDurationSeconds", 30);
 		bonfirePaPCost = plugin.getConfig().getInt("config.gameSettings.bonfirePaPCost", 1000);
@@ -658,6 +742,8 @@ public class ConfigSetup
 		bossRoundEveryX = plugin.getConfig().getInt("config.gameSettings.bossRoundEveryX", 0);
 		bossHealthMultiplier = plugin.getConfig().getDouble("config.gameSettings.bossHealthMultiplier", 8.0);
 		brutusDisableSeconds = plugin.getConfig().getInt("config.gameSettings.brutusDisableSeconds", 5);
+		brutusLockRadius = plugin.getConfig().getDouble("config.gameSettings.brutusLockRadius", 3.0);
+		brutusUnlockCost = plugin.getConfig().getInt("config.gameSettings.brutusUnlockCost", 2000);
 		zombieShieldHits = plugin.getConfig().getInt("config.buildable.zombieShieldHits", 5);
 		zombieShieldDamageReduction = plugin.getConfig().getDouble("config.buildable.zombieShieldDamageReduction", 1.0);
 		buildablePartCost = plugin.getConfig().getInt("config.buildable.partCost", 500);

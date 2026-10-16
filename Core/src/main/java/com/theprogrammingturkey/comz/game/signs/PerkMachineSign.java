@@ -31,6 +31,9 @@ public class PerkMachineSign implements IGameSign
 			return;
 		}
 
+		if(game.specialEnemyManager.blockedByLock(player, location))
+			return;
+
 		boolean soloRevive = perk == PerkType.QUICK_REVIVE && game.getPlayersInGame().size() == 1;
 		if(!soloRevive && game.hasPower() && !game.isPowered())
 		{

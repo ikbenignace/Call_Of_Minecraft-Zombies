@@ -35,6 +35,7 @@ public class BarrierManager
 	private final Game game;
 	private final List<Barrier> barriers = new ArrayList<>();
 	private final Map<UUID, Integer> repairEarnings = new HashMap<>();
+	private final Map<Mob, SpawnPoint> spawnOrigins = new java.util.WeakHashMap<>();
 
 	public BarrierManager(Game game)
 	{
@@ -219,6 +220,59 @@ public class BarrierManager
 		return granted;
 	}
 
+	/** Where a mob entered the map; only zombies still outside the window they spawned behind tear its boards. */
+	public void recordSpawn(Mob mob, SpawnPoint point)
+	{
+		if(mob != null && point != null)
+			spawnOrigins.put(mob, point);
+	}
+
+	/**
+	 * BO: boards are torn by the zombies climbing in through that window. Dogs and bosses never do, and a zombie
+	 * that is already inside (spawned elsewhere, or past the window) walks by. Barriers without linked spawns keep
+	 * the old behaviour of any nearby zombie breaking them.
+	 */
+	private boolean canTearBoards(Mob mob, Barrier barrier)
+	{
+		if(com.theprogrammingturkey.comz.spawning.HellHoundSpawner.isDog(mob) || com.theprogrammingturkey.comz.spawning.BossSpawner.isBoss(mob))
+			return false;
+		if(barrier.getSpawnPoints().isEmpty())
+			return true;
+		SpawnPoint origin = spawnOrigins.get(mob);
+		if(origin == null || !linksSpawn(barrier, origin))
+			return false;
+		Location spawnLoc = origin.getLocation();
+		Location mobLoc = mob.getLocation();
+		Location window = windowCentre(barrier);
+		if(window == null || spawnLoc.getWorld() != mobLoc.getWorld() || window.getWorld() != spawnLoc.getWorld())
+			return false;
+		return mobLoc.distance(spawnLoc) <= window.distance(spawnLoc) + 0.75;
+	}
+
+	private static boolean linksSpawn(Barrier barrier, SpawnPoint point)
+	{
+		for(SpawnPoint sp : barrier.getSpawnPoints())
+			if(sp == point || sp.getLocation().equals(point.getLocation()))
+				return true;
+		return false;
+	}
+
+	private static Location windowCentre(Barrier barrier)
+	{
+		List<Block> blocks = barrier.getBlocks();
+		if(blocks.isEmpty())
+			return null;
+		double x = 0, y = 0, z = 0;
+		for(Block b : blocks)
+		{
+			x += b.getX() + 0.5;
+			y += b.getY() + 0.5;
+			z += b.getZ() + 0.5;
+		}
+		int n = blocks.size();
+		return new Location(blocks.get(0).getWorld(), x / n, y / n, z / n);
+	}
+
 	public void resetRepairEarnings()
 	{
 		repairEarnings.clear();
@@ -273,7 +327,7 @@ public class BarrierManager
 				Location blockLoc = b.getLocation();
 				for(Mob mob : mobs)
 				{
-					if(mob.isDead())
+					if(mob.isDead() || !canTearBoards(mob, barrier))
 						continue;
 					Location mobLoc = mob.getLocation();
 					if(mobLoc.getWorld() == blockLoc.getWorld() && mobLoc.distanceSquared(blockLoc) <= radiusSq)

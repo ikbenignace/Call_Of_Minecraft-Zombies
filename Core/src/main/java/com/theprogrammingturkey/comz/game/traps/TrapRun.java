@@ -264,7 +264,7 @@ public class TrapRun
 		double maxHealth = maxHealth(mob);
 		double damage = immune ? Math.max(type.mobDamageFor(maxHealth), maxHealth * IMMUNE_HIT_PERCENT) : type.mobDamageFor(maxHealth);
 		double health = mob.getHealth() - damage;
-		if(health < 1)
+		if(health < com.theprogrammingturkey.comz.spawning.ZombieHealth.damageScale(mob))
 		{
 			kill(mob);
 			return;

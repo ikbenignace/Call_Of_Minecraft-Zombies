@@ -28,6 +28,8 @@ public class Weapon
 	 * the native hitscan item. Null => this weapon is always native (the only path without WM).
 	 */
 	public String wmWeapon;
+	/** BO wonder weapon (Ray Gun, Thundergun, ...): only one of each may be in the game at once. */
+	public boolean wonderWeapon;
 
 	public Weapon(String name, WeaponType weaponType)
 	{
@@ -43,6 +45,7 @@ public class Weapon
 		this.modelData = CustomConfig.getInt(json, "model_data", -1);
 		this.itemModel = CustomConfig.getString(json, "item_model", null);
 		this.wmWeapon = CustomConfig.getString(json, "wm_weapon", null);
+		this.wonderWeapon = CustomConfig.getBoolean(json, "wonder_weapon", false);
 	}
 
 	public WeaponType getWeaponType()

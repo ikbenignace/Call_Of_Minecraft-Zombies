@@ -64,7 +64,7 @@ public class WMDamageListener implements Listener
 		boolean headshot = event.getPoint() == DamagePoint.HEAD;
 		if(headshot)
 		{
-			damage *= 1.5f;
+			damage *= gun != null ? (float) gun.headshotMultiplier() : (float) ConfigManager.getMainConfig().headshotDamageMultiplier;
 			// Tier 1 — Deadshot Daiquiri: extra headshot damage, same multiplier as the native path.
 			if(game.perkManager.hasPerk(shooter, PerkType.DEADSHOT_DAIQ))
 				damage *= (float) ConfigManager.getMainConfig().deadshotHeadshotMultiplier;

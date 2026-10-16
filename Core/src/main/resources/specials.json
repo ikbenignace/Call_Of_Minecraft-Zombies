@@ -1,5 +1,5 @@
 {
-  "_comment": "Special enemy catalogue. An arena enables types through its 'special_enemies' setting (see /zombies settings > Special enemies). entity: candidate entity types, the first one the server knows is used (ZOMBIE is the final fallback). health: base + per_round * (round - 1), or zombie_multiplier x the round's zombie health when set; per_extra_player scales it for co-op. speed and scale multiply the mob's own values (scale needs 1.20.5+). model: pack item model worn on the head when the resource pack is on. sounds: event -> sounds.json key, default special.<id>.<event> (spawn, ambient, attack, death, explode, round). points replace the normal kill points. reward_powerup drops when a player kills it, round_end_powerup when a dedicated round of this type is cleared. round_count: how many spawn in a dedicated round (base + per_player per extra player). lifetime_seconds: despawn (escape) after this long, 0 = never. behaviour: steal_perk | steal_weapon | boss | napalm | shrieker; options tune it. default_rule is what the settings menu adds when the type is switched on.",
+  "_comment": "Special enemy catalogue. An arena enables types through its 'special_enemies' setting (see /zombies settings > Special enemies). entity: candidate entity types, the first one the server knows is used (ZOMBIE is the final fallback). health: base + per_round * (round - 1), or zombie_multiplier x the round's zombie health when set; per_extra_player scales it for co-op. speed and scale multiply the mob's own values (scale needs 1.20.5+). model: pack item model worn on the head when the resource pack is on. sounds: event -> sounds.json key, default special.<id>.<event> (spawn, ambient, attack, death, explode, round). points replace the normal kill points. reward_powerup drops when a player kills it, round_end_powerup when a dedicated round of this type is cleared. round_count: how many spawn in a dedicated round (base + per_player per extra player). lifetime_seconds: despawn (escape) after this long, 0 = never. behaviour: steal_perk | steal_weapon | boss | napalm | shrieker; options tune it (boss attack steal_perk: flee_after_steal makes it run off with one perk for flee_seconds; grab_teleport throws the player to a spot players have stood on, at least teleport_min_distance away). default_rule is what the settings menu adds when the type is switched on.",
   "types": [
     {
       "id": "space_monkey",
@@ -61,7 +61,7 @@
       "equipment": {"head": "GLASS", "chest": "IRON_CHESTPLATE", "legs": "IRON_LEGGINGS", "feet": "IRON_BOOTS"},
       "points": 500,
       "reward_powerup": "MAX_AMMO",
-      "options": {"attack": "grab_teleport", "trigger_distance": 2.0, "attack_cooldown_seconds": 6, "bossbar": true, "bossbar_color": "WHITE"},
+      "options": {"attack": "grab_teleport", "trigger_distance": 2.0, "attack_cooldown_seconds": 6, "teleport_min_distance": 12, "bossbar": true, "bossbar_color": "WHITE"},
       "default_rule": {"mode": "chance_per_round", "value": 10, "max_alive": 1, "first_round": 8}
     },
     {
@@ -74,7 +74,7 @@
       "equipment": {"head": "RED_STAINED_GLASS", "chest": "IRON_CHESTPLATE", "legs": "IRON_LEGGINGS", "feet": "IRON_BOOTS"},
       "points": 500,
       "reward_powerup": "RANDOM_PERK",
-      "options": {"attack": "steal_perk", "trigger_distance": 2.0, "attack_cooldown_seconds": 10, "bossbar": true, "bossbar_color": "RED"},
+      "options": {"attack": "steal_perk", "trigger_distance": 2.0, "attack_cooldown_seconds": 10, "flee_after_steal": true, "flee_seconds": 12, "flee_speed": 1.4, "path_speed": 1.4, "bossbar": true, "bossbar_color": "RED"},
       "default_rule": {"mode": "chance_per_round", "value": 10, "max_alive": 1, "first_round": 12}
     },
     {

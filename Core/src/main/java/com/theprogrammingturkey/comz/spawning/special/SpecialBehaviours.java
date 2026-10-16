@@ -131,11 +131,20 @@ final class SpecialBehaviours
 
 	private static Location pickMachine(Map<Location, PerkType> machines, ActiveSpecial a)
 	{
-		List<Location> options = new ArrayList<>();
+		Location best = null;
+		double bestSq = Double.MAX_VALUE;
 		for(Location loc : machines.keySet())
-			if(!a.visitedMachines.contains(loc) && loc.getWorld() == a.mob.getWorld())
-				options.add(loc);
-		return options.isEmpty() ? null : options.get(COMZombies.rand.nextInt(options.size()));
+		{
+			if(a.visitedMachines.contains(loc) || loc.getWorld() != a.mob.getWorld())
+				continue;
+			double d = loc.distanceSquared(a.mob.getLocation());
+			if(d < bestSq)
+			{
+				bestSq = d;
+				best = loc;
+			}
+		}
+		return best;
 	}
 
 	private static void stealPerkFromMachine(SpecialEnemyManager manager, ActiveSpecial a, PerkType perk)
@@ -280,6 +289,11 @@ final class SpecialBehaviours
 
 	private static void tickBoss(SpecialEnemyManager manager, ActiveSpecial a)
 	{
+		if(a.fleeing)
+		{
+			tickFleeWithPerk(manager, a);
+			return;
+		}
 		long now = System.currentTimeMillis();
 		if(now - a.lastActionAt < a.type.option("attack_cooldown_seconds", 8.0) * 1000)
 			return;
@@ -323,11 +337,10 @@ final class SpecialBehaviours
 
 	private static void grabAndTeleport(SpecialEnemyManager manager, ActiveSpecial a, Player target)
 	{
-		SpawnPoint point = randomOpenSpawn(manager);
-		if(point == null)
+		Location to = manager.safeTeleportSpot(target, a.type.option("teleport_min_distance", 12.0));
+		if(to == null)
 			return;
 		Location from = target.getLocation();
-		Location to = point.getLocation().clone().add(0.5, 0, 0.5);
 		to.setYaw(from.getYaw());
 		to.setPitch(from.getPitch());
 		from.getWorld().spawnParticle(Particle.PORTAL, from.clone().add(0, 1, 0), 60, 0.4, 0.8, 0.4, 0.3);
@@ -337,15 +350,6 @@ final class SpecialBehaviours
 		target.sendMessage(COMZombies.PREFIX + ChatColor.RED + a.type.displayName + ChatColor.YELLOW + " grabbed you and threw you away!");
 	}
 
-	private static SpawnPoint randomOpenSpawn(SpecialEnemyManager manager)
-	{
-		List<SpawnPoint> open = new ArrayList<>();
-		for(SpawnPoint point : manager.game.spawnManager.getPoints())
-			if(manager.game.spawnManager.canSpawnPoint(point))
-				open.add(point);
-		return open.isEmpty() ? null : open.get(COMZombies.rand.nextInt(open.size()));
-	}
-
 	private static void stealPerkOnHit(SpecialEnemyManager manager, ActiveSpecial a, Player target)
 	{
 		List<PerkType> perks = manager.game.perkManager.getPlayersPerks(target);
@@ -353,7 +357,32 @@ final class SpecialBehaviours
 			return;
 		PerkType perk = perks.get(COMZombies.rand.nextInt(perks.size()));
 		manager.game.perkManager.removePerkEffect(target, perk);
-		target.sendMessage(COMZombies.PREFIX + ChatColor.RED + a.type.displayName + ChatColor.YELLOW + " took your " + ChatColor.AQUA + perk + ChatColor.YELLOW + "!");
+		a.stolenPerks.add(new ActiveSpecial.StolenPerk(target, perk));
+		if(!a.type.option("flee_after_steal", true))
+		{
+			target.sendMessage(COMZombies.PREFIX + ChatColor.RED + a.type.displayName + ChatColor.YELLOW + " took your " + ChatColor.AQUA + perk + ChatColor.YELLOW + "!");
+			return;
+		}
+		a.fleeing = true;
+		a.steering = true;
+		a.goal = null;
+		a.newPhase();
+		SpecialEnemyManager.attributes().setSpeed(a.mob, (float) a.type.option("flee_speed", 1.4));
+		manager.broadcast(ChatColor.RED + a.type.displayName + ChatColor.YELLOW + " stole " + ChatColor.GOLD + target.getName()
+				+ ChatColor.YELLOW + "'s " + ChatColor.AQUA + perk + ChatColor.YELLOW + "! Kill it before it escapes to get it back.");
+	}
+
+	private static void tickFleeWithPerk(SpecialEnemyManager manager, ActiveSpecial a)
+	{
+		if(a.secondsInPhase() >= a.type.option("flee_seconds", 12.0))
+		{
+			a.stolenPerks.clear();
+			manager.escape(a, ChatColor.RED + a.type.displayName + ChatColor.YELLOW + " got away with the perk!");
+			return;
+		}
+		if(a.goal == null || horizontalDistanceSq(a.mob.getLocation(), a.goal) < 4)
+			a.goal = fleeGoal(manager, a);
+		MobNavigator.moveTo(a.mob, a.goal, a.type.option("path_speed", 1.4));
 	}
 
 	// --- napalm -----------------------------------------------------------------------------------------------

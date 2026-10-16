@@ -19,6 +19,10 @@ public class EXPListener implements Listener
 	public void OnExpDropEvent(EntityDeathEvent e)
 	{
 		if(GameManager.INSTANCE.isEntityInGame(e.getEntity()))
+		{
 			e.setDroppedExp(0);
+			if(!(e.getEntity() instanceof org.bukkit.entity.Player))
+				e.getDrops().clear();
+		}
 	}
 }

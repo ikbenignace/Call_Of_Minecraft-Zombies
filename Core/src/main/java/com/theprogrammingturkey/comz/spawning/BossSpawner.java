@@ -13,6 +13,7 @@ import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.boss.BarColor;
 import org.bukkit.boss.BarStyle;
 import org.bukkit.boss.BossBar;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Mob;
 import org.bukkit.entity.Player;
@@ -48,6 +49,7 @@ public class BossSpawner extends RoundSpawner
 {
 	/** Marks a spawned Brutus so the damage listener can fire its perk-disable ability. */
 	public static final String BRUTUS_META = "comz_brutus";
+	public static final String BOSS_META = "comz_boss";
 
 	public enum BossType
 	{
@@ -105,10 +107,10 @@ public class BossSpawner extends RoundSpawner
 		Mob boss = (type == BossType.GEORGE) ? spawnGeorge(world, location, strength) : spawnBrutus(world, location, strength);
 		if(boss == null)
 			return null;
+		markBoss(boss);
 
 		setFollowDistance(boss, 512);
-		setMaxHealth(boss, strength);
-		boss.setHealth(strength);
+		ZombieHealth.applyHealth(boss, strength);
 
 		Player nearest = nearestPlayer(game, boss);
 		if(nearest != null)
@@ -130,6 +132,9 @@ public class BossSpawner extends RoundSpawner
 
 		// Tier 4 — boss presence: stinger + a tracked health BossBar for the fight, gated by config.
 		spawnBossBar(game, boss, strength, type);
+
+		if(type == BossType.BRUTUS)
+			startMachineLocking(game, boss);
 
 		return boss;
 	}
@@ -220,6 +225,37 @@ public class BossSpawner extends RoundSpawner
 	 * Tier 4 — true if the given entity is a Brutus boss (used by the damage listener to fire the
 	 * perk-disable ability). Mirrors {@code ZombieSpawner.isCrawler} metadata-check style.
 	 */
+	/** George, Brutus or a catalogue special with the boss behaviour: immune to Insta-Kill, nukes, crawling and the Gersch. */
+	public static boolean isBoss(Entity entity)
+	{
+		if(entity == null || !entity.hasMetadata(BOSS_META))
+			return false;
+		for(MetadataValue mv : entity.getMetadata(BOSS_META))
+			if(mv.getOwningPlugin() == COMZombies.getPlugin() && mv.asBoolean())
+				return true;
+		return false;
+	}
+
+	public static void markBoss(Entity entity)
+	{
+		entity.setMetadata(BOSS_META, new FixedMetadataValue(COMZombies.getPlugin(), true));
+	}
+
+	/** Mob of the Dead: Brutus shuts down the perk machines and mystery boxes he walks past. */
+	private void startMachineLocking(Game game, Mob brutus)
+	{
+		final int[] taskId = new int[1];
+		taskId[0] = COMZombies.scheduleTask(20L, 20L, () ->
+		{
+			if(brutus.isDead() || !game.spawnManager.isEntitySpawned(brutus) || game.getStatus() != Game.GameStatus.INGAME)
+			{
+				Bukkit.getScheduler().cancelTask(taskId[0]);
+				return;
+			}
+			game.specialEnemyManager.lockMachinesNear(brutus.getLocation(), ConfigManager.getMainConfig().brutusLockRadius, "Brutus");
+		});
+	}
+
 	public static boolean isBrutus(Mob mob)
 	{
 		if(mob == null || !mob.hasMetadata(BRUTUS_META))

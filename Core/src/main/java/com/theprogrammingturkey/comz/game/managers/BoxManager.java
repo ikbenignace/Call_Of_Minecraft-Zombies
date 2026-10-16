@@ -78,7 +78,15 @@ public class BoxManager
 			beamTaskId = -1;
 		}
 		for(RandomBox box : this.boxes)
+		{
 			box.reset();
+			box.resetUses();
+		}
+	}
+
+	public List<RandomBox> getAllBoxes()
+	{
+		return java.util.Collections.unmodifiableList(boxes);
 	}
 
 	public RandomBox getBox(String id)

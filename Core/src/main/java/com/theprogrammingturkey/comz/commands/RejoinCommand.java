@@ -36,11 +36,11 @@ public class RejoinCommand extends SubCommand
 			return true;
 		}
 
-		if(game.wasDisconnected(player))
+		if(game.isPlayerExited(player))
 			game.addPlayer(player);
 		else
 			CommandUtil.sendMessageToPlayer(player, ChatColor.RED + "You are already in the game!");
 
-		return false;
+		return true;
 	}
 }

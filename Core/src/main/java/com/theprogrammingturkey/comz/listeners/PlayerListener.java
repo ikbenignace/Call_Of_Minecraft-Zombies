@@ -2,6 +2,7 @@ package com.theprogrammingturkey.comz.listeners;
 
 import com.theprogrammingturkey.comz.COMZombies;
 import com.theprogrammingturkey.comz.config.ConfigManager;
+import com.theprogrammingturkey.comz.game.CachedPlayerInfo;
 import com.theprogrammingturkey.comz.game.Game;
 import com.theprogrammingturkey.comz.game.GameManager;
 import com.theprogrammingturkey.comz.game.features.Barrier;
@@ -52,6 +53,7 @@ public class PlayerListener implements Listener
 	public void onPlayerJoin(PlayerJoinEvent event)
 	{
 		Player player = event.getPlayer();
+		CachedPlayerInfo.restoreBackup(player);
 		for(Player pl : Bukkit.getOnlinePlayers())
 		{
 			if(GameManager.INSTANCE.isPlayerInGame(pl))
@@ -64,7 +66,7 @@ public class PlayerListener implements Listener
 		Game game = GameManager.INSTANCE.getGame(player);
 		if(game == null)
 			return;
-		if(game.wasDisconnected(player))
+		if(game.isPlayerExited(player))
 			CommandUtil.sendClickableMessageToPlayer(player, ChatColor.RED + "You can reconnect to your last game with /z rejoin or ", "CLICK HERE", "/z rejoin");
 	}
 
@@ -98,7 +100,8 @@ public class PlayerListener implements Listener
 		Location toLoc = event.getTo();
 		float DEAD_ZONE = 0.02f;
 
-		if(game == null || toLoc == null)
+		// Players who left, died or only spectate are free to go wherever they like.
+		if(game == null || toLoc == null || !game.isPlayerAlive(player))
 			return;
 
 		if(!game.arena.containsBlock(toLoc) && !game.transportManager.isRiding(player))
@@ -263,7 +266,7 @@ public class PlayerListener implements Listener
 		if(downedPlayer.isBeingRevived())
 			return;
 
-		if(!(game.getPlayersInGame().contains(reviver)))
+		if(!game.isActivePlayer(reviver))
 			return;
 
 		if(GameManager.INSTANCE.isPlayerInGame(reviver))

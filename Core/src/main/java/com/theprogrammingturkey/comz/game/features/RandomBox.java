@@ -121,7 +121,7 @@ public class RandomBox
 			return;
 		}
 
-		weapon = WeaponManager.getRandomWeapon(false, boxGame.getPlayersWeapons(player));
+		weapon = WeaponManager.getRandomWeapon(false, boxGame.getPlayersWeapons(player), wondersInPlay());
 		if(weapon == null)
 		{
 			CommandUtil.sendMessageToPlayer(player, ChatColor.RED + "There is nothing left in the box for you!");
@@ -177,7 +177,7 @@ public class RandomBox
 				{
 					if(time > 0)
 					{
-						Weapon rolled = WeaponManager.getRandomWeapon(false, boxGame.getPlayersWeapons(player));
+						Weapon rolled = WeaponManager.getRandomWeapon(false, boxGame.getPlayersWeapons(player), wondersInPlay());
 						if(rolled != null)
 							weapon = rolled;
 						showStack(weapon.getStack(), weapon.itemModel);
@@ -262,6 +262,43 @@ public class RandomBox
 		});
 
 		boxes.put(this, taskID);
+	}
+
+	/** Wonder weapons held by anyone in the game or sitting in another open box. */
+	private java.util.Set<Weapon> wondersInPlay()
+	{
+		java.util.Set<Weapon> inPlay = new java.util.HashSet<>();
+		for(Player player : boxGame.getPlayersInGame())
+		{
+			com.theprogrammingturkey.comz.game.managers.PlayerWeaponManager manager = boxGame.getPlayersWeapons(player);
+			if(manager == null)
+				continue;
+			for(com.theprogrammingturkey.comz.game.weapons.WeaponInstance held : manager.getWeapons())
+			{
+				Weapon base = WeaponManager.wonderBaseOf(held.getBaseWeapon());
+				if(base != null)
+					inPlay.add(base);
+			}
+		}
+		for(RandomBox other : boxGame.boxManager.getAllBoxes())
+		{
+			if(other == this)
+				continue;
+			Weapon base = WeaponManager.wonderBaseOf(other.offeredWeapon());
+			if(base != null)
+				inPlay.add(base);
+		}
+		return inPlay;
+	}
+
+	public Weapon offeredWeapon()
+	{
+		return running && !isTeddyBear ? weapon : null;
+	}
+
+	public void resetUses()
+	{
+		useCount = 0;
 	}
 
 	private float displayYaw()
@@ -432,8 +469,12 @@ public class RandomBox
 		if(!gunSelected || weapon == null)
 			return;
 		com.theprogrammingturkey.comz.game.managers.PlayerWeaponManager manager = boxGame.getPlayersWeapons(player);
+		com.theprogrammingturkey.comz.game.equipment.Equipment tactical = weapon.getWeaponType() == com.theprogrammingturkey.comz.game.weapons.WeaponType.MONKEY_BOMB
+				? com.theprogrammingturkey.comz.game.equipment.EquipmentCatalogue.get(weapon.getName()) : null;
 		if(weapon instanceof com.theprogrammingturkey.comz.game.weapons.BaseGun && manager.hasGun((com.theprogrammingturkey.comz.game.weapons.BaseGun) weapon))
 			manager.getGun((com.theprogrammingturkey.comz.game.weapons.BaseGun) weapon).maxAmmo();
+		else if(tactical != null && tactical.isMonkeyBomb())
+			boxGame.equipmentManager.give(player, tactical);
 		else
 			manager.addWeapon(weapon);
 		com.theprogrammingturkey.comz.util.SoundUtil.play(player.getWorld(), player.getLocation(), com.theprogrammingturkey.comz.util.SoundConfig.get("box.pickup", "BLOCK_LAVA_POP"), org.bukkit.SoundCategory.MASTER, 1, 1);
@@ -666,6 +707,8 @@ public class RandomBox
 	{
 		if(canActivate())
 		{
+			if(boxGame.specialEnemyManager.blockedByLock(player, boxLoc))
+				return;
 			if(!PointManager.INSTANCE.canBuy(player, getCost()))
 			{
 				CommandUtil.sendMessageToPlayer(player, ChatColor.RED + "You don't have enough points!");

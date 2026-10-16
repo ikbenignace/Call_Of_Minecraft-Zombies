@@ -21,9 +21,6 @@ public class PerkManager
 	private final Map<Player, List<PerkType>> playersPerks = new HashMap<>();
 	private final Map<UUID, Long> drinkingUntil = new HashMap<>();
 
-	/** Default vanilla walk speed; STAMIN_UP raises it (without the SPEED effect's FOV widening). */
-	private static final float DEFAULT_WALK_SPEED = 0.2f;
-
 	/** Applies a perk's reskinned vanilla effect: infinite, hidden particles, HUD icon shown. */
 	public void applyPerkEffect(Player player, PerkType perk)
 	{
@@ -31,7 +28,7 @@ public class PerkManager
 			player.addPotionEffect(new PotionEffect(perk.getIconEffect(), Compat.INFINITE_DURATION, perk.getAmplifier(), false, false, true));
 		// STAMIN_UP: real move boost via walk-speed (SPEED potion would widen FOV).
 		if(perk == PerkType.STAMIN_UP)
-			player.setWalkSpeed((float) ConfigManager.getMainConfig().staminUpWalkSpeed);
+			PlayerSpeed.apply(player);
 	}
 
 	/** Strips the perk's vanilla effect from the player (icon disappears). */
@@ -40,7 +37,7 @@ public class PerkManager
 		if(perk.getIconEffect() != null)
 			player.removePotionEffect(perk.getIconEffect());
 		if(perk == PerkType.STAMIN_UP)
-			player.setWalkSpeed(DEFAULT_WALK_SPEED);
+			PlayerSpeed.apply(player);
 	}
 
 	/** Re-syncs every owned perk's effect — used after revive / re-entry. */

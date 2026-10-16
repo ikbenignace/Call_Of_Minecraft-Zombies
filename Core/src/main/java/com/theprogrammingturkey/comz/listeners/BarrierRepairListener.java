@@ -60,7 +60,7 @@ public class BarrierRepairListener implements Listener
 			return;
 
 		Game game = GameManager.INSTANCE.getGame(player);
-		if(game == null)
+		if(game == null || !game.isActivePlayer(player))
 			return;
 
 		Barrier target = findRepairableBarrierNear(game, player);
@@ -70,7 +70,7 @@ public class BarrierRepairListener implements Listener
 		int taskId = COMZombies.scheduleTask(REPAIR_PERIOD, REPAIR_PERIOD, () ->
 		{
 			// Stop if the player went offline, left the game or stopped sneaking.
-			if(!player.isOnline() || !player.isSneaking() || !GameManager.INSTANCE.isPlayerInGame(player))
+			if(!player.isOnline() || !player.isSneaking() || !game.isActivePlayer(player))
 			{
 				stopRepairing(player.getUniqueId());
 				return;

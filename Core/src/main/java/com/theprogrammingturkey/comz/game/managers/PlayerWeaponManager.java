@@ -3,6 +3,7 @@ package com.theprogrammingturkey.comz.game.managers;
 import com.theprogrammingturkey.comz.config.ConfigManager;
 import com.theprogrammingturkey.comz.game.Game;
 import com.theprogrammingturkey.comz.game.GameManager;
+import com.theprogrammingturkey.comz.game.equipment.EquipmentCatalogue;
 import com.theprogrammingturkey.comz.game.features.PerkType;
 import com.theprogrammingturkey.comz.game.weapons.BaseGun;
 import com.theprogrammingturkey.comz.game.weapons.GunInstance;
@@ -47,8 +48,10 @@ public class PlayerWeaponManager
 		switch(weapon.getWeaponType())
 		{
 			case GRENADE:
-			case MONKEY_BOMB:
 				slot = 8;
+				break;
+			case MONKEY_BOMB:
+				slot = EquipmentCatalogue.tacticalSlot >= 0 ? EquipmentCatalogue.tacticalSlot : 7;
 				break;
 			case ASSAULT_RIFLES:
 			case SUB_MACHINE_GUNS:
@@ -222,10 +225,66 @@ public class PlayerWeaponManager
 
 	public boolean hasFullGrenades()
 	{
+		WeaponInstance grenades = getWeaponOfType(WeaponType.GRENADE);
+		return grenades != null && grenades.totalAmmo >= ConfigManager.getMainConfig().maxGrenades;
+	}
+
+	public WeaponInstance getWeaponOfType(WeaponType type)
+	{
 		for(WeaponInstance weapon : weapons)
-			if(weapon.getBaseWeapon().getWeaponType().equals(WeaponType.GRENADE))
-				return player.getInventory().contains(Material.SLIME_BALL, ConfigManager.getMainConfig().maxGrenades);
-		return false;
+			if(weapon.getBaseWeapon().getWeaponType() == type)
+				return weapon;
+		return null;
+	}
+
+	/** Round refill: tops lethal grenades up by {@code amount}, never past {@code cap}. */
+	public void addGrenades(int amount, int cap)
+	{
+		if(amount <= 0 || cap <= 0)
+			return;
+		WeaponInstance grenades = getWeaponOfType(WeaponType.GRENADE);
+		if(grenades == null)
+		{
+			Weapon grenade = WeaponManager.getWeapon("Grenade");
+			if(grenade == null)
+				return;
+			grenades = grenade.getNewInstance(player, getCorrectSlot(grenade));
+			grenades.totalAmmo = 0;
+			detach(getWeapon(grenades.getSlot()));
+			weapons.add(grenades);
+		}
+		if(grenades.totalAmmo >= cap)
+			return;
+		grenades.totalAmmo = Math.min(cap, grenades.totalAmmo + amount);
+		grenades.updateWeapon();
+		player.updateInventory();
+	}
+
+	/**
+	 * Spends one throwable from the weapon in {@code slot}. The weapon's own count is the source of truth,
+	 * otherwise the next {@link WeaponInstance#updateWeapon()} (F, inventory clicks) would restore the stack.
+	 *
+	 * @return false when that slot holds no grenade / Monkey Bomb weapon
+	 */
+	public boolean consumeThrowable(int slot)
+	{
+		WeaponInstance weapon = getWeapon(slot);
+		if(weapon == null || weapon instanceof GunInstance)
+			return false;
+		WeaponType type = weapon.getBaseWeapon().getWeaponType();
+		if(type != WeaponType.GRENADE && type != WeaponType.MONKEY_BOMB)
+			return false;
+		weapon.totalAmmo = Math.max(0, weapon.totalAmmo - 1);
+		if(weapon.totalAmmo == 0)
+		{
+			detach(weapon);
+			player.getInventory().setItem(slot, null);
+		}
+		else
+		{
+			weapon.updateWeapon();
+		}
+		return true;
 	}
 
 	public void maxAmmo()

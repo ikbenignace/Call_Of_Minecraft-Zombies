@@ -26,6 +26,7 @@ import com.theprogrammingturkey.comz.kits.KitManager;
 import com.theprogrammingturkey.comz.leaderboards.Leaderboard;
 import com.theprogrammingturkey.comz.leaderboards.PlayerStats;
 import com.theprogrammingturkey.comz.listeners.customEvents.GameStartEvent;
+import com.theprogrammingturkey.comz.spawning.HellHoundSpawner;
 import com.theprogrammingturkey.comz.spawning.RoundSpawnType;
 import com.theprogrammingturkey.comz.spawning.SpawnManager;
 import com.theprogrammingturkey.comz.spawning.SpawnPoint;
@@ -739,7 +740,8 @@ public class Game
 			if(player.isOnline())
 				respawnDeadPlayer(player);
 
-		downedPlayerManager.reviveDownedPlayers();
+		if(ConfigManager.getMainConfig().reviveDownedOnRoundEnd)
+			downedPlayerManager.reviveDownedPlayers();
 		equipmentManager.onNewRound();
 
 		int delay = 0;
@@ -748,7 +750,7 @@ public class Game
 			KitManager.giveOutKitRoundRewards(this);
 			for(Player pl : getPlayersAndSpectators())
 			{
-				com.theprogrammingturkey.comz.util.SoundUtil.play(pl, pl.getLocation(), com.theprogrammingturkey.comz.util.SoundConfig.get("round.start", "BLOCK_PORTAL_AMBIENT"), org.bukkit.SoundCategory.MASTER, ConfigManager.getMainConfig().roundSoundVolume, 1);
+				com.theprogrammingturkey.comz.util.SoundUtil.play(pl, pl.getLocation(), com.theprogrammingturkey.comz.util.SoundConfig.get(spawnManager.isDogRound() ? "round.dogsEnd" : "round.end", com.theprogrammingturkey.comz.util.SoundConfig.get("round.start", "BLOCK_PORTAL_AMBIENT")), org.bukkit.SoundCategory.MASTER, ConfigManager.getMainConfig().roundSoundVolume, 1);
 				pl.sendTitle(ChatColor.RED + "Round " + waveNumber, ChatColor.GRAY + "starting in 10 seconds", 10, 60, 10);
 			}
 			delay = 200;
@@ -780,7 +782,7 @@ public class Game
 						com.theprogrammingturkey.comz.util.SoundUtil.play(pl, pl.getLocation(), com.theprogrammingturkey.comz.util.SoundConfig.get(waveNumber == 1 ? "round.first" : "round.regular", "BLOCK_PORTAL_TRAVEL"), org.bukkit.SoundCategory.MASTER, ConfigManager.getMainConfig().roundSoundVolume, 1);
 						break;
 					case HELL_HOUNDS:
-						com.theprogrammingturkey.comz.util.SoundUtil.play(pl, pl.getLocation(), com.theprogrammingturkey.comz.util.SoundConfig.get("round.dogs", "ENTITY_ENDER_DRAGON_GROWL"), org.bukkit.SoundCategory.MASTER, ConfigManager.getMainConfig().roundSoundVolume, 1);
+						com.theprogrammingturkey.comz.spawning.HellHoundSpawner.announceDogRound(this, pl, waveNumber);
 						break;
 					case SPECIAL:
 						SpecialEnemyType special = spawnManager.getSpecialRoundType();
@@ -887,7 +889,7 @@ public class Game
 		}
 		else if(status == GameStatus.INGAME)
 		{
-			if(wasDisconnected(player))
+			if(isPlayerExited(player))
 			{
 				removePlayer(player);
 
@@ -921,7 +923,8 @@ public class Game
 	private void respawnDeadPlayer(Player player)
 	{
 		gamePlayers.put(player, new GamePlayer(player));
-		internalAddPlayer(player, 500 * waveNumber);
+		int points = ConfigManager.getMainConfig().respawnKeepsPoints ? PointManager.INSTANCE.getPlayersPoints(player) : 500 * waveNumber;
+		internalAddPlayer(player, points);
 		sendMessageToPlayers(player.getName() + " can play again!");
 	}
 
@@ -934,6 +937,7 @@ public class Game
 	public void setDead(Player player)
 	{
 		gamePlayers.computeIfAbsent(player, GamePlayer::new).setState(PlayerState.DEAD);
+		downedPlayerManager.interruptRevivesBy(player);
 		equipmentManager.clearPlayer(player);
 		setPlayerSpectatorMode(player);
 		// A death may have been the last active player (solo bleed-out, Who's Who timeout, last
@@ -968,6 +972,7 @@ public class Game
 		if(ghost != null)
 			ghost.quitCleanup();
 
+		downedPlayerManager.interruptRevivesBy(player);
 		if(downedPlayerManager.isDownedPlayer(player))
 			downedPlayerManager.removeDownedPlayer(player);
 		if(gamePlayers.containsKey(player))
@@ -1029,7 +1034,7 @@ public class Game
 		player.getInventory().clear();
 		CachedPlayerInfo.restorePlayerInfo(player);
 		player.setHealth(20);
-		player.setWalkSpeed(0.2F);
+		com.theprogrammingturkey.comz.game.managers.PlayerSpeed.reset(player);
 		player.setMaximumNoDamageTicks(20);
 		scoreboard.removePlayer(player);
 		player.updateInventory();
@@ -1645,9 +1650,16 @@ public class Game
 	 * drop. On success either award a small points bonus or refill the player's ammo (even odds),
 	 * with a subtle pickup effect.
 	 */
+	/** Zombies, hellhounds and bosses count toward kill stats and Vulture Aid. */
+	private static boolean countsAsKill(Mob mob)
+	{
+		return mob instanceof Zombie || com.theprogrammingturkey.comz.spawning.HellHoundSpawner.isDog(mob)
+				|| com.theprogrammingturkey.comz.spawning.BossSpawner.isBoss(mob);
+	}
+
 	private void tryVultureDrop(Mob mob, Player player)
 	{
-		if(!(mob instanceof Zombie))
+		if(!countsAsKill(mob))
 			return;
 		if(!perkManager.hasPerk(player, PerkType.VULTURE_AID))
 			return;
@@ -1677,6 +1689,7 @@ public class Game
 	{
 		damageMob(mob, player, damageAmount);
 		if(mob instanceof Zombie && !mob.isDead() && spawnManager.isEntitySpawned(mob) && !specialEnemyManager.isSpecial(mob)
+				&& !com.theprogrammingturkey.comz.spawning.BossSpawner.isBoss(mob)
 				&& COMZombies.rand.nextDouble() < ConfigManager.getMainConfig().crawlerExplosiveChance)
 			com.theprogrammingturkey.comz.spawning.ZombieSpawner.convertToCrawler(this, mob);
 	}
@@ -1690,7 +1703,8 @@ public class Game
 	{
 		if(ConfigManager.getMainConfig().visualsHitFeedback)
 			player.playSound(player.getLocation(), Sound.ENTITY_ARROW_HIT_PLAYER, 0.35f, headshotKill ? 1.8f : 1.3f);
-		double mobHealth = mob.getHealth() - damageAmount;
+		double damageScale = com.theprogrammingturkey.comz.spawning.ZombieHealth.damageScale(mob);
+		double mobHealth = mob.getHealth() - damageAmount * damageScale;
 		mob.playEffect(EntityEffect.HURT);
 
 		// Insta-Kill must not instantly remove a last-zombie crawler, otherwise it would auto-end the round
@@ -1699,14 +1713,14 @@ public class Game
 		if(isInstaKill() && !heldCrawler && !specialEnemyManager.isInstaKillImmune(mob))
 		{
 			if(mob instanceof Zombie)
-				player.getWorld().playSound(mob.getLocation(), Sound.ENTITY_ZOMBIE_DEATH, 1f, 1f);
+				com.theprogrammingturkey.comz.util.SoundUtil.playKey(player.getWorld(), mob.getLocation(), "zombie.death", "ENTITY_ZOMBIE_DEATH", org.bukkit.SoundCategory.HOSTILE, 1f, 1f);
 			else
 				player.getWorld().playSound(mob.getLocation(), Sound.ENTITY_GENERIC_EXPLODE, 1f, 1f);
 
 			powerUpManager.powerUpDrop(mob, player);
 			specialEnemyManager.onKilled(mob, player);
 			triggerManager.onMobKilled(mob.getLocation());
-			mob.remove();
+			com.theprogrammingturkey.comz.listeners.EntityListener.playDeath(mob);
 			int killScore = killPoints(specialEnemyManager.killPoints(mob, ConfigManager.getMainConfig().pointsOnKill), headshotKill, meleeKill,
 					ConfigManager.getMainConfig().headshotKillBonus, ConfigManager.getMainConfig().meleeKillBonus, isDoublePoints());
 			PointManager.INSTANCE.addPoints(player, killScore);
@@ -1714,9 +1728,9 @@ public class Game
 
 			PointManager.INSTANCE.notifyPlayer(player);
 			tryVultureDrop(mob, player);
-			spawnManager.removeEntity(mob);
+			spawnManager.removeKilledEntity(mob);
 
-			if(mob instanceof Zombie)
+			if(countsAsKill(mob))
 				zombieKilled(player);
 
 			if(!changingRound && spawnManager.getMobsSpawned() <= 0 && spawnManager.getMobsSpawned() == spawnManager.getMobsToSpawn())
@@ -1730,17 +1744,17 @@ public class Game
 				nextWave();
 			}
 		}
-		else if(mobHealth < 1)
+		else if(mobHealth < damageScale)
 		{
 			if(mob instanceof Zombie)
-				player.getWorld().playSound(mob.getLocation(), Sound.ENTITY_ZOMBIE_DEATH, 1f, 1f);
+				com.theprogrammingturkey.comz.util.SoundUtil.playKey(player.getWorld(), mob.getLocation(), "zombie.death", "ENTITY_ZOMBIE_DEATH", org.bukkit.SoundCategory.HOSTILE, 1f, 1f);
 			else
 				player.getWorld().playSound(mob.getLocation(), Sound.ENTITY_GENERIC_EXPLODE, 1f, 1f);
 
 			powerUpManager.powerUpDrop(mob, player);
 			specialEnemyManager.onKilled(mob, player);
 			triggerManager.onMobKilled(mob.getLocation());
-			mob.remove();
+			com.theprogrammingturkey.comz.listeners.EntityListener.playDeath(mob);
 			int killScore = killPoints(specialEnemyManager.killPoints(mob, ConfigManager.getMainConfig().pointsOnKill), headshotKill, meleeKill,
 					ConfigManager.getMainConfig().headshotKillBonus, ConfigManager.getMainConfig().meleeKillBonus, isDoublePoints());
 			PointManager.INSTANCE.addPoints(player, killScore);
@@ -1748,9 +1762,9 @@ public class Game
 
 			PointManager.INSTANCE.notifyPlayer(player);
 			tryVultureDrop(mob, player);
-			spawnManager.removeEntity(mob);
+			spawnManager.removeKilledEntity(mob);
 
-			if(mob instanceof Zombie)
+			if(countsAsKill(mob))
 				zombieKilled(player);
 
 			if(!changingRound && spawnManager.getEntities().isEmpty() && spawnManager.getMobsSpawned() == spawnManager.getMobsToSpawn())
@@ -1766,7 +1780,7 @@ public class Game
 		{
 			mob.setHealth(mobHealth);
 			if(mob instanceof Zombie)
-				player.getWorld().playSound(mob.getLocation(), Sound.ENTITY_ZOMBIE_HURT, 1f, 1f);
+				com.theprogrammingturkey.comz.util.SoundUtil.playKey(player.getWorld(), mob.getLocation(), "zombie.hurt", "ENTITY_ZOMBIE_HURT", org.bukkit.SoundCategory.HOSTILE, 1f, 1f);
 			else
 				player.getWorld().playSound(mob.getLocation(), Sound.ENTITY_GENERIC_HURT, 1f, 1f);
 
@@ -1809,10 +1823,12 @@ public class Game
 				com.theprogrammingturkey.comz.util.PointPopup.show(credit, mob, score);
 				PointManager.INSTANCE.notifyPlayer(credit);
 			}
-			if(mob instanceof Zombie)
+			if(countsAsKill(mob))
 				zombieKilled(credit);
 		}
 		// killMob → removeEntity advances the round when this was the last zombie.
+		if(HellHoundSpawner.isDog(mob))
+			HellHoundSpawner.explode(this, mob);
 		spawnManager.killMob(mob);
 	}
 
@@ -1975,6 +1991,19 @@ public class Game
 	public boolean isPlayerPlaying(Player player)
 	{
 		return getPlayersInGame().contains(player);
+	}
+
+	/** Still playing this life: IN_GAME, which includes being downed but not dead, spectating or gone. */
+	public boolean isPlayerAlive(Player player)
+	{
+		GamePlayer gamePlayer = gamePlayers.get(player);
+		return gamePlayer != null && gamePlayer.isInGame();
+	}
+
+	/** Alive and on their feet: may repair windows, pick up power-ups and revive others. */
+	public boolean isActivePlayer(Player player)
+	{
+		return isPlayerAlive(player) && !downedPlayerManager.isDownedPlayer(player);
 	}
 
 	public boolean isPlayerExited(Player player)

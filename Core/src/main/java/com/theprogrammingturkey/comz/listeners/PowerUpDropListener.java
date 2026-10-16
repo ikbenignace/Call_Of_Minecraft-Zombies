@@ -140,6 +140,11 @@ public class PowerUpDropListener implements Listener
 			}
 
 			final Game game = GameManager.INSTANCE.getGame(player);
+			if(!game.isActivePlayer(player))
+			{
+				event.setCancelled(true);
+				return;
+			}
 
 			event.getItem().remove();
 			event.setCancelled(true);

@@ -6,6 +6,7 @@ import com.theprogrammingturkey.comz.game.Game;
 import com.theprogrammingturkey.comz.util.Compat;
 import org.bukkit.Location;
 import org.bukkit.Particle;
+import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Mob;
 import org.bukkit.entity.Player;
@@ -20,6 +21,11 @@ public class ZombieSpawner extends RoundSpawner
 {
 	/** Bukkit metadata key marking a zombie that has been turned into a slow gas crawler. */
 	public static final String CRAWLER_META = "comz_crawler";
+
+	private static final String BASE_SPEED_META = "comz_base_speed";
+
+	/** Marks a Nova-style crawler: the only kind that leaves a toxic gas cloud behind. */
+	public static final String GAS_CRAWLER_META = "comz_gas_crawler";
 
 	/** How often (ticks) a crawler emits its gas / re-applies the brief poison cloud. */
 	private static final long GAS_PERIOD_TICKS = 40L;
@@ -59,17 +65,18 @@ public class ZombieSpawner extends RoundSpawner
 
 		mob.setMetadata(CRAWLER_META, new FixedMetadataValue(COMZombies.getPlugin(), true));
 
+		// BO crawlers keep whatever health they had left; crawlerHealth > 0 is an optional ceiling.
 		double crawlerHealth = ConfigManager.getMainConfig().crawlerHealth;
-		SPEED_HELPER.setMaxHealth(mob, (float) crawlerHealth);
-		if(mob.getHealth() > crawlerHealth)
-			mob.setHealth(crawlerHealth);
+		if(crawlerHealth > 0 && ZombieHealth.virtualHealth(mob) > crawlerHealth)
+			ZombieHealth.applyHealth(mob, crawlerHealth, crawlerHealth);
+		if(COMZombies.rand.nextDouble() < ConfigManager.getMainConfig().crawlerGasChance)
+			mob.setMetadata(GAS_CRAWLER_META, new FixedMetadataValue(COMZombies.getPlugin(), true));
 
 		// Slow, but still able to crawl toward players. The crawler speed is driven solely by the
 		// configurable crawlerSpeedMultiplier (default 0.35) and multiplies the zombie's real base
 		// speed (~0.23) — no Slowness potion is stacked on top. That lands the crawler at ~0.08,
 		// a genuine slow crawl. (An earlier attempt used getDefaultValue() inside setSpeed, which
-		// read the generic 0.7 attribute default and made crawlers ~3x too fast.) Crawlers are
-		// exempt from the stuck-zombie teleporter (see SpawnManager.checkStuck).
+		// read the generic 0.7 attribute default and made crawlers ~3x too fast.)
 		SPEED_HELPER.setSpeed(mob, (float) ConfigManager.getMainConfig().crawlerSpeedMultiplier);
 
 		// Read as a small ground-hugging crawler: shrink the model + hitbox (~0.6) and bump jump
@@ -79,6 +86,14 @@ public class ZombieSpawner extends RoundSpawner
 		applyCrawlPose(mob);
 
 		scheduleCrawlerTick(game, mob, 0);
+	}
+
+	public static boolean isGasCrawler(Mob mob)
+	{
+		for(MetadataValue mv : mob.getMetadata(GAS_CRAWLER_META))
+			if(mv.getOwningPlugin() == COMZombies.getPlugin() && mv.asBoolean())
+				return true;
+		return false;
 	}
 
 	/**
@@ -112,7 +127,7 @@ public class ZombieSpawner extends RoundSpawner
 				return;
 
 			applyCrawlPose(mob);
-			if(tick % TICKS_PER_GAS == 0)
+			if(tick % TICKS_PER_GAS == 0 && isGasCrawler(mob))
 				emitGas(game, mob);
 
 			scheduleCrawlerTick(game, mob, tick + 1);
@@ -140,18 +155,38 @@ public class ZombieSpawner extends RoundSpawner
 		}
 	}
 
-	/** Walker, runner or sprinter multiplier for a zombie spawned on {@code wave}; fast types grow likelier each round. */
+	/**
+	 * BO1 move speed roll: a zombie rolls in {@code [round * perRound, round * perRound + spread)};
+	 * up to the walk threshold it walks, up to the run threshold it runs, above that it sprints.
+	 * With the defaults round 1 is ~80% walkers and every zombie sprints from round 9.
+	 */
 	static float speedMultiplier(int wave)
 	{
 		com.theprogrammingturkey.comz.config.ConfigSetup cfg = ConfigManager.getMainConfig();
-		int roll = COMZombies.rand.nextInt(100);
-		int sprinterChance = wave >= cfg.zombieSprinterStartRound ? Math.min(60, 10 + 8 * (wave - cfg.zombieSprinterStartRound)) : 0;
-		if(roll < sprinterChance)
+		int spread = Math.max(1, cfg.zombieMoveSpeedSpread);
+		int roll = Math.max(0, wave) * cfg.zombieMoveSpeedPerRound + COMZombies.rand.nextInt(spread);
+		if(roll > cfg.zombieRunThreshold)
 			return (float) cfg.zombieSprinterSpeed;
-		int runnerChance = wave >= cfg.zombieRunnerStartRound ? Math.min(80, 20 + 15 * (wave - cfg.zombieRunnerStartRound)) : 0;
-		if(COMZombies.rand.nextInt(100) < runnerChance)
+		if(roll > cfg.zombieWalkThreshold)
 			return (float) cfg.zombieRunnerSpeed;
 		return 1f;
+	}
+
+	/** Bumps the last zombie of a round to sprinter speed; a no-op on crawlers or a mob already that fast. */
+	public static void makeSprinter(Mob mob)
+	{
+		if(mob == null || mob.isDead() || isCrawler(mob))
+			return;
+		AttributeInstance attr = mob.getAttribute(Compat.MOVEMENT_SPEED);
+		if(attr == null)
+			return;
+		double base = attr.getDefaultValue();
+		for(MetadataValue mv : mob.getMetadata(BASE_SPEED_META))
+			if(mv.getOwningPlugin() == COMZombies.getPlugin())
+				base = mv.asDouble();
+		double sprint = base * ConfigManager.getMainConfig().zombieSprinterSpeed;
+		if(attr.getBaseValue() < sprint)
+			attr.setBaseValue(sprint);
 	}
 
 	@Override
@@ -162,8 +197,11 @@ public class ZombieSpawner extends RoundSpawner
 		Location location = new Location(loc.getLocation().getWorld(), loc.getLocation().getBlockX(), loc.getLocation().getBlockY(), loc.getLocation().getBlockZ());
 		location.add(0.5, 0, 0.5);
 		Zombie zomb = (Zombie) location.getWorld().spawnEntity(location, EntityType.ZOMBIE);
-		com.theprogrammingturkey.comz.util.ParticleFX.groundBreak(location.getWorld(), location);
-		com.theprogrammingturkey.comz.util.SoundUtil.playKey(location.getWorld(), location, "zombie.spawn", "BLOCK_GRAVEL_BREAK", org.bukkit.SoundCategory.HOSTILE, 0.8F, 1.0F);
+		if(game.barrierManager.getBarrier(loc) == null)
+		{
+			com.theprogrammingturkey.comz.util.ParticleFX.groundBreak(location.getWorld(), location);
+			com.theprogrammingturkey.comz.util.SoundUtil.playKey(location.getWorld(), location, "zombie.spawn", "BLOCK_GRAVEL_BREAK", org.bukkit.SoundCategory.HOSTILE, 0.8F, 1.0F);
+		}
 		COMZombies.scheduleTask(10, () ->
 		{
 			if(zomb.getEquipment() != null)
@@ -172,10 +210,11 @@ public class ZombieSpawner extends RoundSpawner
 		zomb.setBaby(false);
 		setFollowDistance(zomb, 512);
 
-		float strength = zombieHealth(wave);
-		setMaxHealth(zomb, strength);
-		zomb.setHealth(strength);
+		ZombieHealth.applyHealth(zomb, zombieHealth(wave));
 
+		AttributeInstance speedAttr = zomb.getAttribute(Compat.MOVEMENT_SPEED);
+		if(speedAttr != null)
+			zomb.setMetadata(BASE_SPEED_META, new FixedMetadataValue(COMZombies.getPlugin(), speedAttr.getValue()));
 		double variation = ConfigManager.getMainConfig().zombieSpeedVariation;
 		float speed = speedMultiplier(wave) * (float) (1 + variation * (COMZombies.rand.nextDouble() * 2 - 1));
 		if(speed != 1f)

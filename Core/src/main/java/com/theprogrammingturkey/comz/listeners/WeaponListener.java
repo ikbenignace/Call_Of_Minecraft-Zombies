@@ -61,7 +61,8 @@ public class WeaponListener implements Listener
 	public static boolean isWonderWeapon(String gunName)
 	{
 		return THUNDERGUN.equalsIgnoreCase(gunName) || THUNDERGUN_PAP.equalsIgnoreCase(gunName)
-				|| WUNDERWAFFE.equalsIgnoreCase(gunName) || WUNDERWAFFE_PAP.equalsIgnoreCase(gunName);
+				|| WUNDERWAFFE.equalsIgnoreCase(gunName) || WUNDERWAFFE_PAP.equalsIgnoreCase(gunName)
+				|| com.theprogrammingturkey.comz.game.managers.WeaponManager.wonderBaseOf(com.theprogrammingturkey.comz.game.managers.WeaponManager.getWeapon(gunName)) != null;
 	}
 
 	/**
@@ -203,7 +204,7 @@ public class WeaponListener implements Listener
 									float damage = baseDamage;
 									if(headshot)
 									{
-										damage *= 1.5f;
+										damage *= (float) gun.getType().headshotMultiplier();
 										// Tier 1 — Deadshot Daiquiri: extra headshot damage on top of the base bonus.
 										if(game.perkManager.hasPerk(player, PerkType.DEADSHOT_DAIQ))
 											damage *= (float) ConfigManager.getMainConfig().deadshotHeadshotMultiplier;
@@ -277,6 +278,8 @@ public class WeaponListener implements Listener
 				if(mob.getLocation().distanceSquared(impact) <= radiusSq)
 					game.damageMobExplosive(mob, player, splashDmg);
 			}
+			if(gun.getType().selfDamage)
+				explosiveSelfDamage(game, player, impact, splashRadius);
 			world.spawnParticle(Compat.EXPLOSION, impact, 2, 0.4, 0.4, 0.4, 0);
 			world.spawnParticle(Compat.DUST, impact, 30, splashRadius / 2, splashRadius / 2, splashRadius / 2, new Particle.DustOptions(gun.getType().particleColor, 1.6F));
 			world.playSound(impact, Sound.ENTITY_GENERIC_EXPLODE, 0.8F, 1.4F);
@@ -358,6 +361,28 @@ public class WeaponListener implements Listener
 		}
 	}
 
+	/**
+	 * BO explosives (frag grenades, Ray Gun and launcher splash) hurt the thrower/shooter too, falling off with
+	 * distance; PhD Flopper is what makes them safe.
+	 */
+	public static void explosiveSelfDamage(Game game, Player player, Location centre, double radius)
+	{
+		ConfigSetup cfg = ConfigManager.getMainConfig();
+		if(cfg.explosiveSelfDamage <= 0 || radius <= 0 || centre.getWorld() != player.getWorld())
+			return;
+		if(game.perkManager.hasPerk(player, PerkType.PHD_FLOPPER) || !game.getPlayersInGame().contains(player)
+				|| game.downedPlayerManager.isDownedPlayer(player) || game.downedPlayerManager.isGhost(player))
+			return;
+		double dist = player.getLocation().distance(centre);
+		if(dist >= radius)
+			return;
+		double damage = cfg.explosiveSelfDamage * (1 - dist / radius);
+		if(game.perkManager.hasPerk(player, PerkType.JUGGERNOG))
+			damage /= cfg.juggernogHealth;
+		if(damage > 0)
+			player.damage(damage);
+	}
+
 	@EventHandler
 	public void onGunReload(PlayerInteractEvent e)
 	{
@@ -418,7 +443,9 @@ public class WeaponListener implements Listener
 				ItemStack grenadeStack = new ItemStack(Material.SLIME_BALL);
 				com.theprogrammingturkey.comz.util.PackModels.apply(grenadeStack, "throwable/grenade");
 				final Item item = player.getWorld().dropItemNaturally(player.getEyeLocation(), grenadeStack);
-				handStack.setAmount(handStack.getAmount() - 1);
+				PlayerWeaponManager throwables = game.getPlayersWeapons(player);
+				if(throwables == null || !throwables.consumeThrowable(player.getInventory().getHeldItemSlot()))
+					handStack.setAmount(handStack.getAmount() - 1);
 				item.setVelocity(player.getLocation().getDirection().multiply(1));
 				item.setPickupDelay(1000);
 
@@ -447,6 +474,7 @@ public class WeaponListener implements Listener
 						if(dist < 5)
 							game.damageMobExplosive(mob, player, 50f / (dist * dist * dist));
 					}
+					explosiveSelfDamage(game, player, loc, 5);
 
 					item.remove();
 					Bukkit.getScheduler().cancelTask(ticker);
@@ -457,7 +485,9 @@ public class WeaponListener implements Listener
 				ItemStack monkeyStack = new ItemStack(Material.MAGMA_CREAM);
 				com.theprogrammingturkey.comz.util.PackModels.apply(monkeyStack, "throwable/monkey_bomb");
 				final Item item = player.getWorld().dropItemNaturally(player.getEyeLocation(), monkeyStack);
-				handStack.setAmount(handStack.getAmount() - 1);
+				PlayerWeaponManager throwables = game.getPlayersWeapons(player);
+				if(throwables == null || !throwables.consumeThrowable(player.getInventory().getHeldItemSlot()))
+					handStack.setAmount(handStack.getAmount() - 1);
 				item.setVelocity(player.getLocation().getDirection().multiply(1));
 				item.setPickupDelay(1000);
 

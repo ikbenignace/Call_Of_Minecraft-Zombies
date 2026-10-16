@@ -199,9 +199,11 @@ public class DownedPlayerManager
 		boolean hasQuickRevive = game.perkManager.hasPerk(player, PerkType.QUICK_REVIVE);
 		// A rider must be on solid ground before the down seat is spawned at their feet.
 		game.transportManager.dismount(player);
+		interruptRevivesBy(player);
 		DownedPlayer down = new DownedPlayer(player, game);
-		down.setPlayerDown();
+		// Listed before setPlayerDown so the speed calculation already sees the player as down.
 		downedPlayers.add(down);
+		down.setPlayerDown();
 		com.theprogrammingturkey.comz.util.SoundUtil.playKey(player.getWorld(), player.getLocation(), "player.downed", "ENTITY_PLAYER_BIG_FALL", org.bukkit.SoundCategory.PLAYERS, 1, 0.8f);
 		player.setHealth(1D);
 
@@ -280,6 +282,7 @@ public class DownedPlayerManager
 	{
 		if(isGhost(player))
 			return false;
+		interruptRevivesBy(player);
 		WhosWhoGhost ghost = new WhosWhoGhost(player, game, this);
 		whosWhoGhosts.put(player.getUniqueId(), ghost);
 		ghost.start();
@@ -349,6 +352,14 @@ public class DownedPlayerManager
 			if(player.equals(dp.getReviver()))
 				return dp;
 		return null;
+	}
+
+	/** Cancels any revive the given player is performing, e.g. because they went down, died or left. */
+	public void interruptRevivesBy(Player reviver)
+	{
+		for(DownedPlayer dp : new ArrayList<>(downedPlayers))
+			if(reviver.equals(dp.getReviver()))
+				dp.interruptRevive();
 	}
 
 	public void downedPlayerRevived(DownedPlayer dp)

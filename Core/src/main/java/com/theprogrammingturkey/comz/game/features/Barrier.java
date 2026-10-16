@@ -90,13 +90,7 @@ public class Barrier implements Runnable
 
 	public boolean repair(Player player)
 	{
-		// #70 — block the repair-while-being-broken exploit. Players used to be able to spam-repair
-		// (shift-to-repair or sign-break) while zombies were actively breaking the same barrier,
-		// ping-ponging the stage with no lock. While a zombie is actively breaking this barrier,
-		// repairs are rejected so the breaker-out race is no longer winnable by spam.
-		if(breaking)
-			return stage <= -1;
-
+		// BO: boards go back up while a zombie is still pulling at the window; that race is the core loop.
 		if(stage <= -1)
 			return true;
 
@@ -108,6 +102,8 @@ public class Barrier implements Runnable
 		int granted = game.barrierManager.claimRepairPoints(player, reward);
 		if(granted > 0)
 		{
+			if(game.isDoublePoints())
+				granted *= 2;
 			PointManager.INSTANCE.addPoints(player, granted);
 			PointManager.INSTANCE.notifyPlayer(player);
 		}
