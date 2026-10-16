@@ -74,8 +74,8 @@ config:
     zombieSpawnDelayMin: 0.1
     #Global multiplier on the BO round count.
     zombieCountMultiplier: 1.0
-    #BO1 speed roll: each zombie rolls round*zombieMoveSpeedPerRound + random(0..zombieMoveSpeedSpread). Up to zombieWalkThreshold it walks, up to zombieRunThreshold it runs, above that it sprints. Defaults: round 1 ~85% walkers, round 3 about half, walkers gone from round 6, all sprinters from round 12 (BO1 itself uses 8).
-    zombieMoveSpeedPerRound: 6
+    #BO1 speed roll: each zombie rolls round*zombieMoveSpeedPerRound + random(0..zombieMoveSpeedSpread). Up to zombieWalkThreshold it walks, up to zombieRunThreshold it runs, above that it sprints. Defaults (BO1/BO2): round 1 80% walkers, round 3 a third, walkers gone from round 5, all sprinters from round 9. Black Ops 3 uses 4.
+    zombieMoveSpeedPerRound: 8
     zombieMoveSpeedSpread: 35
     zombieWalkThreshold: 35
     zombieRunThreshold: 70
@@ -85,7 +85,7 @@ config:
     zombieHealthCap: 1024
     #Spawn zombies only in arena zones that hold a player or touch one (directly or via an opened door), as in BO. Arenas without zones spawn near players as before.
     spawnActiveZonesOnly: true
-    #How much faster than a walker runners and sprinters cover ground (a sprinter at 2.2 stays just under a sprinting player).
+    #How much faster than a walker runners and sprinters cover ground. A walker (vanilla zombie) does 2.3 blocks/s, about half a walking player as in BO; runner 1.6 = 3.7 blocks/s, just under a walking player; sprinter 2.2 = 5.1 blocks/s, just under a sprinting player.
     zombieRunnerSpeed: 1.6
     zombieSprinterSpeed: 2.2
     #Each zombie's speed is varied by up to this fraction either way, so a horde never moves in lockstep.
