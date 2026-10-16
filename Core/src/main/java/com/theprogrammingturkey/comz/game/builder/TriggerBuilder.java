@@ -150,6 +150,7 @@ public final class TriggerBuilder
 				trigger.getTargets().add(target);
 				draft.history.add(false);
 				feedback(player, clicked, ChatColor.YELLOW + "Target " + trigger.getTargets().size() + ": " + target.describe());
+				targetHint(player, trigger.getTargets().size(), target);
 			}
 		}
 		if(error != null)
@@ -245,8 +246,41 @@ public final class TriggerBuilder
 			case STAND_ON:
 				msg(player, ChatColor.GRAY + "1 player; change it with s" + number + ".count=<n|all>, and use 'simultaneous' to require every plate at once.");
 				break;
+			case INTERACT:
+				msg(player, ChatColor.GRAY + "Make it a hack with s" + number + ".gear=<equipment, e.g. Hacker> and s" + number + ".hold=<seconds>.");
+				break;
+			case ROUND_CHANCE:
+				msg(player, ChatColor.GRAY.toString() + step.getAmount() + "% each round; change it with s" + number + ".chance=<percent>.");
+				break;
 			default:
 		}
+	}
+
+	private static void targetHint(Player player, int number, TriggerTarget target)
+	{
+		String t = "t" + number;
+		switch(target.getKind())
+		{
+			case CLONE_BLOCKS:
+				msg(player, ChatColor.GRAY + "Copies that zone's blocks. Where to: " + t + ".to=here|x,y,z; " + t + ".mode=replace|masked|move|masked move; "
+						+ t + ".filter=<block|#tag>.");
+				break;
+			case FILL_BLOCKS:
+				msg(player, ChatColor.GRAY + "Fills that zone with air. " + t + ".block=<block state>; " + t + ".filter=<block|#tag> to replace only that.");
+				break;
+			case PLAY_SOUND:
+				msg(player, ChatColor.GRAY + "Set the sound with " + t + ".sound=<sound or sounds.json key> and " + t + ".volume=<n>.");
+				break;
+			case SET_ZONE:
+				msg(player, ChatColor.GRAY + "Switches that zone off when it runs; " + t + ".on=true switches it back on.");
+				break;
+			case GIVE_POINTS_TO_PLAYER:
+				msg(player, ChatColor.GRAY.toString() + target.getAmount() + " points to whoever finishes it; change with " + t + ".points=<n>.");
+				break;
+			default:
+		}
+		if(target.getKind() != TriggerTarget.Kind.AFTER)
+			msg(player, ChatColor.DARK_GRAY + "Timeline: " + t + ".delay=<seconds> runs it that long after the trigger fires.");
 	}
 
 	/** Fills a new target from the click; returns an error message or null. */
@@ -290,6 +324,47 @@ public final class TriggerBuilder
 				target.getBlocks().add(new TriggerTarget.PlacedBlock(clicked.getX(), clicked.getY(), clicked.getZ(), clicked.getBlockData().getAsString()));
 				msg(player, ChatColor.GRAY + "Saved this block as it is now; take it away again and it appears when the trigger fires (restored at game end).");
 				return null;
+			case AFTER:
+				return "A timeline step holds other targets: add the target itself, then type t<N>.delay=<seconds>.";
+			case CLONE_BLOCKS:
+			case FILL_BLOCKS:
+			{
+				Zone zone = zoneAt(game, clicked);
+				if(zone == null)
+					return "Click inside a zone around the blocks (mark it with a zone preset of the Feature tool first).";
+				target.setBox(zone.getMin().toVector(), zone.getMax().toVector());
+				if(target.getKind() == TriggerTarget.Kind.CLONE_BLOCKS)
+					target.setPoint(zone.getMin().toVector());
+				return null;
+			}
+			case PLAY_SOUND:
+				target.setPoint(clicked.getLocation().toVector());
+				return null;
+			case RESET_TRIGGER:
+			{
+				Trigger other = triggerNear(game, clicked);
+				if(other == null)
+					return "Click next to a step of the trigger to reset.";
+				target.setValue(other.getId());
+				return null;
+			}
+			case SET_ZONE:
+			{
+				Zone zone = zoneAt(game, clicked);
+				if(zone == null)
+					return "Click inside the zone to switch.";
+				target.setValue(zone.getId());
+				return null;
+			}
+			case LOCK_TELEPORTER:
+			{
+				String name = teleporterNear(game, clicked);
+				Transport transport = name == null ? game.transportManager.findNear(clicked.getLocation().add(0.5, 1, 0.5).toVector(), EDIT_REACH) : null;
+				if(name == null && transport == null)
+					return "Click a teleporter or next to a transport.";
+				target.setValue(name != null ? name : transport.getId());
+				return null;
+			}
 			default:
 				return null;
 		}
@@ -363,7 +438,7 @@ public final class TriggerBuilder
 			return;
 		TriggerDraft draft = session.getTriggerDraft();
 		Trigger trigger = draft.pendingOptions;
-		switch(TriggerOptions.apply(player, trigger, message))
+		switch(TriggerOptions.apply(player, session.getGame(), trigger, message))
 		{
 			case DONE:
 				draft.pendingOptions = null;
@@ -579,8 +654,27 @@ public final class TriggerBuilder
 				drawLine(player, dust, previous, at, new Particle.DustOptions(Color.WHITE, 0.6f));
 			previous = at;
 		}
-		for(TriggerTarget target : trigger.getTargets())
+		drawTargets(player, dust, trigger.getTargets(), size);
+	}
+
+	/** Target points in orange; clone and fill boxes as corner marks (yellow), a timeline's targets included. */
+	private static void drawTargets(Player player, Particle dust, java.util.List<TriggerTarget> targets, float size)
+	{
+		for(TriggerTarget target : targets)
 		{
+			drawTargets(player, dust, target.getTargets(), size);
+			if(target.getBoxMin() != null)
+			{
+				Vector min = target.getBoxMin();
+				Vector max = target.getBoxMax().clone().add(new Vector(1, 1, 1));
+				for(int i = 0; i < 8; i++)
+				{
+					Location corner = new Location(player.getWorld(), (i & 1) == 0 ? min.getX() : max.getX(), (i & 2) == 0 ? min.getY() : max.getY(),
+							(i & 4) == 0 ? min.getZ() : max.getZ());
+					if(corner.distanceSquared(player.getLocation()) <= VIEW_DISTANCE_SQ)
+						player.spawnParticle(dust, corner, 2, 0.05, 0.05, 0.05, 0, new Particle.DustOptions(Color.YELLOW, size));
+				}
+			}
 			if(target.getPoint() == null)
 				continue;
 			Location at = target.pointLocation(player.getWorld()).add(0, 1.2, 0);

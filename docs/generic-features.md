@@ -156,6 +156,14 @@ A trigger is a set of steps that unlocks a target when finished. Covers PaP gate
   `reset_trigger` (calls off a trigger's pending timeline and arms it again), `set_zone` (`value` zone id, `amount` 0
   switches it off: an air pocket after a breach), `lock_teleporter`, `disable_pack_a_punch`,
   `give_points_to_player` (only the player who finished the trigger);
+- build mode (Feature tool, Trigger variant): F cycles every step and target kind, right-click adds it. Clone and
+  fill targets take the box of the zone you click in (mark it with the Zone tool first); set zone, reset trigger,
+  lock teleporter and play sound take what you click. In the chat editor: `sN.gear=Hacker sN.hold=10`,
+  `sN.chance=<percent>`, `tN.delay=<seconds>` (puts a target on the timeline; same delays share one step),
+  `tN.to=here|x,y,z`, `tN.box=here|zone:<id>|x1,y1,z1,x2,y2,z2`, `tN.mode=replace|masked|move|masked move`,
+  `tN.block=<state>`, `tN.filter=<block|#tag>`, `tN.sound=`, `tN.volume=`, `tN.on=<bool>`, `silent`; timed targets
+  are edited as `tN.M.<key>=` and removed with `remove tN.M`. `list` shows the timeline in order, and the preview
+  marks clone/fill boxes in yellow;
 - doors with `price` 0 and no `signs` can only be opened by an `open_door` target and show no buy prompt (power
   walls, Der Riese PaP wall). Door `signs` entries may carry `blockdata`; a missing sign is re-created from it.
 
